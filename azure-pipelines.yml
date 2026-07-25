@@ -6,8 +6,10 @@ pr:
   branches:
     include: [main]
 
+# Agente self-hosted (pool Default) enquanto o free-parallelism Microsoft-hosted
+# não é concedido. Quando o grant sair, voltar para: vmImage: ubuntu-latest.
 pool:
-  vmImage: ubuntu-latest
+  name: Default
 
 variables:
   # Valores dummy: o build é dinâmico (não conecta em nada em CI).
