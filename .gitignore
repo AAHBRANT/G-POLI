@@ -1,0 +1,32 @@
+# deps / build
+node_modules/
+.next/
+out/
+build/
+next-env.d.ts
+
+# segredos e ambiente — ignora todas as variantes, exceto o template
+.env
+.env.*
+!.env.example
+
+# dados reais / uploads / dumps (MODELO-DOC-002)
+/uploads/
+/data/
+*.dump
+*.sqlite
+
+# credenciais / certificados
+*.pem
+*.key
+*.pfx
+*.crt
+*.p12
+credentials*.json
+azure-vars.txt
+openai-cred.txt
+
+# logs / temp / OS
+*.log
+.DS_Store
+Thumbs.db

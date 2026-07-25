@@ -1,0 +1,170 @@
+// G-Políticas — schema inicial (v1). Fonte: APP-TEC-202.
+generator client {
+  provider      = "prisma-client-js"
+  // native = dev (Windows); debian = runtime do Azure App Service (Linux).
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Classificacao {
+  publico_interno
+  restrito
+  confidencial
+}
+
+enum EstadoPolitica {
+  rascunho
+  publicada
+  revogada
+}
+
+enum EstadoVersao {
+  ativa
+  substituida
+}
+
+enum EstadoDocumento {
+  importado
+  processando
+  reconhecido
+  falhou
+  aguardando_acao
+}
+
+enum TipoSecao {
+  texto
+  tabela
+}
+
+enum Perfil {
+  superadmin // gerencia admins, setores e regras gerais (topo)
+  admin // gerencia usuários comuns e vê auditoria
+  sgi // dono do conteúdo — edita as 8 seções
+  diretoria // aprova e publica
+  area // Gestor de Setor — edita seções liberadas + admin restrito ao(s) seu(s) setor(es)
+  colaborador // só lê publicada (padrão — nega por padrão)
+}
+
+// Setor (RH, TI, Financeiro, Operações…). Antiga "Area" — é o dono da política e agrupa usuários.
+model Area {
+  id        String     @id @default(cuid())
+  nome      String     @unique
+  ativa     Boolean    @default(true)
+  politicas Politica[]
+  usuarios  Usuario[]  @relation("SetorPrincipal") // legado (setor principal / dono da política)
+  membros   Usuario[]  @relation("UsuarioSetores") // N:N — usuários vinculados ao setor
+  criadoEm  DateTime   @default(now())
+}
+
+model Usuario {
+  id        String   @id @default(cuid())
+  oid       String?  @unique // object id do Entra; null enquanto convidado (ainda não logou)
+  email     String   @unique // normalizado em minúsculas; base da allowlist de acesso
+  nome      String   @default("")
+  perfil    Perfil   @default(colaborador)
+  area      Area?    @relation("SetorPrincipal", fields: [areaId], references: [id]) // legado
+  areaId    String?
+  setores   Area[]   @relation("UsuarioSetores") // N:N — setores do usuário
+  ativo     Boolean  @default(true)
+  convidadoPor String? // e-mail de quem convidou (auditoria leve)
+  criadoEm  DateTime @default(now())
+  atualizadoEm DateTime @default(now()) @updatedAt
+}
+
+model Politica {
+  id            String         @id @default(cuid())
+  codigo        String?        @unique // código normativo, ex.: POL-RH-001
+  titulo        String
+  area          Area           @relation(fields: [areaId], references: [id])
+  areaId        String
+  classificacao Classificacao
+  estado        EstadoPolitica @default(rascunho)
+  versoes       Versao[]
+  secoes        Secao[]
+  criadaEm      DateTime       @default(now())
+  publicadaEm   DateTime?
+  publicadaPorNome  String?
+  publicadaPorEmail String?
+  conteudoPublicado Json? // v2: snapshot das seções no momento da publicação (texto oficial congelado)
+  revogadaEm    DateTime?
+  ciencias      Ciencia[]
+
+  @@unique([titulo, areaId])
+}
+
+// Conteúdo estruturado da política (esqueleto normativo padrão AAHBRANT: seções 1–8).
+// v2: ciência de leitura — colaborador confirma que leu a norma publicada.
+model Ciencia {
+  id           String   @id @default(cuid())
+  politica     Politica @relation(fields: [politicaId], references: [id], onDelete: Cascade)
+  politicaId   String
+  usuarioOid   String
+  usuarioNome  String   @default("")
+  usuarioEmail String
+  criadoEm     DateTime @default(now())
+
+  @@unique([politicaId, usuarioOid])
+  @@index([politicaId])
+}
+
+// #3c: trilha de auditoria — registro imutável de ações relevantes.
+model Auditoria {
+  id           String   @id @default(cuid())
+  usuarioEmail String
+  usuarioNome  String   @default("")
+  perfil       String   @default("")
+  acao         String // ex.: politica.publicar, secao.salvar, usuario.perfil
+  entidade     String // ex.: Politica, Secao, Usuario
+  entidadeId   String
+  detalhe      String   @default("")
+  criadoEm     DateTime @default(now())
+
+  @@index([criadoEm])
+  @@index([entidade, entidadeId])
+}
+
+// abertaAArea: quando true, o perfil "area" da área dona pode editar esta seção (#3b).
+model Secao {
+  id          String    @id @default(cuid())
+  politica    Politica  @relation(fields: [politicaId], references: [id], onDelete: Cascade)
+  politicaId  String
+  ordem       Int
+  codigo      String // "1".."8"
+  titulo      String
+  tipo        TipoSecao @default(texto)
+  corpo       String    @default("") // usado quando tipo = texto
+  colunas     Json? // rótulos das colunas quando tipo = tabela
+  linhas      Json? // array de linhas (array de células) quando tipo = tabela
+  abertaAArea Boolean  @default(false) // #3b: libera edição para o perfil "area"
+  atualizadaEm DateTime @default(now()) @updatedAt
+
+  @@unique([politicaId, codigo])
+}
+
+model Versao {
+  id         String       @id @default(cuid())
+  politica   Politica     @relation(fields: [politicaId], references: [id])
+  politicaId String
+  numero     Int
+  estado     EstadoVersao @default(ativa)
+  documento  Documento?
+  criadaEm   DateTime     @default(now())
+
+  @@unique([politicaId, numero])
+}
+
+model Documento {
+  id        String          @id @default(cuid())
+  versao    Versao          @relation(fields: [versaoId], references: [id])
+  versaoId  String          @unique
+  nome      String
+  tipo      String
+  tamanho   Int
+  hash      String          @unique
+  estado    EstadoDocumento @default(importado)
+  enviadoEm DateTime        @default(now())
+}

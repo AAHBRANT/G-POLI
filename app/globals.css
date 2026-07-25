@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --marsala: #670000;
+  --bege: #ebe9ad;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  background: #f7f7f8;
+  color: #111;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}

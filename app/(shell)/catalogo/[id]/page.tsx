@@ -1,0 +1,215 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import NovaVersaoForm from "@/components/NovaVersaoForm";
+import AcoesEstado from "@/components/AcoesEstado";
+import CienciaBtn from "@/components/CienciaBtn";
+import { corClassificacao, rotuloClassificacao, ESTADOS_POLITICA } from "@/lib/constants";
+import { getUsuarioAtual, podeEditarConteudo, podePublicar } from "@/lib/auth/usuario";
+
+export const dynamic = "force-dynamic";
+
+function formatoTamanho(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+export default async function PoliticaDetalhe({ params }: { params: { id: string } }) {
+  const politica = await prisma.politica.findUnique({
+    where: { id: params.id },
+    include: {
+      area: true,
+      versoes: { include: { documento: true }, orderBy: { numero: "desc" } },
+      secoes: { orderBy: { ordem: "asc" } },
+      ciencias: { orderBy: { criadoEm: "desc" } },
+    },
+  });
+
+  if (!politica) notFound();
+
+  const usuario = await getUsuarioAtual();
+  const podeEditar = podeEditarConteudo(usuario, politica);
+  const podePub = podePublicar(usuario);
+  const minhaCiencia = usuario ? politica.ciencias.find((c) => c.usuarioOid === usuario.oid) : undefined;
+  const verRelatorioCiencia = !!usuario && ["sgi", "admin", "diretoria"].includes(usuario.perfil);
+  const estado = ESTADOS_POLITICA[politica.estado] ?? { rotulo: politica.estado, cor: "" };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <Link href="/catalogo" className="text-xs text-marsala hover:underline">
+          ← Voltar ao catálogo
+        </Link>
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          {politica.codigo && (
+            <span className="rounded bg-marsala-50 px-2 py-1 font-mono text-xs font-medium text-marsala">
+              {politica.codigo}
+            </span>
+          )}
+          <h2 className="text-lg font-semibold text-marsala">{politica.titulo}</h2>
+          <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${corClassificacao(politica.classificacao)}`}>
+            {rotuloClassificacao(politica.classificacao)}
+          </span>
+          <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${estado.cor}`}>
+            {estado.rotulo}
+          </span>
+          {podePub && <div className="ml-auto"><AcoesEstado id={politica.id} estado={politica.estado} /></div>}
+        </div>
+        <p className="mt-1 text-sm text-black/50">Área: {politica.area.nome}</p>
+        {politica.estado !== "rascunho" && politica.publicadaEm && (
+          <p className="mt-1 text-xs text-black/45">
+            Publicada em {politica.publicadaEm.toLocaleDateString("pt-BR")}
+            {politica.publicadaPorNome ? ` por ${politica.publicadaPorNome}` : ""}
+            {politica.estado === "revogada" && politica.revogadaEm
+              ? ` · revogada em ${politica.revogadaEm.toLocaleDateString("pt-BR")}`
+              : ""}
+          </p>
+        )}
+      </div>
+
+      {politica.estado === "publicada" && (
+        <section className="rounded-lg border border-black/10 bg-white p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-black/80">Ciência de leitura</h3>
+              <p className="text-xs text-black/45">
+                {minhaCiencia
+                  ? `Você deu ciência em ${minhaCiencia.criadoEm.toLocaleDateString("pt-BR")}.`
+                  : "Confirme que leu e está ciente desta norma."}
+              </p>
+            </div>
+            {minhaCiencia ? (
+              <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-medium text-emerald-800">
+                ✓ Ciente
+              </span>
+            ) : (
+              <CienciaBtn politicaId={politica.id} />
+            )}
+          </div>
+
+          {verRelatorioCiencia && (
+            <div className="mt-3 border-t border-black/5 pt-3">
+              <p className="mb-1 text-[11px] uppercase tracking-wide text-black/40">
+                Quem deu ciência ({politica.ciencias.length})
+              </p>
+              {politica.ciencias.length === 0 ? (
+                <p className="text-xs text-black/40">Ninguém ainda.</p>
+              ) : (
+                <ul className="flex flex-wrap gap-2">
+                  {politica.ciencias.map((c) => (
+                    <li key={c.id} className="rounded bg-black/5 px-2 py-1 text-[11px] text-black/60">
+                      {c.usuarioNome || c.usuarioEmail} · {c.criadoEm.toLocaleDateString("pt-BR")}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
+      <section className="overflow-hidden rounded-lg border border-black/10 bg-white">
+        <div className="flex items-center justify-between border-b border-black/5 px-4 py-3">
+          <h3 className="text-sm font-semibold text-black/80">
+            Conteúdo estruturado {politica.secoes.length > 0 && `(${politica.secoes.length} seções)`}
+          </h3>
+          {podeEditar && (
+            <Link
+              href={`/catalogo/${politica.id}/editar`}
+              className="rounded-md bg-marsala px-3 py-1.5 text-xs font-medium text-white transition hover:bg-marsala-600"
+            >
+              Editar conteúdo
+            </Link>
+          )}
+        </div>
+        {politica.secoes.length === 0 ? (
+          <p className="p-6 text-center text-sm text-black/50">
+            Sem conteúdo estruturado. Clique em “Editar conteúdo” para gerar o esqueleto padrão.
+          </p>
+        ) : (
+          <ul className="divide-y divide-black/5">
+            {politica.secoes.map((s) => {
+              const linhas = (s.linhas as string[][] | null) ?? [];
+              const preenchida =
+                s.tipo === "tabela" ? linhas.length > 0 : s.corpo.trim().length > 0;
+              return (
+                <li key={s.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded bg-black/5 text-xs font-semibold text-black/60">
+                    {s.codigo}
+                  </span>
+                  <span className="text-black/80">{s.titulo}</span>
+                  <span
+                    className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      preenchida ? "bg-emerald-100 text-emerald-800" : "bg-black/10 text-black/50"
+                    }`}
+                  >
+                    {preenchida ? "preenchida" : "vazia"}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      {podeEditar && <NovaVersaoForm politicaId={politica.id} />}
+
+      <div className="overflow-hidden rounded-lg border border-black/10 bg-white">
+        <div className="border-b border-black/5 px-4 py-3 text-sm font-semibold text-black/80">
+          Versões ({politica.versoes.length})
+        </div>
+        {politica.versoes.length === 0 ? (
+          <p className="p-6 text-center text-sm text-black/50">
+            Nenhum documento enviado. Use “Nova versão” acima.
+          </p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-black/[0.03] text-left text-xs uppercase tracking-wide text-black/50">
+              <tr>
+                <th className="px-4 py-2 font-medium">Versão</th>
+                <th className="px-4 py-2 font-medium">Documento</th>
+                <th className="px-4 py-2 font-medium">Tamanho</th>
+                <th className="px-4 py-2 font-medium">Estado</th>
+                <th className="px-4 py-2 font-medium">Enviado</th>
+                <th className="px-4 py-2 font-medium">Ação</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-black/5">
+              {politica.versoes.map((v) => (
+                <tr key={v.id} className="hover:bg-black/[0.02]">
+                  <td className="px-4 py-2 font-medium">
+                    v{v.numero}
+                    {v.estado === "ativa" && (
+                      <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-800">
+                        ativa
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2 text-black/70">{v.documento?.nome ?? "—"}</td>
+                  <td className="px-4 py-2 text-black/60">
+                    {v.documento ? formatoTamanho(v.documento.tamanho) : "—"}
+                  </td>
+                  <td className="px-4 py-2 text-black/60">{v.documento?.estado ?? "—"}</td>
+                  <td className="px-4 py-2 text-black/50">
+                    {v.criadaEm.toLocaleDateString("pt-BR")}
+                  </td>
+                  <td className="px-4 py-2">
+                    {v.documento && (
+                      <a
+                        href={`/api/documentos/${v.documento.id}`}
+                        className="text-marsala hover:underline"
+                      >
+                        Baixar
+                      </a>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}

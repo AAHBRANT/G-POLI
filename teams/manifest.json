@@ -1,0 +1,40 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.16",
+  "version": "1.0.1",
+  "id": "698c2c83-b704-4e0f-b5e5-f3095b054e58",
+  "developer": {
+    "name": "AAHBRANT",
+    "websiteUrl": "https://ca-gpol-hml-aahbrant.whitesmoke-8dee35f8.brazilsouth.azurecontainerapps.io",
+    "privacyUrl": "https://ca-gpol-hml-aahbrant.whitesmoke-8dee35f8.brazilsouth.azurecontainerapps.io/privacidade",
+    "termsOfUseUrl": "https://ca-gpol-hml-aahbrant.whitesmoke-8dee35f8.brazilsouth.azurecontainerapps.io/termos"
+  },
+  "name": {
+    "short": "G-Políticas",
+    "full": "G-Políticas — Gestão de Normativos AAHBRANT"
+  },
+  "description": {
+    "short": "Centraliza políticas e normativos da AAHBRANT.",
+    "full": "Cadastro, versionamento, publicação e busca de documentos normativos, com acesso pelo Microsoft Teams."
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#670000",
+  "staticTabs": [
+    {
+      "entityId": "gpol-painel",
+      "name": "Painel",
+      "contentUrl": "https://ca-gpol-hml-aahbrant.whitesmoke-8dee35f8.brazilsouth.azurecontainerapps.io/",
+      "websiteUrl": "https://ca-gpol-hml-aahbrant.whitesmoke-8dee35f8.brazilsouth.azurecontainerapps.io/",
+      "scopes": ["personal"]
+    }
+  ],
+  "permissions": ["identity"],
+  "validDomains": ["ca-gpol-hml-aahbrant.whitesmoke-8dee35f8.brazilsouth.azurecontainerapps.io"],
+  "webApplicationInfo": {
+    "id": "1b98db67-5ce0-469e-aea3-8beaf8044b87",
+    "resource": "api://1b98db67-5ce0-469e-aea3-8beaf8044b87"
+  }
+}

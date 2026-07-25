@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: g-politicas-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gpol
+      POSTGRES_PASSWORD: gpol_dev
+      POSTGRES_DB: gpoliticas
+    ports:
+      - "5432:5432"
+    volumes:
+      - gpol_pgdata:/var/lib/postgresql/data
+
+volumes:
+  gpol_pgdata:

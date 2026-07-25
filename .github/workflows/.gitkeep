@@ -1,0 +1,1 @@
+# CI/CD (Fase 0): build → testes → docker → ACR → containerapp update.
