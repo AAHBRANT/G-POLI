@@ -1,0 +1,42 @@
+# CI — valida toda alteração sem tocar em produção. Obrigatório para aprovar PR.
+trigger:
+  branches:
+    include: [main]
+pr:
+  branches:
+    include: [main]
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  # Valores dummy: o build é dinâmico (não conecta em nada em CI).
+  DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci?schema=public"
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: "20.x"
+    displayName: "Node 20"
+
+  - script: npm ci
+    displayName: "Instalar dependências (npm ci)"
+
+  - script: npx prisma generate
+    displayName: "Prisma generate"
+
+  - script: npx tsc --noEmit
+    displayName: "TypeScript (tsc --noEmit)"
+
+  - script: npm run lint
+    displayName: "Lint (ESLint)"
+    continueOnError: true
+
+  - script: npm test
+    displayName: "Testes (Vitest)"
+
+  - script: npm run build
+    displayName: "Build Next.js"
+
+  - script: docker build -t gpoliticas:$(Build.BuildId) .
+    displayName: "Build da imagem Docker"
