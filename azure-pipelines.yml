@@ -24,6 +24,18 @@ steps:
   - script: npm ci
     displayName: "Instalar dependências (npm ci)"
 
+  # Baseline do ambiente do agente self-hosted (ADR-002). Registra as versões
+  # das ferramentas no log de cada build — âncora auditável para reproduzir/
+  # diagnosticar o CI. npx prisma roda após npm ci (usa o binário local).
+  - script: |
+      echo "=== Ambiente do agente (baseline) ==="
+      node --version
+      npm --version
+      git --version
+      docker --version
+      npx prisma --version
+    displayName: "Diagnóstico do ambiente"
+
   - script: npx prisma generate
     displayName: "Prisma generate"
 
