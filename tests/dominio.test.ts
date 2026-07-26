@@ -1,0 +1,256 @@
+import { describe, it, expect } from "vitest";
+import {
+  siglaArea,
+  proximoSequencial,
+  formatarCodigoNormativo,
+  editavel,
+  transicao,
+  temConteudo,
+  montarSnapshot,
+  proximoNumeroVersao,
+  validarUpload,
+  TAMANHO_UPLOAD_MAX,
+  type Estado,
+  type AcaoEstado,
+} from "@/lib/dominio";
+import { ESQUELETO_PADRAO } from "@/lib/esqueleto";
+
+// ===========================================================================
+// Código normativo
+// ===========================================================================
+describe("Código normativo", () => {
+  it("sigla: multi-palavra vira iniciais (até 4)", () => {
+    expect(siglaArea("Recursos Humanos")).toBe("RH");
+    expect(siglaArea("Tecnologia da Informação Corporativa")).toBe("TDIC");
+  });
+
+  it("sigla: palavra única vira 3 letras", () => {
+    expect(siglaArea("Financeiro")).toBe("FIN");
+    expect(siglaArea("TI")).toBe("TI");
+  });
+
+  it("sigla: remove acentos e pontuação, sobe caixa", () => {
+    expect(siglaArea("Produção")).toBe("PRO");
+    expect(siglaArea("Jurídico & Compliance")).toBe("JC");
+  });
+
+  it("sigla: vazio cai no fallback GER", () => {
+    expect(siglaArea("   ")).toBe("GER");
+  });
+
+  it("sequencial: começa em 1 quando não há códigos", () => {
+    expect(proximoSequencial("POL-RH-", [])).toBe(1);
+  });
+
+  it("sequencial: usa o maior existente + 1 (ignora buracos e inválidos)", () => {
+    expect(proximoSequencial("POL-RH-", ["POL-RH-001", "POL-RH-003", "POL-RH-002"])).toBe(4);
+    expect(proximoSequencial("POL-RH-", ["POL-RH-abc", null, undefined, "POL-RH-005"])).toBe(6);
+  });
+
+  it("formata no padrão POL-<SIGLA>-NNN com zero-pad", () => {
+    expect(formatarCodigoNormativo("RH", 1)).toBe("POL-RH-001");
+    expect(formatarCodigoNormativo("TI", 42)).toBe("POL-TI-042");
+  });
+});
+
+// ===========================================================================
+// Máquina de estados
+// ===========================================================================
+describe("Máquina de estados", () => {
+  it("transições permitidas", () => {
+    expect(transicao("rascunho", "publicar")).toEqual({ ok: true, estado: "publicada" });
+    expect(transicao("publicada", "revogar")).toEqual({ ok: true, estado: "revogada" });
+    expect(transicao("publicada", "reabrir")).toEqual({ ok: true, estado: "rascunho" });
+    expect(transicao("revogada", "reabrir")).toEqual({ ok: true, estado: "rascunho" });
+  });
+
+  it("transições proibidas retornam erro (mensagem exata)", () => {
+    expect(transicao("publicada", "publicar")).toEqual({
+      ok: false,
+      erro: "Só é possível publicar uma política em rascunho.",
+    });
+    expect(transicao("rascunho", "revogar")).toEqual({
+      ok: false,
+      erro: "Só é possível revogar uma política publicada.",
+    });
+    expect(transicao("revogada", "revogar")).toEqual({
+      ok: false,
+      erro: "Só é possível revogar uma política publicada.",
+    });
+    expect(transicao("rascunho", "reabrir")).toEqual({
+      ok: false,
+      erro: "A política já está em rascunho.",
+    });
+  });
+
+  it("edição: só rascunho é editável", () => {
+    expect(editavel("rascunho")).toBe(true);
+    expect(editavel("publicada")).toBe(false);
+    expect(editavel("revogada")).toBe(false);
+  });
+});
+
+// ===========================================================================
+// Publicação
+// ===========================================================================
+describe("Publicação", () => {
+  it("texto: conteúdo só conta se corpo não-vazio", () => {
+    expect(temConteudo([{ tipo: "texto", corpo: "  ", linhas: null }])).toBe(false);
+    expect(temConteudo([{ tipo: "texto", corpo: "algo", linhas: null }])).toBe(true);
+  });
+
+  it("tabela: conteúdo só conta com ao menos uma linha", () => {
+    expect(temConteudo([{ tipo: "tabela", corpo: "", linhas: [] }])).toBe(false);
+    expect(temConteudo([{ tipo: "tabela", corpo: "", linhas: [["a", "b"]] }])).toBe(true);
+  });
+
+  it("nenhuma seção preenchida = sem conteúdo", () => {
+    expect(
+      temConteudo([
+        { tipo: "texto", corpo: "", linhas: null },
+        { tipo: "tabela", corpo: "", linhas: [] },
+      ]),
+    ).toBe(false);
+  });
+});
+
+// ===========================================================================
+// Snapshot
+// ===========================================================================
+describe("Snapshot", () => {
+  const secoes = [
+    { ordem: 2, codigo: "2", titulo: "B", tipo: "texto", corpo: "b", colunas: undefined, linhas: undefined },
+    { ordem: 1, codigo: "1", titulo: "A", tipo: "texto", corpo: "a", colunas: undefined, linhas: undefined },
+  ];
+
+  it("ordena por ordem e preserva os campos oficiais", () => {
+    const snap = montarSnapshot(secoes);
+    expect(snap.map((s) => s.codigo)).toEqual(["1", "2"]);
+    expect(snap[0]).toEqual({ codigo: "1", titulo: "A", tipo: "texto", corpo: "a", colunas: null, linhas: null });
+  });
+
+  it("não muta o array de entrada", () => {
+    const entrada = [...secoes];
+    montarSnapshot(entrada);
+    expect(entrada[0].ordem).toBe(2); // ordem original preservada
+  });
+
+  it("colunas/linhas ausentes viram null", () => {
+    const snap = montarSnapshot([
+      { ordem: 1, codigo: "4", titulo: "Def", tipo: "tabela", corpo: "", colunas: ["T", "D"], linhas: [["x", "y"]] },
+    ]);
+    expect(snap[0].colunas).toEqual(["T", "D"]);
+    expect(snap[0].linhas).toEqual([["x", "y"]]);
+  });
+});
+
+// ===========================================================================
+// Versionamento
+// ===========================================================================
+describe("Versionamento", () => {
+  it("próximo número = total + 1 (sequência começa em 1)", () => {
+    expect(proximoNumeroVersao(0)).toBe(1);
+    expect(proximoNumeroVersao(3)).toBe(4);
+  });
+
+  it("aceita extensões permitidas dentro do limite", () => {
+    expect(validarUpload("norma.pdf", 1000)).toEqual({ ok: true });
+    expect(validarUpload("planilha.XLSX", 1000)).toEqual({ ok: true }); // case-insensitive
+  });
+
+  it("rejeita acima de 25 MB (mensagem exata)", () => {
+    expect(validarUpload("norma.pdf", TAMANHO_UPLOAD_MAX + 1)).toEqual({
+      ok: false,
+      erro: "Arquivo acima de 25 MB.",
+    });
+  });
+
+  it("rejeita extensão fora da lista (mensagem exata)", () => {
+    expect(validarUpload("malware.exe", 10)).toEqual({
+      ok: false,
+      erro: "Tipo não permitido (.exe).",
+    });
+    expect(validarUpload("semext", 10)).toEqual({
+      ok: false,
+      erro: "Tipo não permitido (sem extensão).",
+    });
+  });
+});
+
+// ===========================================================================
+// Esqueleto
+// ===========================================================================
+describe("Esqueleto normativo", () => {
+  it("tem exatamente 8 seções", () => {
+    expect(ESQUELETO_PADRAO).toHaveLength(8);
+  });
+
+  it("ordem é sequencial 1..8", () => {
+    expect(ESQUELETO_PADRAO.map((s) => s.ordem)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+  });
+
+  it("Definições e Responsabilidades são tabelas com colunas; demais são texto", () => {
+    const tabelas = ESQUELETO_PADRAO.filter((s) => s.tipo === "tabela");
+    expect(tabelas.map((s) => s.titulo)).toEqual(["Definições", "Responsabilidades"]);
+    for (const t of tabelas) {
+      expect(Array.isArray(t.colunas) && t.colunas!.length > 0).toBe(true);
+    }
+  });
+});
+
+// ===========================================================================
+// Invariantes — regras que nunca podem quebrar
+// ===========================================================================
+describe("Invariantes do domínio", () => {
+  const ESTADOS: Estado[] = ["rascunho", "publicada", "revogada"];
+  const ACOES: AcaoEstado[] = ["publicar", "revogar", "reabrir"];
+
+  it("toda transição bem-sucedida termina em estado válido", () => {
+    for (const e of ESTADOS) {
+      for (const a of ACOES) {
+        const r = transicao(e, a);
+        if (r.ok) expect(ESTADOS).toContain(r.estado);
+      }
+    }
+  });
+
+  it("somente rascunho é editável (para todo estado)", () => {
+    for (const e of ESTADOS) {
+      expect(editavel(e)).toBe(e === "rascunho");
+    }
+  });
+
+  it("publicar exige conteúdo válido: transição ok não implica publicável sem conteúdo", () => {
+    // A transição permite (rascunho→publicar), mas sem conteúdo não se publica.
+    expect(transicao("rascunho", "publicar").ok).toBe(true);
+    expect(temConteudo([{ tipo: "texto", corpo: "", linhas: null }])).toBe(false);
+  });
+
+  it("toda publicação gera exatamente um snapshot (1 entrada por seção, ordenado)", () => {
+    const secoes = ESQUELETO_PADRAO.map((s, i) => ({
+      ordem: s.ordem,
+      codigo: s.codigo,
+      titulo: s.titulo,
+      tipo: s.tipo,
+      corpo: i === 0 ? "conteúdo" : "",
+      colunas: s.colunas,
+      linhas: undefined,
+    }));
+    const snap = montarSnapshot(secoes);
+    expect(snap).toHaveLength(secoes.length);
+    expect(snap.map((s) => s.codigo)).toEqual(["1", "2", "3", "4", "5", "6", "7", "8"]);
+  });
+
+  it("número de versão é sempre crescente e único por sequência", () => {
+    const numeros = [0, 1, 2, 3].map(proximoNumeroVersao);
+    expect(numeros).toEqual([1, 2, 3, 4]);
+    expect(new Set(numeros).size).toBe(numeros.length);
+  });
+
+  it("código normativo é determinístico (mesma entrada → mesmo código)", () => {
+    const a = formatarCodigoNormativo(siglaArea("Recursos Humanos"), proximoSequencial("POL-RH-", ["POL-RH-001"]));
+    const b = formatarCodigoNormativo(siglaArea("Recursos Humanos"), proximoSequencial("POL-RH-", ["POL-RH-001"]));
+    expect(a).toBe(b);
+    expect(a).toMatch(/^POL-[A-Z0-9]+-\d{3}$/);
+  });
+});

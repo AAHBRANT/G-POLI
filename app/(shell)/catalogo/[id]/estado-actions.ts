@@ -4,16 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getUsuarioAtual, podePublicar } from "@/lib/auth/usuario";
 import { registrar } from "@/lib/auditoria";
+import { transicao, temConteudo, montarSnapshot, type Estado } from "@/lib/dominio";
 
 export type ResultadoAcao = { ok: boolean; erro?: string };
-
-function temConteudo(secoes: { tipo: string; corpo: string; linhas: unknown }[]): boolean {
-  return secoes.some((s) =>
-    s.tipo === "tabela"
-      ? Array.isArray(s.linhas) && (s.linhas as unknown[]).length > 0
-      : s.corpo.trim().length > 0,
-  );
-}
 
 // Publica: rascunho → publicada. Congela conteúdo (edição bloqueada) e carimba autor/data.
 export async function publicarPolitica(id: string): Promise<ResultadoAcao> {
@@ -22,27 +15,20 @@ export async function publicarPolitica(id: string): Promise<ResultadoAcao> {
 
   const politica = await prisma.politica.findUnique({ where: { id }, include: { secoes: true } });
   if (!politica) return { ok: false, erro: "Política não encontrada." };
-  if (politica.estado !== "rascunho") return { ok: false, erro: "Só é possível publicar uma política em rascunho." };
+
+  const t = transicao(politica.estado as Estado, "publicar");
+  if (!t.ok) return { ok: false, erro: t.erro };
   if (!temConteudo(politica.secoes)) {
     return { ok: false, erro: "Não é possível publicar sem conteúdo — preencha ao menos uma seção." };
   }
 
   // Snapshot do conteúdo no momento da publicação (texto oficial congelado).
-  const snapshot = politica.secoes
-    .sort((a, b) => a.ordem - b.ordem)
-    .map((s) => ({
-      codigo: s.codigo,
-      titulo: s.titulo,
-      tipo: s.tipo,
-      corpo: s.corpo,
-      colunas: (s.colunas as unknown) ?? null,
-      linhas: (s.linhas as unknown) ?? null,
-    }));
+  const snapshot = montarSnapshot(politica.secoes);
 
   await prisma.politica.update({
     where: { id },
     data: {
-      estado: "publicada",
+      estado: t.estado,
       publicadaEm: new Date(),
       publicadaPorNome: usuario!.nome,
       publicadaPorEmail: usuario!.email,
@@ -64,11 +50,13 @@ export async function revogarPolitica(id: string): Promise<ResultadoAcao> {
 
   const politica = await prisma.politica.findUnique({ where: { id } });
   if (!politica) return { ok: false, erro: "Política não encontrada." };
-  if (politica.estado !== "publicada") return { ok: false, erro: "Só é possível revogar uma política publicada." };
+
+  const t = transicao(politica.estado as Estado, "revogar");
+  if (!t.ok) return { ok: false, erro: t.erro };
 
   await prisma.politica.update({
     where: { id },
-    data: { estado: "revogada", revogadaEm: new Date() },
+    data: { estado: t.estado, revogadaEm: new Date() },
   });
   await registrar("politica.revogar", "Politica", id, politica.titulo);
   revalidatePath(`/catalogo/${id}`);
@@ -84,11 +72,13 @@ export async function reabrirPolitica(id: string): Promise<ResultadoAcao> {
 
   const politica = await prisma.politica.findUnique({ where: { id } });
   if (!politica) return { ok: false, erro: "Política não encontrada." };
-  if (politica.estado === "rascunho") return { ok: false, erro: "A política já está em rascunho." };
+
+  const t = transicao(politica.estado as Estado, "reabrir");
+  if (!t.ok) return { ok: false, erro: t.erro };
 
   await prisma.politica.update({
     where: { id },
-    data: { estado: "rascunho" },
+    data: { estado: t.estado },
   });
   await registrar("politica.reabrir", "Politica", id, politica.titulo);
   revalidatePath(`/catalogo/${id}`);
