@@ -40,6 +40,30 @@ steps:
       npx prisma --version
     displayName: "Diagnóstico do ambiente"
 
+  # Validação do IaC: garante que nenhum Bicep inválido chegue à main. Compila
+  # o template raiz (que puxa todos os módulos) e cada arquivo de parâmetros.
+  # $ErrorActionPreference/exit garantem que qualquer erro reprove o build.
+  - powershell: |
+      $ErrorActionPreference = "Stop"
+      az bicep build --file infra/bicep/main.bicep --stdout > $null
+      if ($LASTEXITCODE -ne 0) { exit 1 }
+      Get-ChildItem infra/bicep/environments -Filter *.bicepparam | ForEach-Object {
+        az bicep build-params --file $_.FullName --stdout > $null
+        if ($LASTEXITCODE -ne 0) { exit 1 }
+      }
+      Write-Host "Bicep valido."
+    displayName: "Validar Bicep (az bicep build)"
+    env:
+      # build-params lê estas variáveis (readEnvironmentVariable). Valores dummy:
+      # a validação só compila, não implanta nada.
+      GPOL_PG_PASSWORD: "dummy"
+      GPOL_DB_URL: "dummy"
+      GPOL_AUTH_SECRET: "dummy"
+      GPOL_AAD_CLIENT_SECRET: "dummy"
+      GPOL_STORAGE_CONN: "dummy"
+      GPOL_OPENAI_KEY: "dummy"
+      GPOL_ACR_PASSWORD: "dummy"
+
   - script: npx prisma generate
     displayName: "Prisma generate"
 
