@@ -6,11 +6,9 @@ import { salvarArquivo } from "@/lib/storage";
 import { revalidatePath } from "next/cache";
 import { getUsuarioAtual, podeEditarConteudo } from "@/lib/auth/usuario";
 import { registrar } from "@/lib/auditoria";
+import { validarUpload, proximoNumeroVersao } from "@/lib/dominio";
 
 export type ResultadoAcao = { ok: boolean; erro?: string };
-
-const TIPOS_PERMITIDOS = [".pdf", ".docx", ".doc", ".xlsx", ".xls", ".png", ".jpg", ".jpeg"];
-const TAMANHO_MAX = 25 * 1024 * 1024; // 25 MB
 
 export async function adicionarVersao(
   politicaId: string,
@@ -20,13 +18,11 @@ export async function adicionarVersao(
   if (!(arquivo instanceof File) || arquivo.size === 0) {
     return { ok: false, erro: "Selecione um arquivo." };
   }
-  if (arquivo.size > TAMANHO_MAX) {
-    return { ok: false, erro: "Arquivo acima de 25 MB." };
+  const validacao = validarUpload(arquivo.name, arquivo.size);
+  if (!validacao.ok) {
+    return { ok: false, erro: validacao.erro };
   }
   const ext = path.extname(arquivo.name).toLowerCase();
-  if (!TIPOS_PERMITIDOS.includes(ext)) {
-    return { ok: false, erro: `Tipo não permitido (${ext || "sem extensão"}).` };
-  }
 
   const politica = await prisma.politica.findUnique({ where: { id: politicaId } });
   if (!politica) return { ok: false, erro: "Política não encontrada." };
@@ -51,7 +47,7 @@ export async function adicionarVersao(
       await tx.versao.create({
         data: {
           politicaId,
-          numero: totais + 1,
+          numero: proximoNumeroVersao(totais),
           estado: "ativa",
           documento: {
             create: {
