@@ -27,10 +27,11 @@ steps:
   # Baseline do ambiente do agente self-hosted (ADR-002). Registra as versões
   # das ferramentas no log de cada build — âncora auditável para reproduzir/
   # diagnosticar o CI. npx prisma roda após npm ci (usa o binário local).
-  # pwsh (não script/cmd): o agente é Windows e cmd.exe encerra o batch ao
-  # chamar npm.cmd/npx.cmd sem `call`, engolindo git/docker/prisma. PowerShell
-  # executa cada linha isolada, garantindo as 5 versões no log.
-  - pwsh: |
+  # powershell (Windows PowerShell 5.1, não script/cmd nem pwsh Core): o agente
+  # é Windows e cmd.exe encerra o batch ao chamar npm.cmd/npx.cmd sem `call`,
+  # engolindo git/docker/prisma. PowerShell executa cada linha isolada,
+  # garantindo as 5 versões no log. Usar powershell: (pwsh Core não instalado).
+  - powershell: |
       Write-Host "=== Ambiente do agente (baseline) ==="
       node --version
       npm --version
