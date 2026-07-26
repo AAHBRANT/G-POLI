@@ -4,6 +4,8 @@ node_modules/
 out/
 build/
 next-env.d.ts
+*.tsbuildinfo
+coverage/
 
 # segredos e ambiente — ignora todas as variantes, exceto o template
 .env
