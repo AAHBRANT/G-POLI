@@ -7,7 +7,14 @@ $ErrorActionPreference = "Stop"
 # Agente self-hosted e persistente entre builds (docs/CI.md): um build
 # interrompido pode deixar o container anterior de pe, travando o proximo
 # "docker run --name pg-migcheck" por nome duplicado. Remove antes de subir.
-docker rm -f pg-migcheck 2>$null | Out-Null
+#
+# Consulta a existencia primeiro em vez de remover e engolir o erro: no Windows
+# PowerShell 5.1, redirecionar o stderr de um executavel nativo ("docker rm ...
+# 2>$null") transforma cada linha em NativeCommandError e, com
+# $ErrorActionPreference = "Stop", aborta o script -- foi assim que o passo
+# falhou quando nao havia container residual (o caso normal).
+$residual = docker ps -aq --filter "name=^pg-migcheck$"
+if ($residual) { docker rm -f pg-migcheck | Out-Null }
 
 docker run -d --name pg-migcheck --rm `
   -e POSTGRES_USER=ci -e POSTGRES_PASSWORD=ci -e POSTGRES_DB=ci `
