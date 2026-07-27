@@ -6,6 +6,7 @@ import { getUsuarioAtual, podeEditarConteudo } from "@/lib/auth/usuario";
 import { registrar } from "@/lib/auditoria";
 import { gerarRascunhoNorma, type SecaoIA } from "@/lib/ai";
 import { rotuloClassificacao } from "@/lib/constants";
+import { planejarAplicacaoIA } from "@/lib/dominio";
 
 export type ResultadoIA = { ok: boolean; erro?: string; secoes?: SecaoIA[] };
 
@@ -32,17 +33,13 @@ export async function aplicarSecoesIA(politicaId: string, secoes: SecaoIA[]): Pr
   const usuario = await getUsuarioAtual();
   if (!podeEditarConteudo(usuario, politica)) return { ok: false, erro: "Sem permissão." };
 
-  const porCodigo = new Map(politica.secoes.map((s) => [s.codigo, s]));
-  for (const draft of secoes) {
-    const alvo = porCodigo.get(String(draft.codigo));
-    if (!alvo) continue;
-    if (alvo.tipo === "tabela") {
-      if (Array.isArray(draft.linhas)) {
-        await prisma.secao.update({ where: { id: alvo.id }, data: { linhas: draft.linhas as never } });
-      }
-    } else if (typeof draft.corpo === "string") {
-      await prisma.secao.update({ where: { id: alvo.id }, data: { corpo: draft.corpo } });
-    }
+  // Tudo-ou-nada (DOMINIO.md invariante 10): monta o plano puro e aplica todas
+  // as atualizações numa única transação. Falha no meio = rollback completo.
+  const plano = planejarAplicacaoIA(politica.secoes, secoes);
+  if (plano.length > 0) {
+    await prisma.$transaction(
+      plano.map((p) => prisma.secao.update({ where: { id: p.id }, data: p.data as never })),
+    );
   }
   await registrar("ia.aplicar", "Politica", politicaId, `${secoes.length} seções`);
   revalidatePath(`/catalogo/${politicaId}`);

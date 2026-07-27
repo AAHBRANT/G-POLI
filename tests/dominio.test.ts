@@ -10,6 +10,7 @@ import {
   proximoNumeroVersao,
   validarUpload,
   TAMANHO_UPLOAD_MAX,
+  planejarAplicacaoIA,
   type Estado,
   type AcaoEstado,
 } from "@/lib/dominio";
@@ -252,5 +253,52 @@ describe("Invariantes do domínio", () => {
     const b = formatarCodigoNormativo(siglaArea("Recursos Humanos"), proximoSequencial("POL-RH-", ["POL-RH-001"]));
     expect(a).toBe(b);
     expect(a).toMatch(/^POL-[A-Z0-9]+-\d{3}$/);
+  });
+});
+
+// ===========================================================================
+// IA — plano de aplicação (base do tudo-ou-nada)
+// ===========================================================================
+describe("IA — planejarAplicacaoIA", () => {
+  const secoes = [
+    { id: "s1", codigo: "1", tipo: "texto" },
+    { id: "s4", codigo: "4", tipo: "tabela" },
+  ];
+
+  it("texto vira update de corpo; tabela vira update de linhas", () => {
+    const plano = planejarAplicacaoIA(secoes, [
+      { codigo: "1", corpo: "novo objetivo" },
+      { codigo: "4", linhas: [["Termo", "Definição"]] },
+    ]);
+    expect(plano).toEqual([
+      { id: "s1", data: { corpo: "novo objetivo" } },
+      { id: "s4", data: { linhas: [["Termo", "Definição"]] } },
+    ]);
+  });
+
+  it("ignora rascunho de seção inexistente", () => {
+    const plano = planejarAplicacaoIA(secoes, [{ codigo: "9", corpo: "x" }]);
+    expect(plano).toEqual([]);
+  });
+
+  it("ignora tipo incompatível (tabela sem linhas array; texto sem corpo string)", () => {
+    const plano = planejarAplicacaoIA(secoes, [
+      { codigo: "4", corpo: "texto numa tabela" }, // tabela mas sem linhas → ignora
+      { codigo: "1", linhas: [["x"]] }, // texto mas sem corpo → ignora
+    ]);
+    expect(plano).toEqual([]);
+  });
+
+  it("aceita codigo numérico (coerção para string)", () => {
+    const plano = planejarAplicacaoIA(secoes, [{ codigo: 1, corpo: "ok" }]);
+    expect(plano).toEqual([{ id: "s1", data: { corpo: "ok" } }]);
+  });
+
+  it("plano é a base do tudo-ou-nada: N seções válidas → N updates (aplicados em 1 transação)", () => {
+    const plano = planejarAplicacaoIA(secoes, [
+      { codigo: "1", corpo: "a" },
+      { codigo: "4", linhas: [["b"]] },
+    ]);
+    expect(plano).toHaveLength(2);
   });
 });
