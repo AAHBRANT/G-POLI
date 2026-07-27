@@ -141,6 +141,33 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'ACESSO_ABERTO', value: acessoAberto }
             { name: 'DOMINIOS_ORG', value: dominiosOrg }
           ]
+          // Probes de saúde (ver docs/DEPLOY.md). Batem em /api/health (público).
+          // - Startup: dá tempo de migrate+boot antes de liveness valer
+          //   (30×5s = 150s). Se nunca ficar pronto, a revisão nova falha e a
+          //   anterior continua servindo.
+          // - Readiness: controla o tráfego — só recebe requisição quando OK.
+          // - Liveness: reinicia o container se travar depois de no ar.
+          probes: [
+            {
+              type: 'Startup'
+              httpGet: { path: '/api/health', port: targetPort }
+              initialDelaySeconds: 5
+              periodSeconds: 5
+              failureThreshold: 30
+            }
+            {
+              type: 'Readiness'
+              httpGet: { path: '/api/health', port: targetPort }
+              periodSeconds: 10
+              failureThreshold: 3
+            }
+            {
+              type: 'Liveness'
+              httpGet: { path: '/api/health', port: targetPort }
+              periodSeconds: 30
+              failureThreshold: 3
+            }
+          ]
         }
       ]
       // scale 1-1: sem escala a zero (evita cold start) e sem escala horizontal.
