@@ -128,3 +128,32 @@ export function validarUpload(nome: string, tamanho: number): { ok: true } | { o
   }
   return { ok: true };
 }
+
+// ---------------------------------------------------------------------------
+// IA — aplicação do rascunho (tudo-ou-nada, ver DOMINIO.md invariante 10)
+// ---------------------------------------------------------------------------
+export type SecaoAlvo = { id: string; codigo: string; tipo: string };
+export type RascunhoSecao = { codigo: string | number; corpo?: string; linhas?: string[][] };
+export type AtualizacaoSecao = { id: string; data: { corpo: string } | { linhas: string[][] } };
+
+// Decide (puro) quais seções atualizar e com quê, a partir das seções da política
+// e do rascunho da IA. Só entra no plano a seção existente cujo conteúdo do draft
+// é do tipo certo (tabela→linhas array; texto→corpo string). A action aplica o
+// plano inteiro numa única transação — ou tudo, ou nada.
+export function planejarAplicacaoIA(
+  secoes: SecaoAlvo[],
+  rascunho: RascunhoSecao[],
+): AtualizacaoSecao[] {
+  const porCodigo = new Map(secoes.map((s) => [s.codigo, s]));
+  const plano: AtualizacaoSecao[] = [];
+  for (const draft of rascunho) {
+    const alvo = porCodigo.get(String(draft.codigo));
+    if (!alvo) continue;
+    if (alvo.tipo === "tabela") {
+      if (Array.isArray(draft.linhas)) plano.push({ id: alvo.id, data: { linhas: draft.linhas } });
+    } else if (typeof draft.corpo === "string") {
+      plano.push({ id: alvo.id, data: { corpo: draft.corpo } });
+    }
+  }
+  return plano;
+}
