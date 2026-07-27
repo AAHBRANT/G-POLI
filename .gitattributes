@@ -1,0 +1,11 @@
+# Normalização de fim de linha.
+#
+# Scripts de shell PRECISAM de LF: com core.autocrlf=true (padrão comum no
+# Windows) o checkout converteria para CRLF, o shebang viraria "#!/bin/sh\r" e o
+# container falharia com "exec: ./docker-entrypoint.sh: not found" — a imagem não
+# sobe. Aqui a regra vale independentemente da configuração local de cada máquina.
+*.sh text eol=lf
+
+# Dockerfile e entrypoints seguem o mesmo caminho (executados dentro do Linux).
+Dockerfile text eol=lf
+docker-entrypoint.sh text eol=lf
