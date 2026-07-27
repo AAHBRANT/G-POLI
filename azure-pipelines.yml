@@ -67,6 +67,13 @@ steps:
   - script: npx prisma generate
     displayName: "Prisma generate"
 
+  # Regra 4 do DEPLOY.md: valida que todas as migrações aplicam sem erro num
+  # banco descartável antes de o PR entrar em main.
+  - powershell: scripts/ci/migration-check.ps1
+    displayName: "Migration check (banco descartavel)"
+    env:
+      DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci?schema=public"
+
   - script: npx tsc --noEmit
     displayName: "TypeScript (tsc --noEmit)"
 

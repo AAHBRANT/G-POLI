@@ -9,9 +9,9 @@ Documento operacional do pipeline de CI. Ver decisão em
 - **Repositório:** `g-politicas`.
 - **Gatilhos:** todo PR para `main` (build validation obrigatório) e todo push
   em `main`.
-- **Etapas:** Node 20 → `npm ci` → **Diagnóstico do ambiente** → `prisma
-  generate` → `tsc --noEmit` → lint (não bloqueante) → testes (Vitest) →
-  build Next.js → build da imagem Docker.
+- **Etapas:** Node 20 → `npm ci` → **Diagnóstico do ambiente** → Validar Bicep
+  → `prisma generate` → **Migration check** → `tsc --noEmit` → lint (não
+  bloqueante) → testes (Vitest) → build Next.js → build da imagem Docker.
 
 ## Agente de build
 - **Modelo:** self-hosted (temporário — ver ADR-002).
