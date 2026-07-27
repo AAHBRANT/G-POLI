@@ -12,8 +12,15 @@ pool:
   name: Default
 
 variables:
-  # Valores dummy: o build é dinâmico (não conecta em nada em CI).
-  DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci?schema=public"
+  # Valor dummy para os passos que só precisam da variável existir (prisma
+  # generate, next build) e valor real para o migration check, que sobe um
+  # Postgres descartável nesta URL. Definida UMA vez, aqui: quando existia uma
+  # cópia no `env:` do passo, a variável de pipeline venceu e o migration check
+  # publicou a porta errada.
+  #
+  # Porta 55432, não a 5432: o agente é self-hosted e a mesma máquina roda o
+  # Postgres de desenvolvimento na 5432 (docs/CI.md).
+  DATABASE_URL: "postgresql://ci:ci@localhost:55432/ci?schema=public"
 
 steps:
   - task: NodeTool@0
@@ -66,6 +73,14 @@ steps:
 
   - script: npx prisma generate
     displayName: "Prisma generate"
+
+  # Regra 4 do DEPLOY.md: valida que todas as migrações aplicam sem erro num
+  # banco descartável antes de o PR entrar em main.
+  # DATABASE_URL vem das variables do pipeline (topo do arquivo) — sem cópia
+  # aqui: a variável de pipeline vence o `env:` do passo, então uma segunda
+  # definição só cria divergência silenciosa.
+  - powershell: scripts/ci/migration-check.ps1
+    displayName: "Migration check (banco descartavel)"
 
   - script: npx tsc --noEmit
     displayName: "TypeScript (tsc --noEmit)"

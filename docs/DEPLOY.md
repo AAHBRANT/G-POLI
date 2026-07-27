@@ -104,15 +104,14 @@ revisão ativa depende mais do formato removido.
 
 ---
 
-## O que ainda não está implementado (nasce como PR, cada um citando este doc)
+## Implementação das regras
 
-| PR | O que | Regra |
-|---|---|---|
-| B1 | `docker-entrypoint` fail-closed + health/readiness probe | 1, 2 |
-| B2 | Step "Migration check" no CI | 4 |
+Todas as regras deste documento estão implementadas:
 
-Enquanto B1 não entra, o comportamento real ainda é "sobe mesmo se a migração
-falhar" — este documento descreve o **alvo**, e os PRs acima o tornam verdadeiro.
+| Item | O que | Regra | PR |
+|---|---|---|---|
+| B1 | `docker-entrypoint` fail-closed + health/readiness probe | 1, 2 | #15 (feature/deploy-seguro) |
+| B2 | Step "Migration check" no CI | 4 | #15 (feature/deploy-seguro) |
 
 ---
 
