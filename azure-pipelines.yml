@@ -72,7 +72,10 @@ steps:
   - powershell: scripts/ci/migration-check.ps1
     displayName: "Migration check (banco descartavel)"
     env:
-      DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci?schema=public"
+      # Porta 55432, não a 5432: o agente é self-hosted e a mesma máquina roda o
+      # Postgres de desenvolvimento na 5432 (docs/CI.md). O script publica a
+      # porta que estiver aqui — esta URL é a única fonte de verdade.
+      DATABASE_URL: "postgresql://ci:ci@localhost:55432/ci?schema=public"
 
   - script: npx tsc --noEmit
     displayName: "TypeScript (tsc --noEmit)"

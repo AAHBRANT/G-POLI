@@ -16,9 +16,18 @@ $ErrorActionPreference = "Stop"
 $residual = docker ps -aq --filter "name=^pg-migcheck$"
 if ($residual) { docker rm -f pg-migcheck | Out-Null }
 
+# A porta publicada vem da propria DATABASE_URL: uma so fonte de verdade entre
+# o pipeline e este script (se as duas divergirem, o prisma aponta para um banco
+# que nao existe). Nao pode ser a 5432 padrao -- o agente e self-hosted e a
+# mesma maquina roda o Postgres de desenvolvimento nela (docs/CI.md), entao a
+# 5432 ja esta ocupada e o "docker run -p 5432:5432" falha por porta em uso.
+if (-not $env:DATABASE_URL) { throw "DATABASE_URL nao definida (o pipeline deve passa-la)." }
+$porta = ([uri]$env:DATABASE_URL).Port
+if ($porta -le 0) { throw "DATABASE_URL sem porta explicita: $($env:DATABASE_URL)" }
+
 docker run -d --name pg-migcheck --rm `
   -e POSTGRES_USER=ci -e POSTGRES_PASSWORD=ci -e POSTGRES_DB=ci `
-  -p 5432:5432 postgres:16-alpine
+  -p "${porta}:5432" postgres:16-alpine
 
 # Sem numero fixo de tentativas: continua ate o Postgres aceitar conexoes
 # (tudo passa) ou ate um bloqueio real (container saiu do estado "running").
