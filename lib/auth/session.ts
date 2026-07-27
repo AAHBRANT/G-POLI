@@ -20,10 +20,17 @@ export async function criarSessao(dados: Sessao): Promise<void> {
     .setExpirationTime("8h")
     .sign(chave());
 
+  // Dentro do Teams o app roda num iframe de teams.microsoft.com, então toda
+  // requisição ao nosso domínio é cross-site e um cookie SameSite=Lax NÃO é
+  // enviado — a sessão existiria no navegador e nunca chegaria ao servidor,
+  // devolvendo o usuário ao /login em loop. SameSite=None resolve, mas exige
+  // Secure; em dev (http://localhost) isso é impossível, daí o Lax lá.
+  const emProducao = process.env.NODE_ENV === "production";
+
   cookies().set(SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: emProducao,
+    sameSite: emProducao ? "none" : "lax",
     path: "/",
     maxAge: 60 * 60 * 8,
   });

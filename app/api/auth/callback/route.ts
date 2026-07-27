@@ -3,6 +3,7 @@ import { authConfig, authEnabled, redirectUri } from "@/lib/auth/config";
 import { msalApp, SCOPES_WEB } from "@/lib/auth/msal";
 import { criarSessao } from "@/lib/auth/session";
 import { provisionarUsuario, temAcesso } from "@/lib/auth/usuario";
+import { destinoPosLogin, origemDaSessao } from "@/lib/auth/estado";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,12 @@ export async function GET(req: NextRequest) {
   if (!authEnabled) return NextResponse.redirect(new URL("/", authConfig.baseUrl));
 
   const code = req.nextUrl.searchParams.get("code");
+  // Login iniciado no popup do Teams: o destino final não pode ser a raiz do
+  // app (renderizaria o app dentro do popup). Termina na página que avisa o
+  // Teams, que fecha o popup e devolve o controle para a aba.
+  const state = req.nextUrl.searchParams.get("state");
+  const destinoFinal = destinoPosLogin(state);
+
   if (!code) {
     return NextResponse.redirect(new URL("/login?erro=sem_code", authConfig.baseUrl));
   }
@@ -33,9 +40,9 @@ export async function GET(req: NextRequest) {
     }
 
     await provisionarUsuario({ oid, email, nome });
-    await criarSessao({ sub: oid, nome, email, origem: "web" });
+    await criarSessao({ sub: oid, nome, email, origem: origemDaSessao(state) });
 
-    return NextResponse.redirect(new URL("/", authConfig.baseUrl));
+    return NextResponse.redirect(new URL(destinoFinal, authConfig.baseUrl));
   } catch (erro) {
     console.error("OAuth callback falhou:", erro);
     return NextResponse.redirect(new URL("/login?erro=falha_login", authConfig.baseUrl));

@@ -35,6 +35,6 @@ export const config = {
   // probes, assets e arquivos estáticos. /api/health precisa ser público senão
   // as probes do Container App tomam 302→/login e o app nunca fica "saudável".
   matcher: [
-    "/((?!login|sem-acesso|privacidade|termos|api/auth|api/health|_next/static|_next/image|favicon.ico).*)",
+    "/((?!login|sem-acesso|privacidade|termos|entrar/teams-fim|api/auth|api/health|_next/static|_next/image|favicon.ico).*)",
   ],
 };

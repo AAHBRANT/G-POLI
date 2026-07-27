@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { authEnabled } from "@/lib/auth/config";
 import TeamsSso from "@/components/TeamsSso";
+import BotaoEntrar from "@/components/BotaoEntrar";
 import Brand from "@/components/Brand";
 
 export const dynamic = "force-dynamic";
@@ -44,13 +45,7 @@ export default function LoginPage({
             <div className="mb-3 text-center">
               <TeamsSso />
             </div>
-            <a
-              href="/api/auth/login"
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-marsala px-4 py-2.5 text-center text-sm font-medium text-white shadow-sm transition hover:bg-marsala-600"
-            >
-              <svg width="16" height="16" viewBox="0 0 23 23" aria-hidden><path fill="#fff" d="M1 1h10v10H1z" opacity=".9"/><path fill="#fff" d="M12 1h10v10H12z" opacity=".65"/><path fill="#fff" d="M1 12h10v10H1z" opacity=".65"/><path fill="#fff" d="M12 12h10v10H12z" opacity=".4"/></svg>
-              Entrar com Microsoft
-            </a>
+            <BotaoEntrar />
             <p className="mt-4 text-center text-xs text-black/40">
               Acesso restrito — somente contas liberadas pelo administrador.
             </p>
