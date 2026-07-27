@@ -1,0 +1,20 @@
+import FecharPopupTeams from "@/components/FecharPopupTeams";
+
+export const dynamic = "force-dynamic";
+
+// Última parada do login feito no popup do Teams. A sessão já foi criada pelo
+// callback do OAuth; aqui só avisamos o Teams para fechar o popup e devolver o
+// controle à aba, que então recarrega já autenticada.
+//
+// Rota pública (ver middleware.ts): ela roda ANTES de o app validar sessão, e
+// o popup é uma janela própria — barrá-la travaria o login pela metade.
+export default function TeamsFimPage() {
+  return (
+    <div className="grid min-h-screen place-items-center bg-gradient-to-br from-marsala-900 via-marsala to-marsala-700 p-6">
+      <div className="rounded-2xl bg-white px-8 py-6 text-center shadow-premium">
+        <p className="text-sm text-black/60">Login concluído. Voltando ao Teams…</p>
+        <FecharPopupTeams />
+      </div>
+    </div>
+  );
+}
