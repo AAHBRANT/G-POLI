@@ -30,8 +30,11 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // Protege tudo, exceto login, rotas de auth, o health check das probes,
-  // assets e arquivos estáticos. /api/health precisa ser público senão as
-  // probes do Container App tomam 302→/login e o app nunca fica "saudável".
-  matcher: ["/((?!login|sem-acesso|api/auth|api/health|_next/static|_next/image|favicon.ico).*)"],
+  // Protege tudo, exceto: login, as páginas legais públicas (privacidade/termos
+  // — referenciadas pelo manifest do Teams), rotas de auth, o health check das
+  // probes, assets e arquivos estáticos. /api/health precisa ser público senão
+  // as probes do Container App tomam 302→/login e o app nunca fica "saudável".
+  matcher: [
+    "/((?!login|sem-acesso|privacidade|termos|api/auth|api/health|_next/static|_next/image|favicon.ico).*)",
+  ],
 };
