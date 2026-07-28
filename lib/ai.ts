@@ -10,7 +10,8 @@ export const iaDisponivel = () => ENDPOINT.length > 0 && KEY.length > 0;
 
 export type SecaoIA = { codigo: string; corpo?: string; linhas?: string[][] };
 
-// Gera rascunho das 8 seções no padrão AAHBRANT a partir de um tema.
+// Gera rascunho das seções de Política no padrão do Manual do SGI (cap. 16.1 e 18)
+// a partir de um tema.
 export async function gerarRascunhoNorma(dados: {
   tema: string;
   area: string;
@@ -24,20 +25,40 @@ export async function gerarRascunhoNorma(dados: {
     (s) => `${s.codigo} ${s.titulo} (${s.tipo})${s.colunas ? ` colunas: ${(s.colunas as string[]).join(" | ")}` : ""} — ${s.dica}`,
   ).join("\n");
 
+  // Quantidade e códigos derivados do esqueleto, nunca fixos no texto: o prompt
+  // já ficou dizendo "8 seções" depois de a estrutura passar a 7.
+  const total = ESQUELETO_PADRAO.length;
+  const codigos = ESQUELETO_PADRAO.map((s) => s.codigo);
+  const diretrizes = ESQUELETO_PADRAO.find((s) => s.titulo === "Diretrizes");
+  const umaTabela = ESQUELETO_PADRAO.find((s) => s.tipo === "tabela");
+
   const system = [
     "Você é redator normativo sênior da AAHBRANT Engenharia & Construções.",
     "Escreve políticas internas em português do Brasil, tom formal, institucional e objetivo.",
-    "Segue EXATAMENTE a estrutura de 8 seções abaixo. Seções tipo 'tabela' devem vir em 'linhas' (array de linhas; cada linha é um array de células na ordem das colunas). Seções tipo 'texto' vêm em 'corpo'.",
-    "Nas Diretrizes Gerais use subtítulos numerados (6.1, 6.2…). Não invente dados específicos da empresa (nomes, valores, prazos) — use marcadores claros como [definir prazo] quando necessário.",
+    `Segue EXATAMENTE a estrutura de ${total} seções abaixo. Seções tipo 'tabela' devem vir em 'linhas' (array de linhas; cada linha é um array de células na ordem das colunas). Seções tipo 'texto' vêm em 'corpo'.`,
+    // Padrão de redação do Manual do SGI, capítulo 18.
+    "REDAÇÃO: impessoal, voz ativa, sem ambiguidade. Use 'Deve', 'Compete', 'Cabe ao', 'É responsabilidade', 'Poderá'. NUNCA use 'Achamos', 'Entendemos', 'Pode ser', 'Talvez', 'Nós', 'Eu'.",
+    "Ao citar norma externa, use a nomenclatura oficial com número e ano (ex.: ISO 9001:2015, ABNT NBR 14724:2023). Citação incompleta é proibida.",
+    "Não crie siglas: elas dependem de cadastro prévio no Procedimento de Controle de Siglas do SGQ.",
+    diretrizes
+      ? `Na seção ${diretrizes.codigo} (${diretrizes.titulo}) use subtítulos numerados (${diretrizes.codigo}.1, ${diretrizes.codigo}.2…), no máximo até 4 níveis de numeração decimal.`
+      : "",
+    "Não invente dados específicos da empresa (nomes, valores, prazos) — use marcadores claros como [definir prazo] quando necessário.",
     "",
     "ESTRUTURA:",
     esboco,
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const exemploTabela = umaTabela
+    ? `,{"codigo":"${umaTabela.codigo}","linhas":[[${(umaTabela.colunas ?? []).map((c) => `"${c}"`).join(",")}]]}`
+    : "";
 
   const user = [
     `Gere o rascunho completo da norma sobre: "${tema}".`,
     `Área/setor: ${dados.area}. Classificação: ${dados.classificacao}.`,
-    'Responda SOMENTE em JSON no formato: {"secoes":[{"codigo":"1","corpo":"..."},{"codigo":"4","linhas":[["Termo","Definição"]]}, ...]} com os 8 códigos (1..8).',
+    `Responda SOMENTE em JSON no formato: {"secoes":[{"codigo":"1","corpo":"..."}${exemploTabela}, ...]} com os ${total} códigos (${codigos.join(", ")}).`,
   ].join("\n");
 
   try {

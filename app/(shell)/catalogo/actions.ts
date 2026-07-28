@@ -36,7 +36,7 @@ export async function criarPolitica(formData: FormData): Promise<ResultadoAcao> 
 
     const codigo = await gerarCodigoNormativo(areaRegistro.id, areaRegistro.nome);
 
-    // Nasce com o esqueleto normativo padrão (8 seções).
+    // Nasce com o esqueleto de Política do Manual do SGI (cap. 16.1).
     const nova = await prisma.politica.create({
       data: {
         titulo,
