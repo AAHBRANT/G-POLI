@@ -1,4 +1,5 @@
 import FecharPopupTeams from "@/components/FecharPopupTeams";
+import { hostRedirectConfiavel } from "@/lib/auth/estado";
 
 export const dynamic = "force-dynamic";
 
@@ -8,12 +9,25 @@ export const dynamic = "force-dynamic";
 //
 // Rota pública (ver middleware.ts): ela roda ANTES de o app validar sessão, e
 // o popup é uma janela própria — barrá-la travaria o login pela metade.
-export default function TeamsFimPage() {
+export default function TeamsFimPage({
+  searchParams,
+}: {
+  searchParams: { authId?: string; metodo?: string; host?: string };
+}) {
+  // Revalida no servidor antes de entregar ao cliente. O callback já filtrou,
+  // mas esta página é pública e acessível direto — quem chamar não pode induzir
+  // um redirect para host arbitrário (open redirect).
+  const host = hostRedirectConfiavel(searchParams.host) ? searchParams.host : undefined;
+
   return (
     <div className="grid min-h-screen place-items-center bg-gradient-to-br from-marsala-900 via-marsala to-marsala-700 p-6">
       <div className="rounded-2xl bg-white px-8 py-6 text-center shadow-premium">
         <p className="text-sm text-black/60">Login concluído. Voltando ao Teams…</p>
-        <FecharPopupTeams />
+        <FecharPopupTeams
+          authId={searchParams.authId}
+          metodo={searchParams.metodo}
+          hostRedirectUrl={host}
+        />
       </div>
     </div>
   );

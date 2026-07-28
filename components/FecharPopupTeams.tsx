@@ -2,18 +2,42 @@
 
 import { useEffect, useState } from "react";
 
-// Avisa o Teams que o login no popup terminou. O Teams fecha o popup e resolve
-// a promise do `authentication.authenticate()` na aba que o abriu.
+type Props = {
+  authId?: string;
+  /** `web` (avisa via SDK) ou `deeplink` (volta pelo hostRedirectUrl). */
+  metodo?: string;
+  /** Já validado no servidor contra a allowlist de hosts do Teams. */
+  hostRedirectUrl?: string;
+};
+
+// Avisa o Teams que o login no popup terminou, para ele fechar a janela e
+// resolver a promise do `authentication.authenticate()` na aba que a abriu.
 //
-// Se o popup foi aberto fora do Teams (alguém acessou a URL direto no
-// navegador), não há nada a notificar — nesse caso oferece o caminho normal.
-export default function FecharPopupTeams() {
-  const [foraDoTeams, setForaDoTeams] = useState(false);
+// São dois caminhos, e o primeiro existe porque o segundo falha de verdade:
+//
+// 1. `hostRedirectUrl` — o endereço que o próprio Teams passou para receber o
+//    resultado. Não depende de o SDK reencontrar o host, então sobrevive ao
+//    percurso que passa pelo Entra e volta.
+// 2. SDK (`app.initialize()` + `notifySuccess()`) — o caminho normal, quando o
+//    Teams não pediu deeplink.
+//
+// Em 2026-07-28, com a página instrumentada, o caminho 2 respondeu
+// "Initialization Failed. No Parent window found." — o SDK não reencontra o host
+// depois dos redirects, e o popup virava janela solta com a sessão já criada.
+export default function FecharPopupTeams({ authId, metodo, hostRedirectUrl }: Props) {
+  const [semSaidaAutomatica, setSemSaidaAutomatica] = useState(false);
   const [motivo, setMotivo] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelado = false;
 
+    // Caminho 1: o Teams disse por onde voltar.
+    if (hostRedirectUrl) {
+      window.location.assign(montarRetorno(hostRedirectUrl, authId));
+      return;
+    }
+
+    // Caminho 2: avisar pelo SDK.
     (async () => {
       try {
         const { app, authentication } = await import("@microsoft/teams-js");
@@ -21,12 +45,10 @@ export default function FecharPopupTeams() {
         if (cancelado) return;
         authentication.notifySuccess();
       } catch (e) {
-        // Acontece de verdade: em 2026-07-27 o popup concluiu o login e não
-        // conseguiu avisar o Teams, virando janela solta. Não sabemos ainda por
-        // quê — então mostramos o motivo em vez de teorizar. A sessão já existe
-        // neste ponto, por isso o link abaixo funciona.
+        // A sessão já existe neste ponto — o que falhou foi só o aviso. Mostra o
+        // motivo (em vez de teorizar) e oferece o caminho manual.
         if (cancelado) return;
-        setForaDoTeams(true);
+        setSemSaidaAutomatica(true);
         setMotivo(e instanceof Error ? e.message : String(e));
       }
     })();
@@ -34,9 +56,9 @@ export default function FecharPopupTeams() {
     return () => {
       cancelado = true;
     };
-  }, []);
+  }, [authId, metodo, hostRedirectUrl]);
 
-  if (!foraDoTeams) return null;
+  if (!semSaidaAutomatica) return null;
 
   return (
     <>
@@ -50,4 +72,20 @@ export default function FecharPopupTeams() {
       )}
     </>
   );
+}
+
+// O Teams aceita placeholders no hostRedirectUrl; quando não vêm, os valores
+// entram como query. Tratar os dois formatos evita depender de um detalhe que só
+// se confirma testando no cliente real.
+function montarRetorno(host: string, authId?: string): string {
+  if (host.includes("{result}") || host.includes("{authId}")) {
+    return host
+      .replace("{result}", encodeURIComponent("success"))
+      .replace("{authId}", encodeURIComponent(authId ?? ""));
+  }
+
+  const u = new URL(host);
+  u.searchParams.set("result", "success");
+  if (authId) u.searchParams.set("authId", authId);
+  return u.toString();
 }
