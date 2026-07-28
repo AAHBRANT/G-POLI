@@ -16,11 +16,9 @@ import { useState } from "react";
 // A decisão é tomada no clique, não na montagem: se a detecção do host falhasse
 // silenciosamente antes, o clique cairia no caminho errado.
 export default function BotaoEntrar() {
-  const [erro, setErro] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
 
   async function entrar() {
-    setErro(null);
     setOcupado(true);
 
     let teams: typeof import("@microsoft/teams-js") | null = null;
@@ -43,10 +41,15 @@ export default function BotaoEntrar() {
       // Sessão criada no popup; a aba recarrega autenticada.
       window.location.href = "/";
     } catch {
-      // Popup fechado, cancelado ou login não concluído. Não cair no redirect
-      // de página inteira: dentro do iframe ele só produziria tela em branco.
-      setErro("Login não concluído. Toque em Entrar para tentar de novo.");
-      setOcupado(false);
+      // A promise rejeitar NÃO significa que o login falhou: em 2026-07-27 o
+      // popup concluiu a autenticação e ainda assim rejeitou, porque o aviso de
+      // volta ao Teams não chegou — a aba dizia "não concluído" com a sessão já
+      // criada. Então: recarregar a raiz e deixar o middleware decidir. Com
+      // sessão, cai no painel; sem sessão, volta ao login (que mostra o motivo).
+      //
+      // Nunca redirecionar para o Entra aqui: dentro do iframe daria tela preta
+      // (X-Frame-Options: DENY).
+      window.location.href = "/";
     }
   }
 
@@ -66,7 +69,6 @@ export default function BotaoEntrar() {
         </svg>
         {ocupado ? "Entrando…" : "Entrar com Microsoft"}
       </button>
-      {erro && <p className="mt-3 text-center text-sm text-red-600">{erro}</p>}
     </>
   );
 }
