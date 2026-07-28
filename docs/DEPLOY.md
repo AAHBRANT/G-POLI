@@ -110,8 +110,25 @@ Todas as regras deste documento estão implementadas:
 
 | Item | O que | Regra | PR |
 |---|---|---|---|
-| B1 | `docker-entrypoint` fail-closed + health/readiness probe | 1, 2 | #15 (feature/deploy-seguro) |
+| B1 | `docker-entrypoint` fail-closed | 1 | #15 (feature/deploy-seguro) |
 | B2 | Step "Migration check" no CI | 4 | #15 (feature/deploy-seguro) |
+| B3 | Probes declaradas no Bicep (`infra/bicep/modules/containerApp.bicep`) | 2 | #15 (feature/deploy-seguro) |
+| B4 | Probes **aplicadas no ambiente** de homologação | 2 | 2026-07-27 (fora de PR — ver abaixo) |
+
+**Declarado não é o mesmo que em vigor.** Entre #15 e 2026-07-27 este documento
+afirmava a regra 2 implementada, mas o Container App tinha **zero probes**: elas
+existiam apenas no Bicep, que é baseline não aplicado. O `/api/health` respondia
+e nada o consultava — boot quebrado seguiria recebendo tráfego, exatamente o que
+a regra 2 existe para impedir.
+
+As três probes (Startup 30×5s, Readiness 10s, Liveness 30s, todas em
+`/api/health`) foram aplicadas ao ambiente em 2026-07-27, com os mesmos valores
+declarados no Bicep, gerando a revisão `--0000009`. O Bicep segue sendo a fonte
+de verdade: se o ambiente for recriado a partir dele, as probes vêm junto.
+
+Lição registrada: ao marcar uma regra como implementada, distinguir **onde** —
+no código, no template ou no ambiente. Só a última significa que a regra está
+protegendo alguém.
 
 ---
 
