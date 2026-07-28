@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { codigoFalhaSso, mensagemFalhaSso } from "@/lib/auth/mensagens";
 
 // Tenta SSO silencioso quando o app está embutido no Teams.
 // Fora do Teams, não faz nada (o usuário usa o botão de login web).
@@ -40,8 +41,10 @@ export default function TeamsSso() {
         } else if (r.status === 403) {
           setEstado("sem_acesso");
         } else {
+          // Mostrar a CATEGORIA, não o número. "servidor respondeu 401" mandou
+          // o diagnóstico para identidade quando o problema era o banco.
           setEstado("erro");
-          setMotivo(`servidor respondeu ${r.status}`);
+          setMotivo(mensagemFalhaSso(codigoFalhaSso(r.status)));
         }
       } catch (e) {
         // Está no Teams, mas o SSO silencioso não passou. Não é fim de linha: o
