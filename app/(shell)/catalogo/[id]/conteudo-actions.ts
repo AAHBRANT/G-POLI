@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { ESQUELETO_PADRAO } from "@/lib/esqueleto";
+import { ESQUELETO_PADRAO } from "@/lib/politica/esqueleto";
 import { getUsuarioAtual, podeEditarConteudo, podeEditarSecao, podeGerirAberturaArea } from "@/lib/auth/usuario";
 import { registrar } from "@/lib/auditoria";
 

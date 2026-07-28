@@ -4,9 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getUsuarioAtual, podeEditarConteudo } from "@/lib/auth/usuario";
 import { registrar } from "@/lib/auditoria";
-import { gerarRascunhoNorma, type SecaoIA } from "@/lib/ai";
+import { gerarRascunhoNorma, type SecaoIA } from "@/lib/politica/ai";
 import { rotuloClassificacao } from "@/lib/constants";
-import { planejarAplicacaoIA } from "@/lib/dominio";
+import { planejarAplicacaoIA } from "@/lib/politica/dominio";
 
 export type ResultadoIA = { ok: boolean; erro?: string; secoes?: SecaoIA[] };
 

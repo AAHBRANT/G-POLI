@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import Sidebar from "@/components/Sidebar";
-import Header from "@/components/Header";
+import Sidebar from "@/components/shell/Sidebar";
+import Header from "@/components/shell/Header";
 import { authEnabled } from "@/lib/auth/config";
 import { getUsuarioAtual } from "@/lib/auth/usuario";
 

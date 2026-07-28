@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { authEnabled } from "@/lib/auth/config";
-import TeamsSso from "@/components/TeamsSso";
-import BotaoEntrar from "@/components/BotaoEntrar";
-import Brand from "@/components/Brand";
+import TeamsSso from "@/components/auth/TeamsSso";
+import BotaoEntrar from "@/components/auth/BotaoEntrar";
+import Brand from "@/components/shell/Brand";
 
 export const dynamic = "force-dynamic";
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { CARGOS, rotuloCargo, CARGOS_PRIVILEGIADOS } from "@/lib/perfis";
+import { CARGOS, rotuloCargo, CARGOS_PRIVILEGIADOS } from "@/lib/auth/perfis";
 
 // Primeira suíte da Fase 0 — funções puras (sem dependência de banco/servidor).
 describe("perfis / cargos (RBAC)", () => {

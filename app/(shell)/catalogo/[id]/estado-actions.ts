@@ -12,8 +12,8 @@ import {
   unirAudiencia,
   type Estado,
   type UsuarioAlvo,
-} from "@/lib/dominio";
-import { enviarNotificacaoPoliticaPublicada } from "@/lib/graph";
+} from "@/lib/politica/dominio";
+import { enviarNotificacaoPoliticaPublicada } from "@/lib/notificacao/graph";
 
 export type ResultadoAcao = { ok: boolean; erro?: string };
 

@@ -10,8 +10,8 @@
 //
 // O `activityType` abaixo precisa constar em `teams/manifest.json` (bloco
 // `activities.activityTypes`), senão o Teams não sabe renderizar o texto.
-import { msalApp, SCOPES_GRAPH_APP } from "./auth/msal";
-import { authConfig } from "./auth/config";
+import { msalApp, SCOPES_GRAPH_APP } from "../auth/msal";
+import { authConfig } from "../auth/config";
 
 const ACTIVITY_TYPE = "politicaPublicada";
 

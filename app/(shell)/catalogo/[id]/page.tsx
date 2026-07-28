@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import NovaVersaoForm from "@/components/NovaVersaoForm";
-import AcoesEstado from "@/components/AcoesEstado";
-import CienciaBtn from "@/components/CienciaBtn";
-import AudienciaSelector from "@/components/AudienciaSelector";
+import NovaVersaoForm from "@/components/politica/NovaVersaoForm";
+import AcoesEstado from "@/components/politica/AcoesEstado";
+import CienciaBtn from "@/components/politica/CienciaBtn";
+import AudienciaSelector from "@/components/politica/AudienciaSelector";
 import { corClassificacao, rotuloClassificacao, ESTADOS_POLITICA, tipoDocumento } from "@/lib/constants";
 import { getUsuarioAtual, podeEditarConteudo, podePublicar } from "@/lib/auth/usuario";
 

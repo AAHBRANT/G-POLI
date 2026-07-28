@@ -1,6 +1,6 @@
 import { authEnabled } from "@/lib/auth/config";
 import { getUsuarioAtual } from "@/lib/auth/usuario";
-import { CARGOS, rotuloCargo } from "@/lib/perfis";
+import { CARGOS, rotuloCargo } from "@/lib/auth/perfis";
 
 const DEV_PERFIS = CARGOS.map((c) => c.valor);
 

@@ -6,7 +6,7 @@ import { salvarArquivo } from "@/lib/storage";
 import { revalidatePath } from "next/cache";
 import { getUsuarioAtual, podeEditarConteudo } from "@/lib/auth/usuario";
 import { registrar } from "@/lib/auditoria";
-import { validarUpload, proximoNumeroVersao } from "@/lib/dominio";
+import { validarUpload, proximoNumeroVersao } from "@/lib/politica/dominio";
 
 export type ResultadoAcao = { ok: boolean; erro?: string };
 

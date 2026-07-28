@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getUsuarioAtual, podeAdministrar, podeGerirSetores, podeGerirAdmins } from "@/lib/auth/usuario";
-import LinhaUsuario from "@/components/LinhaUsuario";
-import ConvidarUsuarioForm from "@/components/ConvidarUsuarioForm";
-import GerenciarSetores from "@/components/GerenciarSetores";
-import { CARGOS } from "@/lib/perfis";
+import LinhaUsuario from "@/components/admin/LinhaUsuario";
+import ConvidarUsuarioForm from "@/components/admin/ConvidarUsuarioForm";
+import GerenciarSetores from "@/components/admin/GerenciarSetores";
+import { CARGOS } from "@/lib/auth/perfis";
 
 export const dynamic = "force-dynamic";
 

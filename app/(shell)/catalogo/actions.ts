@@ -2,10 +2,10 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { ESQUELETO_PADRAO } from "@/lib/esqueleto";
+import { ESQUELETO_PADRAO } from "@/lib/politica/esqueleto";
 import { getUsuarioAtual, podeCriarPolitica } from "@/lib/auth/usuario";
 import { registrar } from "@/lib/auditoria";
-import { gerarCodigoNormativo } from "@/lib/codigo";
+import { gerarCodigoNormativo } from "@/lib/politica/codigo";
 import { tipoDocumentoValido, tipoDocumento, artigoDocumento, type TipoDocumentoValor } from "@/lib/constants";
 
 const CLASSIFICACOES_VALIDAS = ["publico_interno", "restrito", "confidencial"] as const;

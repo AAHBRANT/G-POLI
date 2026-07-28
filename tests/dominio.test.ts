@@ -16,8 +16,8 @@ import {
   type Estado,
   type AcaoEstado,
   type UsuarioAlvo,
-} from "@/lib/dominio";
-import { ESQUELETO_PADRAO } from "@/lib/esqueleto";
+} from "@/lib/politica/dominio";
+import { ESQUELETO_PADRAO } from "@/lib/politica/esqueleto";
 
 // ===========================================================================
 // Código normativo
