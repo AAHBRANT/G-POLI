@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import Brand from "@/components/Brand";
+import Brand from "@/components/shell/Brand";
 import { TIPOS_DOCUMENTO } from "@/lib/constants";
 
 const painel = { nome: "Painel", href: "/", icone: "M3 12l9-9 9 9M5 10v10h14V10" };

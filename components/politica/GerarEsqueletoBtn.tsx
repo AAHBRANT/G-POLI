@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { gerarEsqueleto } from "@/app/(shell)/catalogo/[id]/conteudo-actions";
 // Contagem derivada do próprio esqueleto: número fixo no rótulo já ficou
 // desatualizado uma vez (dizia 8 depois da estrutura passar a 7).
-import { ESQUELETO_PADRAO } from "@/lib/esqueleto";
+import { ESQUELETO_PADRAO } from "@/lib/politica/esqueleto";
 
 export default function GerarEsqueletoBtn({ politicaId }: { politicaId: string }) {
   const [pendente, iniciar] = useTransition();

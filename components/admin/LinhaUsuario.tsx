@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { definirPerfil, definirSetores, alternarAtivo, removerUsuario } from "@/app/(shell)/admin/actions";
-import { CARGOS, CARGOS_PRIVILEGIADOS } from "@/lib/perfis";
+import { CARGOS, CARGOS_PRIVILEGIADOS } from "@/lib/auth/perfis";
 
 type Setor = { id: string; nome: string };
 type U = {

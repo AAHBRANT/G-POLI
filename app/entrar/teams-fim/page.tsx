@@ -1,4 +1,4 @@
-import FecharPopupTeams from "@/components/FecharPopupTeams";
+import FecharPopupTeams from "@/components/auth/FecharPopupTeams";
 import { hostRedirectConfiavel } from "@/lib/auth/estado";
 
 export const dynamic = "force-dynamic";

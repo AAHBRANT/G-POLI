@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getUsuarioAtual, podeAdministrar, podeGerirAdmins } from "@/lib/auth/usuario";
 import { registrar } from "@/lib/auditoria";
-import { CARGOS_PRIVILEGIADOS } from "@/lib/perfis";
+import { CARGOS_PRIVILEGIADOS } from "@/lib/auth/perfis";
 
 export type ResultadoAcao = { ok: boolean; erro?: string };
 

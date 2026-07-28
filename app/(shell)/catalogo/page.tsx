@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import NovaPoliticaForm from "@/components/NovaPoliticaForm";
-import CatalogoTabela from "@/components/CatalogoTabela";
+import NovaPoliticaForm from "@/components/politica/NovaPoliticaForm";
+import CatalogoTabela from "@/components/politica/CatalogoTabela";
 import { getUsuarioAtual, podeCriarPolitica } from "@/lib/auth/usuario";
 
 export const dynamic = "force-dynamic";

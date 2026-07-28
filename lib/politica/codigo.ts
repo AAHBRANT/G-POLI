@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { siglaArea, proximoSequencial, formatarCodigoNormativo } from "@/lib/dominio";
+import { siglaArea, proximoSequencial, formatarCodigoNormativo } from "@/lib/politica/dominio";
 import { tipoDocumento, type TipoDocumentoValor } from "@/lib/constants";
 
 // Reexporta a regra pura (compatibilidade com quem importava daqui).

@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import SecaoEditor from "@/components/SecaoEditor";
-import GerarEsqueletoBtn from "@/components/GerarEsqueletoBtn";
-import GerarIAButton from "@/components/GerarIAButton";
-import { ESQUELETO_PADRAO } from "@/lib/esqueleto";
+import SecaoEditor from "@/components/politica/SecaoEditor";
+import GerarEsqueletoBtn from "@/components/politica/GerarEsqueletoBtn";
+import GerarIAButton from "@/components/politica/GerarIAButton";
+import { ESQUELETO_PADRAO } from "@/lib/politica/esqueleto";
 import { getUsuarioAtual, podeEditarConteudo, podeEditarSecao, podeGerirAberturaArea } from "@/lib/auth/usuario";
-import { iaDisponivel } from "@/lib/ai";
+import { iaDisponivel } from "@/lib/politica/ai";
 
 export const dynamic = "force-dynamic";
 

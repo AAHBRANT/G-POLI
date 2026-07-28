@@ -1,4 +1,4 @@
-import { ESQUELETO_PADRAO } from "@/lib/esqueleto";
+import { ESQUELETO_PADRAO } from "@/lib/politica/esqueleto";
 
 // Camada de IA (Azure OpenAI). Plugável por env; se não configurada, generation fica indisponível.
 const ENDPOINT = (process.env.AZURE_OPENAI_ENDPOINT ?? "").replace(/\/$/, "");
