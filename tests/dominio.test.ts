@@ -181,20 +181,48 @@ describe("Versionamento", () => {
 // ===========================================================================
 // Esqueleto
 // ===========================================================================
-describe("Esqueleto normativo", () => {
-  it("tem exatamente 8 seções", () => {
-    expect(ESQUELETO_PADRAO).toHaveLength(8);
+// A estrutura vem do Manual de Padronização Documental do SGI, capítulo 16.1
+// (Política). Se estes testes falharem, o app voltou a gerar política fora do
+// padrão corporativo — não "conserte" o teste sem conferir o Manual.
+describe("Esqueleto normativo de Política (Manual SGI 16.1)", () => {
+  it("tem exatamente as 7 seções do capítulo 16.1, na ordem do Manual", () => {
+    expect(ESQUELETO_PADRAO.map((s) => s.titulo)).toEqual([
+      "Objetivo",
+      "Abrangência",
+      "Princípios",
+      "Diretrizes",
+      "Responsabilidades",
+      "Compromissos",
+      "Disposições Gerais",
+    ]);
   });
 
-  it("ordem é sequencial 1..8", () => {
-    expect(ESQUELETO_PADRAO.map((s) => s.ordem)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+  it("ordem é sequencial 1..7 e o código acompanha a ordem", () => {
+    expect(ESQUELETO_PADRAO.map((s) => s.ordem)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(ESQUELETO_PADRAO.map((s) => s.codigo)).toEqual(["1", "2", "3", "4", "5", "6", "7"]);
   });
 
-  it("Definições e Responsabilidades são tabelas com colunas; demais são texto", () => {
+  it("não traz seções que o Manual reserva ao Procedimento (16.2)", () => {
+    const titulos = ESQUELETO_PADRAO.map((s) => s.titulo);
+    expect(titulos).not.toContain("Definições");
+    expect(titulos).not.toContain("Anexos");
+    expect(titulos).not.toContain("Campo de Aplicação");
+    expect(titulos).not.toContain("Referências");
+    expect(titulos).not.toContain("Registros");
+    expect(titulos).not.toContain("Indicadores");
+  });
+
+  it("Responsabilidades é a única tabela, e tabela sem coluna não passa", () => {
     const tabelas = ESQUELETO_PADRAO.filter((s) => s.tipo === "tabela");
-    expect(tabelas.map((s) => s.titulo)).toEqual(["Definições", "Responsabilidades"]);
+    expect(tabelas.map((s) => s.titulo)).toEqual(["Responsabilidades"]);
     for (const t of tabelas) {
       expect(Array.isArray(t.colunas) && t.colunas!.length > 0).toBe(true);
+    }
+  });
+
+  it("toda seção tem dica de preenchimento", () => {
+    for (const s of ESQUELETO_PADRAO) {
+      expect(s.dica && s.dica.length > 10).toBeTruthy();
     }
   });
 });
@@ -239,7 +267,9 @@ describe("Invariantes do domínio", () => {
     }));
     const snap = montarSnapshot(secoes);
     expect(snap).toHaveLength(secoes.length);
-    expect(snap.map((s) => s.codigo)).toEqual(["1", "2", "3", "4", "5", "6", "7", "8"]);
+    // Derivado do esqueleto, não fixo: a invariante é "um snapshot por seção, na
+    // ordem", e ela não depende de quantas seções o Manual define.
+    expect(snap.map((s) => s.codigo)).toEqual(ESQUELETO_PADRAO.map((s) => s.codigo));
   });
 
   it("número de versão é sempre crescente e único por sequência", () => {
