@@ -16,6 +16,21 @@ enum Classificacao {
   confidencial
 }
 
+// v3: categoria de documento do PRODUTO — cada uma tem sua seção própria no
+// menu (ver lib/constants.ts). Deliberadamente SEM correspondência com os 17
+// tipos de documento (TD) oficiais do SGI (MAN, PRO, POL, RGL, CI...): essa
+// vinculação foi adiada até o SGI confirmar o mapeamento exato.
+enum TipoDocumento {
+  politica
+  norma
+  procedimento
+  instrucao_trabalho
+  manual
+  codigo
+  formulario
+  comunicado_normativo
+}
+
 enum EstadoPolitica {
   rascunho
   publicada
@@ -81,6 +96,7 @@ model Politica {
   id            String         @id @default(cuid())
   codigo        String?        @unique // código normativo, ex.: POL-RH-001
   titulo        String
+  tipo          TipoDocumento  @default(politica) // v3: seção do menu a que pertence
   area          Area           @relation(fields: [areaId], references: [id])
   areaId        String
   classificacao Classificacao
@@ -100,7 +116,10 @@ model Politica {
   audienciaUsuarios Usuario[]   @relation("PoliticaAudienciaUsuarios")
   notificacoes  Notificacao[]
 
-  @@unique([titulo, areaId])
+  // v3: tipo entra na chave — uma Norma e uma Política podem ter o mesmo
+  // título na mesma área (são documentos diferentes); só colide dentro do
+  // mesmo tipo.
+  @@unique([titulo, areaId, tipo])
 }
 
 // v3: registro de tentativa de notificação (Teams) por publicação. Auditoria de

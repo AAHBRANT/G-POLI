@@ -5,7 +5,7 @@ import NovaVersaoForm from "@/components/NovaVersaoForm";
 import AcoesEstado from "@/components/AcoesEstado";
 import CienciaBtn from "@/components/CienciaBtn";
 import AudienciaSelector from "@/components/AudienciaSelector";
-import { corClassificacao, rotuloClassificacao, ESTADOS_POLITICA } from "@/lib/constants";
+import { corClassificacao, rotuloClassificacao, ESTADOS_POLITICA, tipoDocumento } from "@/lib/constants";
 import { getUsuarioAtual, podeEditarConteudo, podePublicar } from "@/lib/auth/usuario";
 
 export const dynamic = "force-dynamic";
@@ -48,12 +48,16 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
     : [[], []];
 
   const estado = ESTADOS_POLITICA[politica.estado] ?? { rotulo: politica.estado, cor: "" };
+  const infoTipo = tipoDocumento(politica.tipo);
+  // Esta página é compartilhada por todos os 8 tipos (v3) — "voltar" precisa ir
+  // à seção certa, não sempre a /catalogo.
+  const hrefSecao = politica.tipo === "politica" ? "/catalogo" : `/tipos/${politica.tipo}`;
 
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/catalogo" className="text-xs text-marsala hover:underline">
-          ← Voltar ao catálogo
+        <Link href={hrefSecao} className="text-xs text-marsala hover:underline">
+          ← Voltar {politica.tipo === "politica" ? "ao catálogo" : `a ${infoTipo.rotuloPlural.toLowerCase()}`}
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
           {politica.codigo && (
@@ -62,6 +66,9 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
             </span>
           )}
           <h2 className="text-lg font-semibold text-marsala">{politica.titulo}</h2>
+          <span className="rounded-full bg-black/10 px-2.5 py-1 text-[11px] font-medium text-black/70">
+            {infoTipo.rotulo}
+          </span>
           <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${corClassificacao(politica.classificacao)}`}>
             {rotuloClassificacao(politica.classificacao)}
           </span>

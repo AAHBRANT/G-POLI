@@ -6,6 +6,7 @@ import { ESQUELETO_PADRAO } from "@/lib/esqueleto";
 import { getUsuarioAtual, podeCriarPolitica } from "@/lib/auth/usuario";
 import { registrar } from "@/lib/auditoria";
 import { gerarCodigoNormativo } from "@/lib/codigo";
+import { tipoDocumentoValido, tipoDocumento, artigoDocumento, type TipoDocumentoValor } from "@/lib/constants";
 
 const CLASSIFICACOES_VALIDAS = ["publico_interno", "restrito", "confidencial"] as const;
 
@@ -20,8 +21,14 @@ export async function criarPolitica(formData: FormData): Promise<ResultadoAcao> 
   const titulo = String(formData.get("titulo") ?? "").trim();
   const area = String(formData.get("area") ?? "").trim();
   const classificacao = String(formData.get("classificacao") ?? "").trim();
+  // v3: sem campo "tipo" no form (ex.: o de /catalogo), assume Política — é o
+  // comportamento de sempre, preservado.
+  const tipoBruto = String(formData.get("tipo") ?? "politica").trim();
+  const tipo: TipoDocumentoValor = tipoDocumentoValido(tipoBruto) ? tipoBruto : "politica";
 
-  if (!titulo) return { ok: false, erro: "Informe o título da política." };
+  const infoTipo = tipoDocumento(tipo);
+  const { artigo } = artigoDocumento(infoTipo);
+  if (!titulo) return { ok: false, erro: `Informe o título d${artigo} ${infoTipo.rotulo.toLowerCase()}.` };
   if (!area) return { ok: false, erro: "Informe a área responsável." };
   if (!CLASSIFICACOES_VALIDAS.includes(classificacao as never)) {
     return { ok: false, erro: "Classificação inválida." };
@@ -34,13 +41,17 @@ export async function criarPolitica(formData: FormData): Promise<ResultadoAcao> 
       create: { nome: area },
     });
 
-    const codigo = await gerarCodigoNormativo(areaRegistro.id, areaRegistro.nome);
+    const codigo = await gerarCodigoNormativo(areaRegistro.id, areaRegistro.nome, tipo);
 
-    // Nasce com o esqueleto de Política do Manual do SGI (cap. 16.1).
+    // Nasce com o esqueleto de Política do Manual do SGI (cap. 16.1) — hoje o
+    // mesmo esqueleto vale para todos os tipos (decisão do usuário, 2026-07-28);
+    // esqueleto próprio por tipo (Procedimento tem Fluxograma/Registros no
+    // Manual, cap. 16.2) fica para quando for necessário, tipo por tipo.
     const nova = await prisma.politica.create({
       data: {
         titulo,
         codigo,
+        tipo,
         areaId: areaRegistro.id,
         classificacao: classificacao as never,
         secoes: {
@@ -60,12 +71,13 @@ export async function criarPolitica(formData: FormData): Promise<ResultadoAcao> 
     // Violação de unicidade (título+área) ou outro erro do banco
     const msg =
       e && typeof e === "object" && "code" in e && (e as { code: string }).code === "P2002"
-        ? "Já existe uma política com esse título nessa área."
+        ? "Já existe um documento com esse título nessa área."
         : "Falha ao salvar. Verifique a conexão com o banco.";
     return { ok: false, erro: msg };
   }
 
   revalidatePath("/catalogo");
+  revalidatePath(`/tipos/${tipo}`);
   revalidatePath("/");
   return { ok: true };
 }

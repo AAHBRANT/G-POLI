@@ -33,9 +33,11 @@ export function proximoSequencial(prefixo: string, codigos: (string | null | und
   return max + 1;
 }
 
-// Formata o código normativo no padrão POL-<SIGLA>-NNN.
-export function formatarCodigoNormativo(sigla: string, sequencial: number): string {
-  return `POL-${sigla}-${String(sequencial).padStart(3, "0")}`;
+// Formata o código normativo no padrão <PREFIXO>-<SIGLA>-NNN. `prefixo` é
+// opcional (default "POL") para não quebrar chamadas antigas — mas
+// gerarCodigoNormativo (lib/codigo.ts) sempre passa o prefixo do tipo.
+export function formatarCodigoNormativo(sigla: string, sequencial: number, prefixo = "POL"): string {
+  return `${prefixo}-${sigla}-${String(sequencial).padStart(3, "0")}`;
 }
 
 // ---------------------------------------------------------------------------

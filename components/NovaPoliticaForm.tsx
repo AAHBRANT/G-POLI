@@ -2,12 +2,17 @@
 
 import { useState, useTransition } from "react";
 import { criarPolitica } from "@/app/(shell)/catalogo/actions";
-import { CLASSIFICACOES } from "@/lib/constants";
+import { CLASSIFICACOES, tipoDocumento, artigoDocumento, type TipoDocumentoValor } from "@/lib/constants";
 
-export default function NovaPoliticaForm() {
+// Formulário genérico de criação — serve à Política (/catalogo) e aos outros 7
+// tipos de documento (/tipos/[tipo]). Só o rótulo, o placeholder e o campo
+// oculto `tipo` mudam.
+export default function NovaPoliticaForm({ tipo = "politica" }: { tipo?: TipoDocumentoValor }) {
   const [aberto, setAberto] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
+  const info = tipoDocumento(tipo);
+  const { novo } = artigoDocumento(info);
 
   function onSubmit(formData: FormData) {
     setErro(null);
@@ -25,9 +30,9 @@ export default function NovaPoliticaForm() {
     return (
       <button
         onClick={() => setAberto(true)}
-        className="rounded-md bg-marsala px-4 py-2 text-sm font-medium text-white transition hover:bg-marsala-600"
+        className="rounded-md bg-marsala px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-marsala-600"
       >
-        + Nova política
+        + {novo} {info.rotulo.toLowerCase()}
       </button>
     );
   }
@@ -37,7 +42,10 @@ export default function NovaPoliticaForm() {
       action={onSubmit}
       className="rounded-lg border border-black/10 bg-white p-5 shadow-sm"
     >
-      <h3 className="mb-4 text-sm font-semibold text-marsala">Nova política</h3>
+      <h3 className="mb-4 text-sm font-semibold text-marsala">
+        {novo} {info.rotulo.toLowerCase()}
+      </h3>
+      <input type="hidden" name="tipo" value={tipo} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <label className="block sm:col-span-2">
@@ -46,7 +54,7 @@ export default function NovaPoliticaForm() {
             name="titulo"
             type="text"
             required
-            placeholder="Ex.: Política de Segurança da Informação"
+            placeholder={`Ex.: ${info.exemplo}`}
             className="w-full rounded-md border border-black/15 px-3 py-2 text-sm outline-none focus:border-marsala"
           />
         </label>
@@ -96,7 +104,7 @@ export default function NovaPoliticaForm() {
           disabled={pendente}
           className="rounded-md bg-marsala px-4 py-2 text-sm font-medium text-white transition hover:bg-marsala-600 disabled:opacity-60"
         >
-          {pendente ? "Salvando…" : "Salvar política"}
+          {pendente ? "Salvando…" : `Salvar ${info.rotulo.toLowerCase()}`}
         </button>
         <button
           type="button"
