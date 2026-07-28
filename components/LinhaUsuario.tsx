@@ -34,6 +34,7 @@ export default function LinhaUsuario({
   const [sel, setSel] = useState<string[]>(usuario.setores.map((s) => s.id));
   const [msg, setMsg] = useState<null | "ok" | "erro">(null);
   const [erroTxt, setErroTxt] = useState<string | null>(null);
+  const [confirmandoRemover, setConfirmandoRemover] = useState(false);
   const [pend, iniciar] = useTransition();
 
   const cargosDisponiveis = CARGOS.filter((c) => podeAdmins || !CARGOS_PRIVILEGIADOS.includes(c.valor));
@@ -117,7 +118,7 @@ export default function LinhaUsuario({
                 className="rounded border border-black/15 px-2 py-1 text-[11px] text-black/70 hover:bg-black/5 disabled:opacity-60">
                 {usuario.ativo ? "Desativar" : "Ativar"}
               </button>
-              <button onClick={() => { if (window.confirm(`Remover ${usuario.email}? Revoga o acesso.`)) agir(() => removerUsuario(usuario.id)); }} disabled={pend}
+              <button onClick={() => setConfirmandoRemover(true)} disabled={pend}
                 className="rounded px-2 py-1 text-[11px] text-red-600 hover:bg-red-50 disabled:opacity-60">
                 Remover
               </button>
@@ -128,6 +129,28 @@ export default function LinhaUsuario({
           {msg === "ok" && <span className="text-xs text-emerald-700">✓</span>}
           {msg === "erro" && <span className="text-[11px] text-red-600" title={erroTxt ?? ""}>erro</span>}
         </div>
+
+        {confirmandoRemover && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-sm rounded-lg bg-white p-5 shadow-xl">
+              <p className="text-sm text-black/80">Remover {usuario.email}? Revoga o acesso.</p>
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  onClick={() => setConfirmandoRemover(false)}
+                  className="rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium text-black/70 hover:bg-black/5"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => { setConfirmandoRemover(false); agir(() => removerUsuario(usuario.id)); }}
+                  className="rounded-md bg-red-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-800"
+                >
+                  Remover
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </td>
     </tr>
   );
