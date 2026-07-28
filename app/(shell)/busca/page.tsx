@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getUsuarioAtual, filtroVisibilidade } from "@/lib/auth/usuario";
-import { corClassificacao, rotuloClassificacao, ESTADOS_POLITICA } from "@/lib/constants";
+import { corClassificacao, rotuloClassificacao, ESTADOS_POLITICA, tipoDocumento } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -105,6 +105,7 @@ export default async function BuscaPage({ searchParams }: { searchParams: Params
             <thead className="bg-black/[0.03] text-left text-xs uppercase tracking-wide text-black/50">
               <tr>
                 <th className="px-4 py-2 font-medium">Norma</th>
+                <th className="px-4 py-2 font-medium">Tipo</th>
                 <th className="px-4 py-2 font-medium">Área</th>
                 <th className="px-4 py-2 font-medium">Classificação</th>
                 <th className="px-4 py-2 font-medium">Estado</th>
@@ -120,6 +121,7 @@ export default async function BuscaPage({ searchParams }: { searchParams: Params
                         {p.titulo}
                       </Link>
                     </td>
+                    <td className="px-4 py-2 text-black/60">{tipoDocumento(p.tipo).rotulo}</td>
                     <td className="px-4 py-2 text-black/60">{p.area.nome}</td>
                     <td className="px-4 py-2">
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${corClassificacao(p.classificacao)}`}>

@@ -51,9 +51,14 @@ describe("Código normativo", () => {
     expect(proximoSequencial("POL-RH-", ["POL-RH-abc", null, undefined, "POL-RH-005"])).toBe(6);
   });
 
-  it("formata no padrão POL-<SIGLA>-NNN com zero-pad", () => {
+  it("formata no padrão POL-<SIGLA>-NNN com zero-pad (POL é o default, sem 3º argumento)", () => {
     expect(formatarCodigoNormativo("RH", 1)).toBe("POL-RH-001");
     expect(formatarCodigoNormativo("TI", 42)).toBe("POL-TI-042");
+  });
+
+  it("v3: aceita prefixo de outros tipos de documento", () => {
+    expect(formatarCodigoNormativo("RH", 1, "NOR")).toBe("NOR-RH-001");
+    expect(formatarCodigoNormativo("TI", 7, "PRO")).toBe("PRO-TI-007");
   });
 });
 

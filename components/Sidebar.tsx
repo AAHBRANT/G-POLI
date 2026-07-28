@@ -3,10 +3,23 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Brand from "@/components/Brand";
+import { TIPOS_DOCUMENTO } from "@/lib/constants";
 
-const modulos = [
-  { nome: "Painel", href: "/", icone: "M3 12l9-9 9 9M5 10v10h14V10" },
-  { nome: "Catálogo de Normas", href: "/catalogo", icone: "M4 5h16M4 12h16M4 19h10" },
+const painel = { nome: "Painel", href: "/", icone: "M3 12l9-9 9 9M5 10v10h14V10" };
+
+// v3: um item de menu por tipo de documento, cada um com sua seção própria
+// (mesmo padrão que "Catálogo de Normas" já tinha). Política mantém a rota
+// /catalogo, que já existia; os outros 7 vão para /tipos/[tipo] — página
+// genérica, um arquivo só. Ícone único de documento para os 8 (evita 8 ícones
+// sob medida sem necessidade real ainda).
+const ICONE_DOCUMENTO = "M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1zM14 3v5h5M9 13h6M9 17h6";
+const documentos = TIPOS_DOCUMENTO.map((t) => ({
+  nome: t.rotuloPlural,
+  href: t.valor === "politica" ? "/catalogo" : `/tipos/${t.valor}`,
+  icone: ICONE_DOCUMENTO,
+}));
+
+const ferramentas = [
   { nome: "Publicação", href: "/publicacao", icone: "M5 13l4 4L19 7" },
   { nome: "Busca", href: "/busca", icone: "M21 21l-4.3-4.3M11 18a7 7 0 100-14 7 7 0 000 14z" },
 ];
@@ -48,13 +61,25 @@ export default function Sidebar() {
     );
   };
 
+  const rotulo = (texto: string) => (
+    <div className="mb-1 mt-4 px-3 text-[10px] font-medium uppercase tracking-[0.14em] text-bege/70 first:mt-0">
+      {texto}
+    </div>
+  );
+
   return (
     <aside className="flex w-64 flex-col justify-between bg-gradient-to-b from-marsala to-marsala-800 text-white">
-      <div>
+      <div className="flex min-h-0 flex-1 flex-col">
         <div className="border-b border-white/10 px-5 py-5">
           <Brand size="md" invertido />
         </div>
-        <nav className="mt-5 space-y-1 px-3">{modulos.map(item)}</nav>
+        <nav className="mt-5 flex-1 space-y-1 overflow-y-auto px-3 pb-3">
+          {item(painel)}
+          {rotulo("Documentos")}
+          <div className="space-y-1">{documentos.map(item)}</div>
+          {rotulo("Ferramentas")}
+          <div className="space-y-1">{ferramentas.map(item)}</div>
+        </nav>
       </div>
       <div className="px-3 pb-5">
         <div className="mb-1 px-3 text-[10px] font-medium uppercase tracking-[0.14em] text-bege/70">
