@@ -33,6 +33,10 @@ export default function BotaoEntrar() {
     }
 
     try {
+      // A URL entra sem os parâmetros do Teams de propósito: é o próprio Teams
+      // que anexa `authId`, `oauthRedirectMethod` e `hostRedirectUrl` a ela ao
+      // abrir o popup. Nosso /api/auth/login os captura e leva no `state` do
+      // OAuth, para que sobrevivam à ida ao Entra (ver lib/auth/estado.ts).
       await teams.authentication.authenticate({
         url: `${window.location.origin}/api/auth/login?teams=1`,
         width: 600,
