@@ -19,6 +19,122 @@ Relacionado: [`ADR-002`](adr/ADR-002-agente-selfhosted-ci.md) (agente de CI),
 
 ---
 
+## Passo a passo — subir uma nova versão manualmente
+
+Sequência real usada em toda atualização do ambiente de homologação. `vN` é o
+próximo número de versão (ex.: se a última foi v11, use v12).
+
+**0. Confirmar que a PR já foi mergeada em `main`**
+
+```bash
+git checkout main
+git pull --ff-only origin main
+git log --oneline -3
+```
+
+**1. Build da imagem**
+
+```bash
+docker build -t gpoliticas:vN .
+```
+
+**2. Smoke test — banco descartável + boot completo**
+
+Confirma que todas as migrações aplicam limpo e o container sobe, antes de ir
+pro Azure.
+
+```bash
+docker network create gpol-smoke-net
+
+docker run -d --name gpol-smoke-pg --network gpol-smoke-net \
+  -e POSTGRES_USER=gpol -e POSTGRES_PASSWORD=gpol_dev -e POSTGRES_DB=gpoliticas \
+  postgres:15-alpine
+
+# espera o Postgres aceitar conexão (poucos segundos)
+docker exec gpol-smoke-pg pg_isready -U gpol
+
+docker run -d --name gpol-smoke-app --network gpol-smoke-net -p 13000:3000 \
+  -e DATABASE_URL="postgresql://gpol:gpol_dev@gpol-smoke-pg:5432/gpoliticas?schema=public" \
+  -e AZURE_AD_TENANT_ID="8cc518ea-6df8-4d1e-a79f-89ee9314335c" \
+  -e AZURE_AD_CLIENT_ID="1b98db67-5ce0-469e-aea3-8beaf8044b87" \
+  -e AZURE_AD_CLIENT_SECRET="dummy" \
+  -e AUTH_SECRET="dummy_secret_for_smoke_test_only_1234" \
+  -e APP_BASE_URL="http://localhost:13000" \
+  -e ADMIN_EMAILS="wellington.lourenco@aahbrant.com" \
+  gpoliticas:vN
+
+docker logs gpol-smoke-app
+```
+
+Confirme no log: `All migrations have been successfully applied.` e
+`✓ Ready in ...`. Depois:
+
+```bash
+curl -o /dev/null -w "HTTP %{http_code}\n" http://localhost:13000/
+curl -o /dev/null -w "HTTP %{http_code}\n" http://localhost:13000/api/health
+```
+
+Esperado: `307` (redireciona pro login, normal sem sessão) e `200`. Se algum
+migration falhar aqui, **não** siga pro Azure — corrija primeiro.
+
+Limpeza:
+
+```bash
+docker rm -f gpol-smoke-app gpol-smoke-pg
+docker network rm gpol-smoke-net
+```
+
+**3. Push da imagem pro registry**
+
+```bash
+az acr login --name acrgpolhml27207f
+docker tag gpoliticas:vN acrgpolhml27207f.azurecr.io/gpoliticas:vN
+docker push acrgpolhml27207f.azurecr.io/gpoliticas:vN
+```
+
+**4. Atualizar o Container App**
+
+```bash
+az containerapp update --name ca-gpol-hml-aahbrant --resource-group rg-gpoliticas \
+  --image acrgpolhml27207f.azurecr.io/gpoliticas:vN
+```
+
+**5. Verificar a revisão nova**
+
+```bash
+az containerapp revision list --name ca-gpol-hml-aahbrant --resource-group rg-gpoliticas \
+  --query "[].{name:name, active:properties.active, healthState:properties.healthState, trafficWeight:properties.trafficWeight}" \
+  -o table
+```
+
+Espere `healthState: Healthy` e `trafficWeight: 100` na revisão nova (pode levar
+uns 10-30s — rode o comando de novo se ainda estiver `None`). Se ficar
+`Unhealthy`, veja os logs antes de qualquer outra coisa:
+
+```bash
+az containerapp logs show --name ca-gpol-hml-aahbrant --resource-group rg-gpoliticas --tail 100
+```
+
+**6. Confirmar publicamente**
+
+```bash
+curl -o /dev/null -w "HTTP %{http_code}\n" \
+  https://ca-gpol-hml-aahbrant.whitesmoke-8dee35f8.brazilsouth.azurecontainerapps.io/
+```
+
+`307` = ok (redirect de login).
+
+**Rollback**, se algo der errado depois do deploy: o Container App está em modo
+`Single` (uma revisão ativa por vez, sem split de tráfego), então reativar a
+revisão anterior (nome da tabela do passo 5) já move 100% do tráfego pra ela:
+
+```bash
+az containerapp revision activate --name ca-gpol-hml-aahbrant --resource-group rg-gpoliticas \
+  --revision ca-gpol-hml-aahbrant--000000X
+```
+
+---
+
 ## Fluxo
 
 ```
