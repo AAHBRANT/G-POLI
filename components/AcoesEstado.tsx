@@ -15,11 +15,21 @@ const CONFIRMA: Record<Acao, string> = {
 export default function AcoesEstado({ id, estado }: { id: string; estado: string }) {
   const router = useRouter();
   const [erro, setErro] = useState<string | null>(null);
+  const [confirmando, setConfirmando] = useState<Acao | null>(null);
   const [pendente, iniciar] = useTransition();
 
-  function executar(acao: Acao) {
-    if (!window.confirm(CONFIRMA[acao])) return;
+  // Não usar window.confirm(): dentro do iframe do Teams o diálogo nativo é
+  // bloqueado sem aviso — o clique parecia "não fazer nada". Modal próprio
+  // funciona em qualquer contexto (web, Teams desktop/mobile).
+  function pedirConfirmacao(acao: Acao) {
     setErro(null);
+    setConfirmando(acao);
+  }
+
+  function confirmar() {
+    const acao = confirmando;
+    if (!acao) return;
+    setConfirmando(null);
     iniciar(async () => {
       const fn = acao === "publicar" ? publicarPolitica : acao === "revogar" ? revogarPolitica : reabrirPolitica;
       const r = await fn(id);
@@ -33,7 +43,7 @@ export default function AcoesEstado({ id, estado }: { id: string; estado: string
       <div className="flex gap-2">
         {estado === "rascunho" && (
           <button
-            onClick={() => executar("publicar")}
+            onClick={() => pedirConfirmacao("publicar")}
             disabled={pendente}
             className="rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-800 disabled:opacity-60"
           >
@@ -43,14 +53,14 @@ export default function AcoesEstado({ id, estado }: { id: string; estado: string
         {estado === "publicada" && (
           <>
             <button
-              onClick={() => executar("reabrir")}
+              onClick={() => pedirConfirmacao("reabrir")}
               disabled={pendente}
               className="rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium text-black/70 transition hover:bg-black/5 disabled:opacity-60"
             >
               Reabrir p/ revisão
             </button>
             <button
-              onClick={() => executar("revogar")}
+              onClick={() => pedirConfirmacao("revogar")}
               disabled={pendente}
               className="rounded-md bg-red-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-red-800 disabled:opacity-60"
             >
@@ -60,7 +70,7 @@ export default function AcoesEstado({ id, estado }: { id: string; estado: string
         )}
         {estado === "revogada" && (
           <button
-            onClick={() => executar("reabrir")}
+            onClick={() => pedirConfirmacao("reabrir")}
             disabled={pendente}
             className="rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium text-black/70 transition hover:bg-black/5 disabled:opacity-60"
           >
@@ -69,6 +79,28 @@ export default function AcoesEstado({ id, estado }: { id: string; estado: string
         )}
       </div>
       {erro && <span className="text-xs text-red-600">{erro}</span>}
+
+      {confirmando && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-lg bg-white p-5 shadow-xl">
+            <p className="text-sm text-black/80">{CONFIRMA[confirmando]}</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmando(null)}
+                className="rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium text-black/70 hover:bg-black/5"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmar}
+                className="rounded-md bg-marsala px-3 py-1.5 text-xs font-medium text-white hover:bg-marsala-600"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
