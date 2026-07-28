@@ -1,7 +1,7 @@
 {
   "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
   "manifestVersion": "1.16",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "id": "698c2c83-b704-4e0f-b5e5-f3095b054e58",
   "developer": {
     "name": "AAHBRANT",
@@ -32,6 +32,15 @@
     }
   ],
   "permissions": ["identity"],
+  "activities": {
+    "activityTypes": [
+      {
+        "type": "politicaPublicada",
+        "description": "Norma publicada",
+        "templateText": "Norma publicada: {politicaTitulo}"
+      }
+    ]
+  },
   "validDomains": ["ca-gpol-hml-aahbrant.whitesmoke-8dee35f8.brazilsouth.azurecontainerapps.io"],
   "webApplicationInfo": {
     "id": "1b98db67-5ce0-469e-aea3-8beaf8044b87",

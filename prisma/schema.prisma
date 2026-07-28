@@ -57,6 +57,7 @@ model Area {
   politicas Politica[]
   usuarios  Usuario[]  @relation("SetorPrincipal") // legado (setor principal / dono da política)
   membros   Usuario[]  @relation("UsuarioSetores") // N:N — usuários vinculados ao setor
+  politicasAudiencia Politica[] @relation("PoliticaAudienciaSetores") // v3: setor no público-alvo de quais políticas
   criadoEm  DateTime   @default(now())
 }
 
@@ -73,6 +74,7 @@ model Usuario {
   convidadoPor String? // e-mail de quem convidou (auditoria leve)
   criadoEm  DateTime @default(now())
   atualizadoEm DateTime @default(now()) @updatedAt
+  politicasAudiencia Politica[] @relation("PoliticaAudienciaUsuarios") // v3: individual no público-alvo de quais políticas
 }
 
 model Politica {
@@ -92,8 +94,28 @@ model Politica {
   conteudoPublicado Json? // v2: snapshot das seções no momento da publicação (texto oficial congelado)
   revogadaEm    DateTime?
   ciencias      Ciencia[]
+  // Público-alvo da notificação de publicação (v3). Os dois vazios = "todos os
+  // colaboradores ativos" (comportamento anterior a esta feature, preservado).
+  audienciaSetores  Area[]      @relation("PoliticaAudienciaSetores")
+  audienciaUsuarios Usuario[]   @relation("PoliticaAudienciaUsuarios")
+  notificacoes  Notificacao[]
 
   @@unique([titulo, areaId])
+}
+
+// v3: registro de tentativa de notificação (Teams) por publicação. Auditoria de
+// quem foi avisado, quem falhou e por quê — nunca bloqueia a publicação.
+model Notificacao {
+  id           String   @id @default(cuid())
+  politica     Politica @relation(fields: [politicaId], references: [id], onDelete: Cascade)
+  politicaId   String
+  usuarioEmail String
+  usuarioNome  String   @default("")
+  enviada      Boolean // true = Graph confirmou (204); false = pulada ou falhou
+  motivo       String   @default("") // preenchido só quando enviada = false (ex.: "sem_oid")
+  criadoEm     DateTime @default(now())
+
+  @@index([politicaId])
 }
 
 // Conteúdo estruturado da política (esqueleto normativo padrão AAHBRANT: seções 1–8).

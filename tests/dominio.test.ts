@@ -11,8 +11,11 @@ import {
   validarUpload,
   TAMANHO_UPLOAD_MAX,
   planejarAplicacaoIA,
+  audienciaVazia,
+  unirAudiencia,
   type Estado,
   type AcaoEstado,
+  type UsuarioAlvo,
 } from "@/lib/dominio";
 import { ESQUELETO_PADRAO } from "@/lib/esqueleto";
 
@@ -330,5 +333,41 @@ describe("IA — planejarAplicacaoIA", () => {
       { codigo: "4", linhas: [["b"]] },
     ]);
     expect(plano).toHaveLength(2);
+  });
+});
+
+// ===========================================================================
+// Público-alvo da notificação (v3)
+// ===========================================================================
+describe("Público-alvo da notificação", () => {
+  const u = (id: string, oid: string | null = `oid-${id}`): UsuarioAlvo => ({
+    id,
+    oid,
+    nome: `Nome ${id}`,
+    email: `${id}@aahbrant.com`,
+  });
+
+  it("sem setor e sem usuário selecionado = audiência vazia (dispara 'todos')", () => {
+    expect(audienciaVazia([], [])).toBe(true);
+  });
+
+  it("qualquer seleção (setor ou usuário) já não é vazia", () => {
+    expect(audienciaVazia(["s1"], [])).toBe(false);
+    expect(audienciaVazia([], ["u1"])).toBe(false);
+  });
+
+  it("união simples sem sobreposição soma os dois grupos", () => {
+    const r = unirAudiencia([u("a"), u("b")], [u("c")]);
+    expect(r.map((x) => x.id).sort()).toEqual(["a", "b", "c"]);
+  });
+
+  it("a mesma pessoa pelos dois caminhos (setor + individual) conta uma vez só", () => {
+    const r = unirAudiencia([u("a"), u("b")], [u("b")]);
+    expect(r).toHaveLength(2);
+    expect(r.map((x) => x.id).sort()).toEqual(["a", "b"]);
+  });
+
+  it("audiência vazia de fato (nenhum setor tem membro, nenhum individual) devolve lista vazia", () => {
+    expect(unirAudiencia([], [])).toEqual([]);
   });
 });
