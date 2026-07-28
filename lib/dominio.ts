@@ -157,3 +157,22 @@ export function planejarAplicacaoIA(
   }
   return plano;
 }
+
+// ---------------------------------------------------------------------------
+// Público-alvo da notificação de publicação (v3)
+// ---------------------------------------------------------------------------
+export type UsuarioAlvo = { id: string; oid: string | null; nome: string; email: string };
+
+// Sem setor E sem usuário selecionado = "todos os colaboradores ativos" — é o
+// comportamento anterior a esta feature, preservado como default.
+export function audienciaVazia(setorIds: string[], usuarioIds: string[]): boolean {
+  return setorIds.length === 0 && usuarioIds.length === 0;
+}
+
+// União dos usuários dos setores selecionados com os usuários individuais,
+// deduplicada por id (a mesma pessoa pode entrar pelos dois caminhos).
+export function unirAudiencia(porSetor: UsuarioAlvo[], individuais: UsuarioAlvo[]): UsuarioAlvo[] {
+  const mapa = new Map<string, UsuarioAlvo>();
+  for (const u of [...porSetor, ...individuais]) mapa.set(u.id, u);
+  return [...mapa.values()];
+}

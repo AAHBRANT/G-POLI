@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import NovaVersaoForm from "@/components/NovaVersaoForm";
 import AcoesEstado from "@/components/AcoesEstado";
 import CienciaBtn from "@/components/CienciaBtn";
+import AudienciaSelector from "@/components/AudienciaSelector";
 import { corClassificacao, rotuloClassificacao, ESTADOS_POLITICA } from "@/lib/constants";
 import { getUsuarioAtual, podeEditarConteudo, podePublicar } from "@/lib/auth/usuario";
 
@@ -23,6 +24,9 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
       versoes: { include: { documento: true }, orderBy: { numero: "desc" } },
       secoes: { orderBy: { ordem: "asc" } },
       ciencias: { orderBy: { criadoEm: "desc" } },
+      audienciaSetores: true,
+      audienciaUsuarios: true,
+      notificacoes: { orderBy: { criadoEm: "desc" } },
     },
   });
 
@@ -32,7 +36,17 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
   const podeEditar = podeEditarConteudo(usuario, politica);
   const podePub = podePublicar(usuario);
   const minhaCiencia = usuario ? politica.ciencias.find((c) => c.usuarioOid === usuario.oid) : undefined;
+  // Mesma alçada para o relatório de ciência e o de notificação (ambos falam da
+  // audiência da política, não do conteúdo).
   const verRelatorioCiencia = !!usuario && ["sgi", "admin", "diretoria"].includes(usuario.perfil);
+
+  const [todosSetores, todosUsuarios] = podeEditar
+    ? await Promise.all([
+        prisma.area.findMany({ where: { ativa: true }, orderBy: { nome: "asc" } }),
+        prisma.usuario.findMany({ where: { ativo: true }, orderBy: { nome: "asc" } }),
+      ])
+    : [[], []];
+
   const estado = ESTADOS_POLITICA[politica.estado] ?? { rotulo: politica.estado, cor: "" };
 
   return (
@@ -106,6 +120,45 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
               )}
             </div>
           )}
+
+          {verRelatorioCiencia && (
+            <div className="mt-3 border-t border-black/5 pt-3">
+              <p className="mb-1 text-[11px] uppercase tracking-wide text-black/40">
+                Notificação de publicação ({politica.notificacoes.filter((n) => n.enviada).length}/
+                {politica.notificacoes.length} entregues)
+              </p>
+              {politica.notificacoes.length === 0 ? (
+                <p className="text-xs text-black/40">Nenhuma notificação registrada.</p>
+              ) : (
+                <ul className="flex flex-wrap gap-2">
+                  {politica.notificacoes.map((n) => (
+                    <li
+                      key={n.id}
+                      title={n.motivo || undefined}
+                      className={`rounded px-2 py-1 text-[11px] ${
+                        n.enviada ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800"
+                      }`}
+                    >
+                      {n.enviada ? "✓" : "⚠"} {n.usuarioNome || n.usuarioEmail}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
+      {podeEditar && politica.estado === "rascunho" && (
+        <section className="rounded-lg border border-black/10 bg-white p-4">
+          <h3 className="mb-3 text-sm font-semibold text-black/80">Público-alvo da publicação</h3>
+          <AudienciaSelector
+            politicaId={politica.id}
+            setores={todosSetores.map((a) => ({ id: a.id, rotulo: a.nome }))}
+            usuarios={todosUsuarios.map((u) => ({ id: u.id, rotulo: u.nome || u.email }))}
+            setoresSelecionados={politica.audienciaSetores.map((a) => a.id)}
+            usuariosSelecionados={politica.audienciaUsuarios.map((u) => u.id)}
+          />
         </section>
       )}
 
