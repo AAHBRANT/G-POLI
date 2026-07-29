@@ -147,6 +147,11 @@ model Ciencia {
   usuarioNome  String   @default("")
   usuarioEmail String
   criadoEm     DateTime @default(now())
+  // v3: trilha de auditoria do aceite (Termo de Ciência) — quem, quando, de que
+  // IP e para qual versão publicada (comparar com Politica.publicadaEm mostra
+  // se a ciência ficou desatualizada após uma republicação).
+  ip                   String    @default("")
+  politicaPublicadaEm  DateTime?
 
   @@unique([politicaId, usuarioOid])
   @@index([politicaId])

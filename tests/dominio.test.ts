@@ -13,6 +13,8 @@ import {
   planejarAplicacaoIA,
   audienciaVazia,
   unirAudiencia,
+  leituraValida,
+  TEMPO_MINIMO_LEITURA_MS,
   type Estado,
   type AcaoEstado,
   type UsuarioAlvo,
@@ -374,5 +376,23 @@ describe("Público-alvo da notificação", () => {
 
   it("audiência vazia de fato (nenhum setor tem membro, nenhum individual) devolve lista vazia", () => {
     expect(unirAudiencia([], [])).toEqual([]);
+  });
+});
+
+describe("leituraValida (ciência de leitura — trava de tempo mínimo)", () => {
+  it("rejeita confirmação antes do tempo mínimo desde a abertura", () => {
+    const abertura = new Date("2026-01-01T10:00:00.000Z");
+    const agora = new Date(abertura.getTime() + TEMPO_MINIMO_LEITURA_MS - 1);
+    expect(leituraValida(abertura.toISOString(), agora)).toBe(false);
+  });
+
+  it("aceita confirmação exatamente no tempo mínimo ou depois", () => {
+    const abertura = new Date("2026-01-01T10:00:00.000Z");
+    const agora = new Date(abertura.getTime() + TEMPO_MINIMO_LEITURA_MS);
+    expect(leituraValida(abertura.toISOString(), agora)).toBe(true);
+  });
+
+  it("rejeita timestamp de abertura inválido", () => {
+    expect(leituraValida("nao-e-uma-data", new Date())).toBe(false);
   });
 });

@@ -3,12 +3,23 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import NovaVersaoForm from "@/components/politica/NovaVersaoForm";
 import AcoesEstado from "@/components/politica/AcoesEstado";
-import CienciaBtn from "@/components/politica/CienciaBtn";
+import CienciaLeitura from "@/components/politica/CienciaLeitura";
 import AudienciaSelector from "@/components/politica/AudienciaSelector";
 import { corClassificacao, rotuloClassificacao, ESTADOS_POLITICA, tipoDocumento } from "@/lib/constants";
 import { getUsuarioAtual, podeEditarConteudo, podePublicar } from "@/lib/auth/usuario";
 
 export const dynamic = "force-dynamic";
+
+// Formato gravado por `montarSnapshot` (lib/politica/dominio.ts) em
+// Politica.conteudoPublicado no momento da publicação.
+type SecaoSnapshot = {
+  codigo: string;
+  titulo: string;
+  tipo: string;
+  corpo: string;
+  colunas: string[] | null;
+  linhas: string[][] | null;
+};
 
 function formatoTamanho(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -105,7 +116,10 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
                 ✓ Ciente
               </span>
             ) : (
-              <CienciaBtn politicaId={politica.id} />
+              <CienciaLeitura
+                politicaId={politica.id}
+                secoes={(politica.conteudoPublicado as SecaoSnapshot[] | null) ?? []}
+              />
             )}
           </div>
 
@@ -118,11 +132,24 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
                 <p className="text-xs text-black/40">Ninguém ainda.</p>
               ) : (
                 <ul className="flex flex-wrap gap-2">
-                  {politica.ciencias.map((c) => (
-                    <li key={c.id} className="rounded bg-black/5 px-2 py-1 text-[11px] text-black/60">
-                      {c.usuarioNome || c.usuarioEmail} · {c.criadoEm.toLocaleDateString("pt-BR")}
-                    </li>
-                  ))}
+                  {politica.ciencias.map((c) => {
+                    const desatualizada =
+                      !!c.politicaPublicadaEm &&
+                      !!politica.publicadaEm &&
+                      c.politicaPublicadaEm.getTime() !== politica.publicadaEm.getTime();
+                    return (
+                      <li
+                        key={c.id}
+                        title={`IP: ${c.ip || "desconhecido"}${desatualizada ? " · ciência de uma publicação anterior" : ""}`}
+                        className={`rounded px-2 py-1 text-[11px] ${
+                          desatualizada ? "bg-amber-50 text-amber-800" : "bg-black/5 text-black/60"
+                        }`}
+                      >
+                        {c.usuarioNome || c.usuarioEmail} · {c.criadoEm.toLocaleString("pt-BR")}
+                        {desatualizada && " ⚠"}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>
