@@ -12,10 +12,19 @@ Relacionado: [`ADR-002`](adr/ADR-002-agente-selfhosted-ci.md) (agente de CI),
 
 ## Estado atual
 
-- **Deploy manual:** build da imagem → push no registry → atualização da revisão
-  do Container App. **Não há CD** (decisão consciente: CI antes de CD).
-- **Migração no startup:** o container roda `prisma migrate deploy` ao subir.
-- **Réplica única**; rollback por troca de revisão.
+- **CD parcial (2026-07-29):** o pipeline builda, dá push no ACR e atualiza a
+  revisão do Container App automaticamente a cada push em `main` — passo
+  "Push para ACR + deploy no Container App" em `azure-pipelines.yml`, condicionado
+  a `Build.SourceBranch == refs/heads/main` (nunca roda em validação de PR).
+  Requer a service connection **`gpol-deploy-rg-gpoliticas`** (ARM, escopo
+  `rg-gpoliticas`) já criada em *Project Settings → Service connections* — sem
+  ela, esse passo falha e a revisão anterior continua servindo (fail-closed).
+- **`scripts/deploy.ps1` continua existindo** para deploy manual sob demanda
+  (ex.: reexecutar uma versão específica, ou se o agente estiver offline).
+- **Migração no startup:** o container roda `prisma migrate deploy` ao subir
+  (inalterado — ver "Quando houver CD" mais abaixo para a evolução futura disso).
+- **Réplica única**; rollback por troca de revisão
+  (`az containerapp revision activate`, modo `Single`).
 
 ---
 
@@ -248,9 +257,12 @@ protegendo alguém.
 
 ---
 
-## Quando houver CD (futuro, fora de escopo agora)
+## Evolução futura: migração no pipeline (fora de escopo agora)
 
-Ao existir service connection para o Azure, a **aplicação** da migração migra do
-startup para um passo do pipeline, **antes** de rotear tráfego para a revisão
-nova. As regras 1–5 permanecem; muda apenas *onde* o `migrate deploy` roda.
-Registrar como ADR quando a decisão for tomada.
+O CD (build → push → deploy, 2026-07-29) automatizou o *transporte* da imagem,
+não mudou *onde* a migração roda — ainda é no startup do container (regra 1).
+Próximo passo possível: mover a **aplicação** da migração do startup para um
+passo do pipeline, **antes** de rotear tráfego para a revisão nova (mais rápido
+detectar migração quebrada, sem esperar o container tentar subir). As regras
+1–5 permanecem; muda só *onde* o `migrate deploy` roda. Registrar como ADR
+quando a decisão for tomada.

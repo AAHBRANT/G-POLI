@@ -97,3 +97,25 @@ steps:
 
   - script: docker build -t gpoliticas:$(Build.BuildId) .
     displayName: "Build da imagem Docker"
+
+  # CD — só em push de verdade em main (nunca em validação de PR). Reusa a
+  # mesma logica do scripts/deploy.ps1 manual, so trocando o numero de versao
+  # manual (vN) pelo Build.BuildId (sempre unico e rastreavel ao build).
+  # Requer a service connection "gpol-deploy-rg-gpoliticas" (ARM, escopo
+  # rg-gpoliticas) - criada manualmente em Project Settings > Service
+  # connections (o agente Claude nao pode criar isso: classificador da
+  # ferramenta bloqueia criacao de service principal/concessao de acesso).
+  - task: AzureCLI@2
+    displayName: "Push para ACR + deploy no Container App"
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    inputs:
+      azureSubscription: "gpol-deploy-rg-gpoliticas"
+      scriptType: ps
+      scriptLocation: inlineScript
+      inlineScript: |
+        $ErrorActionPreference = "Stop"
+        az acr login --name acrgpolhml27207f
+        docker tag gpoliticas:$(Build.BuildId) acrgpolhml27207f.azurecr.io/gpoliticas:$(Build.BuildId)
+        docker push acrgpolhml27207f.azurecr.io/gpoliticas:$(Build.BuildId)
+        az containerapp update --name ca-gpol-hml-aahbrant --resource-group rg-gpoliticas `
+          --image acrgpolhml27207f.azurecr.io/gpoliticas:$(Build.BuildId)
