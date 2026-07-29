@@ -1,27 +1,32 @@
 import { notFound, redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import NovaPoliticaForm from "@/components/politica/NovaPoliticaForm";
-import CatalogoTabela from "@/components/politica/CatalogoTabela";
-import { getUsuarioAtual, podeCriarPolitica, filtroVisibilidade } from "@/lib/auth/usuario";
+import PainelCatalogo from "@/components/politica/PainelCatalogo";
+import { getUsuarioAtual, podeCriarPolitica } from "@/lib/auth/usuario";
 import { tipoDocumentoValido, tipoDocumento, artigoDocumento } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
+type Params = { q?: string; area?: string; estado?: string };
+
 // Seção genérica para os 7 tipos de documento além de Política (que tem seção
 // própria em /catalogo, já existente antes desta feature).
-export default async function TipoDocumentoPage({ params }: { params: { tipo: string } }) {
+export default async function TipoDocumentoPage({
+  params,
+  searchParams,
+}: {
+  params: { tipo: string };
+  searchParams: Params;
+}) {
   if (!tipoDocumentoValido(params.tipo)) notFound();
   if (params.tipo === "politica") redirect("/catalogo");
 
   const info = tipoDocumento(params.tipo);
-  const { artigo, novo, nenhum, cadastrada } = artigoDocumento(info);
+  const { novo, nenhum, cadastrada } = artigoDocumento(info);
   const usuario = await getUsuarioAtual();
   const podeCriar = podeCriarPolitica(usuario);
-  const itens = await prisma.politica.findMany({
-    where: { AND: [{ tipo: params.tipo }, filtroVisibilidade(usuario)] },
-    include: { area: true, _count: { select: { versoes: true } } },
-    orderBy: { criadaEm: "desc" },
-  });
+  const q = (searchParams.q ?? "").trim();
+  const areaId = searchParams.area ?? "";
+  const estado = searchParams.estado ?? "";
 
   return (
     <div className="space-y-6">
@@ -33,14 +38,19 @@ export default async function TipoDocumentoPage({ params }: { params: { tipo: st
         {podeCriar && <NovaPoliticaForm tipo={info.valor} />}
       </div>
 
-      {itens.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-black/15 bg-white p-10 text-center text-sm text-black/50">
-          {nenhum} {info.rotulo.toLowerCase()} {cadastrada} ainda. Clique em{" "}
-          <strong>+ {novo} {info.rotulo.toLowerCase()}</strong> para começar.
-        </div>
-      ) : (
-        <CatalogoTabela itens={itens} />
-      )}
+      <PainelCatalogo
+        tipo={info.valor}
+        action={`/tipos/${info.valor}`}
+        q={q}
+        areaId={areaId}
+        estado={estado}
+        mensagemVazio={
+          <div className="rounded-lg border border-dashed border-black/15 bg-white p-10 text-center text-sm text-black/50">
+            {nenhum} {info.rotulo.toLowerCase()} {cadastrada} ainda. Clique em{" "}
+            <strong>+ {novo} {info.rotulo.toLowerCase()}</strong> para começar.
+          </div>
+        }
+      />
     </div>
   );
 }
