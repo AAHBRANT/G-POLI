@@ -15,6 +15,11 @@ import { authConfig } from "../auth/config";
 
 const ACTIVITY_TYPE = "politicaPublicada";
 
+// Precisam bater com teams/manifest.json: "id" (raiz do manifest) e o
+// staticTabs[].entityId da aba que renderiza /catalogo/{politicaId}.
+const TEAMS_APP_ID = "698c2c83-b704-4e0f-b5e5-f3095b054e58";
+const TEAMS_TAB_ENTITY_ID = "gpol-painel";
+
 export type ResultadoNotificacao = { ok: true } | { ok: false; motivo: string };
 
 export async function enviarNotificacaoPoliticaPublicada(params: {
@@ -31,7 +36,15 @@ export async function enviarNotificacaoPoliticaPublicada(params: {
   }
   if (!token) return { ok: false, motivo: "token_graph: vazio" };
 
+  // Graph exige que topic.webUrl comece com domínio Teams + "/l/" — uma URL
+  // comum do app (ex.: https://.../catalogo/{id}) é rejeitada com 400
+  // "Invalid 'webUrl' specified". Precisa ser deep link "l/entity":
+  // https://teams.microsoft.com/l/entity/{appId}/{entityId}?webUrl=...&context=...
   const urlPolitica = `${authConfig.baseUrl.replace(/\/$/, "")}/catalogo/${params.politicaId}`;
+  const contextoTeams = encodeURIComponent(JSON.stringify({ subEntityId: params.politicaId }));
+  const webUrlTeams =
+    `https://teams.microsoft.com/l/entity/${TEAMS_APP_ID}/${TEAMS_TAB_ENTITY_ID}` +
+    `?webUrl=${encodeURIComponent(urlPolitica)}&context=${contextoTeams}`;
 
   try {
     const resp = await fetch(
@@ -43,7 +56,7 @@ export async function enviarNotificacaoPoliticaPublicada(params: {
           topic: {
             source: "text",
             value: `Norma publicada: ${params.tituloPolitica}`,
-            webUrl: urlPolitica,
+            webUrl: webUrlTeams,
           },
           activityType: ACTIVITY_TYPE,
           previewText: { content: `Norma publicada: ${params.tituloPolitica}` },
