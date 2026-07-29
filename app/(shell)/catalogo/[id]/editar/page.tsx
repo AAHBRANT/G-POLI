@@ -5,19 +5,24 @@ import SecaoEditor from "@/components/politica/SecaoEditor";
 import GerarEsqueletoBtn from "@/components/politica/GerarEsqueletoBtn";
 import GerarIAButton from "@/components/politica/GerarIAButton";
 import { ESQUELETO_PADRAO } from "@/lib/politica/esqueleto";
-import { getUsuarioAtual, podeEditarConteudo, podeEditarSecao, podeGerirAberturaArea } from "@/lib/auth/usuario";
+import { getUsuarioAtual, podeEditarConteudo, podeEditarSecao, podeGerirAberturaArea, filtroVisibilidade } from "@/lib/auth/usuario";
 import { iaDisponivel } from "@/lib/politica/ai";
 
 export const dynamic = "force-dynamic";
 
 export default async function EditarConteudo({ params }: { params: { id: string } }) {
-  const politica = await prisma.politica.findUnique({
-    where: { id: params.id },
+  const usuario = await getUsuarioAtual();
+  // findFirst (não findUnique) + filtroVisibilidade: sem isso, o texto
+  // completo de qualquer seção (inclusive classificação Restrito de outro
+  // setor) ficava exposto a qualquer usuário logado que soubesse o id —
+  // "podeEditar" só travava a EDIÇÃO, nunca a leitura. Mesma família do bug
+  // corrigido na página de detalhe (PR #37), só que aqui vazava texto de
+  // verdade, não só metadado.
+  const politica = await prisma.politica.findFirst({
+    where: { id: params.id, AND: [filtroVisibilidade(usuario)] },
     include: { secoes: { orderBy: { ordem: "asc" } } },
   });
   if (!politica) notFound();
-
-  const usuario = await getUsuarioAtual();
   const mostrarToggle = podeGerirAberturaArea(usuario);
   const podeEditar = podeEditarConteudo(usuario, politica);
   const dicas = Object.fromEntries(ESQUELETO_PADRAO.map((s) => [s.codigo, s.dica]));

@@ -24,9 +24,15 @@ const MARGEM_FIM_PX = 5;
 export default function CienciaLeitura({
   politicaId,
   secoes,
+  jaCiente = false,
 }: {
   politicaId: string;
   secoes: SecaoLeitura[];
+  // Depois de já ter dado ciência, o botão sumia de vez — sem nenhum jeito de
+  // reler o texto oficial pela tela normal (só via editor, se tivesse
+  // permissão). Nesse modo o modal só mostra o conteúdo, sem gate de
+  // rolagem nem confirmação — já foi confirmado antes.
+  jaCiente?: boolean;
 }) {
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
@@ -71,9 +77,13 @@ export default function CienciaLeitura({
     <>
       <button
         onClick={abrir}
-        className="rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-800"
+        className={
+          jaCiente
+            ? "rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium text-black/70 transition hover:bg-black/5"
+            : "rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-800"
+        }
       >
-        Li e estou ciente
+        {jaCiente ? "Ver conteúdo" : "Li e estou ciente"}
       </button>
 
       {aberto && (
@@ -134,7 +144,9 @@ export default function CienciaLeitura({
 
             <div className="flex items-center justify-between gap-3 border-t border-black/10 px-5 py-3">
               <span className="text-xs text-black/45">
-                {chegouAoFim ? "✅ Leitura concluída." : "⚠️ Role até o final para continuar."}
+                {jaCiente
+                  ? "Você já confirmou ciência desta norma."
+                  : chegouAoFim ? "✅ Leitura concluída." : "⚠️ Role até o final para continuar."}
               </span>
               <div className="flex gap-2">
                 <button
@@ -143,13 +155,15 @@ export default function CienciaLeitura({
                 >
                   Fechar
                 </button>
-                <button
-                  onClick={confirmar}
-                  disabled={!chegouAoFim || pendente}
-                  className="rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {pendente ? "…" : "Confirmar ciência"}
-                </button>
+                {!jaCiente && (
+                  <button
+                    onClick={confirmar}
+                    disabled={!chegouAoFim || pendente}
+                    className="rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {pendente ? "…" : "Confirmar ciência"}
+                  </button>
+                )}
               </div>
             </div>
             {erro && <p className="px-5 pb-3 text-xs text-red-600">{erro}</p>}
