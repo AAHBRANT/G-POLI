@@ -178,3 +178,20 @@ export function unirAudiencia(porSetor: UsuarioAlvo[], individuais: UsuarioAlvo[
   for (const u of [...porSetor, ...individuais]) mapa.set(u.id, u);
   return [...mapa.values()];
 }
+
+// ---------------------------------------------------------------------------
+// Ciência de leitura (v3): trava de tempo mínimo
+// ---------------------------------------------------------------------------
+
+// Tempo mínimo entre abrir o documento e confirmar ciência — barra o caso
+// trivial (clique disparado sem leitura nenhuma). Não é prova de leitura: o
+// timestamp de abertura vem do cliente, então é contornável por quem chama a
+// Server Action direto. A trava real de UX é a rolagem até o fim
+// (components/politica/CienciaLeitura.tsx); isto é só o que o servidor
+// consegue de fato validar.
+export const TEMPO_MINIMO_LEITURA_MS = 3000;
+
+export function leituraValida(abertoEm: string, agora: Date): boolean {
+  const inicio = Date.parse(abertoEm);
+  return Number.isFinite(inicio) && agora.getTime() - inicio >= TEMPO_MINIMO_LEITURA_MS;
+}
