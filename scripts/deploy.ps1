@@ -44,30 +44,43 @@ if ($LASTEXITCODE -ne 0) { throw "Build falhou." }
 # --- 2. Smoke test: banco descartavel + boot completo ---
 Passo "2/6 - Smoke test (migracoes + boot)"
 
-$netName = "gpol-smoke-net"
-$pgName = "gpol-smoke-pg"
-$appName = "gpol-smoke-app"
+$SmokeNet = "gpol-smoke-net"
+$SmokePg = "gpol-smoke-pg"
+$SmokeApp = "gpol-smoke-app"
+
+# Remove container/rede so se existir de fato: "docker rm -f" num nome
+# inexistente escreve em stderr, e no Windows PowerShell 5.1 isso vira
+# NativeCommandError e aborta o script com $ErrorActionPreference=Stop -
+# mesmo gotcha documentado em scripts/ci/migration-check.ps1.
+function Remove-SeExistir($tipo, $nome) {
+    if ($tipo -eq "container") {
+        if (docker ps -aq --filter "name=^$nome$") { docker rm -f $nome | Out-Null }
+    } else {
+        if (docker network ls -q --filter "name=^$nome$") { docker network rm $nome | Out-Null }
+    }
+}
 
 # Limpeza de residuo de uma execucao anterior interrompida.
-docker rm -f $appName $pgName 2>$null | Out-Null
-docker network rm $netName 2>$null | Out-Null
+Remove-SeExistir "container" $SmokeApp
+Remove-SeExistir "container" $SmokePg
+Remove-SeExistir "network" $SmokeNet
 
 try {
-    docker network create $netName | Out-Null
+    docker network create $SmokeNet | Out-Null
 
-    docker run -d --name $pgName --network $netName `
+    docker run -d --name $SmokePg --network $SmokeNet `
         -e POSTGRES_USER=gpol -e POSTGRES_PASSWORD=gpol_dev -e POSTGRES_DB=gpoliticas `
         postgres:15-alpine | Out-Null
 
     $pronto = $false
     for ($i = 0; $i -lt 15; $i++) {
-        if ((docker exec $pgName pg_isready -U gpol 2>&1) -match "accepting") { $pronto = $true; break }
+        if ((docker exec $SmokePg pg_isready -U gpol 2>&1) -match "accepting") { $pronto = $true; break }
         Start-Sleep 1
     }
     if (-not $pronto) { throw "Postgres de smoke test nao ficou pronto." }
 
-    docker run -d --name $appName --network $netName -p 13000:3000 `
-        -e DATABASE_URL="postgresql://gpol:gpol_dev@${pgName}:5432/gpoliticas?schema=public" `
+    docker run -d --name $SmokeApp --network $SmokeNet -p 13000:3000 `
+        -e DATABASE_URL="postgresql://gpol:gpol_dev@${SmokePg}:5432/gpoliticas?schema=public" `
         -e AZURE_AD_TENANT_ID="8cc518ea-6df8-4d1e-a79f-89ee9314335c" `
         -e AZURE_AD_CLIENT_ID="1b98db67-5ce0-469e-aea3-8beaf8044b87" `
         -e AZURE_AD_CLIENT_SECRET="dummy" `
@@ -77,7 +90,7 @@ try {
         $Image | Out-Null
 
     Start-Sleep 5
-    $logs = docker logs $appName 2>&1 | Out-String
+    $logs = docker logs $SmokeApp 2>&1 | Out-String
     Write-Host $logs
 
     if ($logs -notmatch "All migrations have been successfully applied") {
@@ -93,8 +106,9 @@ try {
     if ($codigoHealth -ne "200") { throw "Health check do smoke test nao respondeu 200 (respondeu $codigoHealth). Deploy ABORTADO." }
 }
 finally {
-    docker rm -f $appName $pgName 2>$null | Out-Null
-    docker network rm $netName 2>$null | Out-Null
+    Remove-SeExistir "container" $SmokeApp
+    Remove-SeExistir "container" $SmokePg
+    Remove-SeExistir "network" $SmokeNet
 }
 
 # --- 3. Push para o ACR ---
@@ -107,6 +121,7 @@ if ($LASTEXITCODE -ne 0) { throw "Push para o ACR falhou." }
 # --- 4. Atualizar o Container App ---
 Passo "4/6 - Atualizando revisao do Container App"
 az containerapp update --name $AppName --resource-group $ResourceGroup --image $ImageRemoto | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "az containerapp update falhou." }
 
 # --- 5. Aguardar a revisao nova ficar Healthy ---
 Passo "5/6 - Aguardando revisao nova ficar Healthy"
