@@ -114,16 +114,18 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
                   : "Confirme que leu e está ciente desta norma."}
               </p>
             </div>
-            {minhaCiencia ? (
-              <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-medium text-emerald-800">
-                ✓ Ciente
-              </span>
-            ) : (
+            <div className="flex items-center gap-2">
+              {minhaCiencia && (
+                <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-medium text-emerald-800">
+                  ✓ Ciente
+                </span>
+              )}
               <CienciaLeitura
                 politicaId={politica.id}
                 secoes={(politica.conteudoPublicado as SecaoSnapshot[] | null) ?? []}
+                jaCiente={!!minhaCiencia}
               />
-            )}
+            </div>
           </div>
 
           {verRelatorioCiencia && (
