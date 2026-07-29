@@ -94,11 +94,26 @@ export function podeRevogar(u: UsuarioAtual | null): boolean {
   return podePublicar(u);
 }
 
-// Visibilidade (busca/catálogo). super/admin/sgi/diretoria: tudo. area: publicadas + seus setores. resto: publicadas.
+// Publicada + dentro do público-alvo da política: audiência vazia (setor E
+// usuário nenhum selecionado) = visível a todos, mesma regra de
+// audienciaVazia() em lib/politica/dominio.ts (a notificação de publicação
+// usa a mesma semântica — quem é notificado é quem enxerga).
+function filtroPublicadaPorAudiencia(u: UsuarioAtual | null): Record<string, unknown> {
+  const semPublicoAlvo = { audienciaSetores: { none: {} }, audienciaUsuarios: { none: {} } };
+  const OR: Record<string, unknown>[] = [semPublicoAlvo];
+  if (u?.setores.length) OR.push({ audienciaSetores: { some: { id: { in: u.setores } } } });
+  if (u?.id) OR.push({ audienciaUsuarios: { some: { id: u.id } } });
+  return { estado: "publicada", OR };
+}
+
+// Visibilidade (busca/catálogo). super/admin/sgi/diretoria: tudo. area COM
+// setor: publicadas (irrestrito) + seus setores (rascunho incluso — gestão do
+// próprio departamento). Resto (colaborador; area sem setor): só publicadas
+// DENTRO do próprio público-alvo da política.
 export function filtroVisibilidade(u: UsuarioAtual | null): Record<string, unknown> {
   if (u && (ehAdminOuSuper(u) || u.perfil === "sgi" || u.perfil === "diretoria")) return {};
   if (u && u.perfil === "area" && u.setores.length) {
     return { OR: [{ estado: "publicada" }, { areaId: { in: u.setores } }] };
   }
-  return { estado: "publicada" };
+  return filtroPublicadaPorAudiencia(u);
 }

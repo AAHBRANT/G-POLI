@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import NovaPoliticaForm from "@/components/politica/NovaPoliticaForm";
 import CatalogoTabela from "@/components/politica/CatalogoTabela";
-import { getUsuarioAtual, podeCriarPolitica } from "@/lib/auth/usuario";
+import { getUsuarioAtual, podeCriarPolitica, filtroVisibilidade } from "@/lib/auth/usuario";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +10,7 @@ export default async function CatalogoPage() {
   const podeCriar = podeCriarPolitica(usuario);
   // v3: esta página é a seção "Política" — os outros 7 tipos vivem em /tipos/[tipo].
   const politicas = await prisma.politica.findMany({
-    where: { tipo: "politica" },
+    where: { AND: [{ tipo: "politica" }, filtroVisibilidade(usuario)] },
     include: { area: true, _count: { select: { versoes: true } } },
     orderBy: { criadaEm: "desc" },
   });

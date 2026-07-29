@@ -99,11 +99,32 @@ describe("administração e visibilidade", () => {
     expect(podeGerirSetores(u("admin"))).toBe(false);
     expect(podeGerirSetores(u("superadmin"))).toBe(true);
   });
-  it("filtroVisibilidade: gestor vê tudo; colaborador só publicada; area publicada+setores", () => {
+  it("filtroVisibilidade: gestor vê tudo; area com setor vê publicada+setores (irrestrito por audiência)", () => {
     expect(filtroVisibilidade(u("admin"))).toEqual({});
-    expect(filtroVisibilidade(u("colaborador"))).toEqual({ estado: "publicada" });
     expect(filtroVisibilidade(u("area", ["s1", "s2"]))).toEqual({
       OR: [{ estado: "publicada" }, { areaId: { in: ["s1", "s2"] } }],
     });
+  });
+
+  it("colaborador: só publicada DENTRO do público-alvo (setor OU individual OU audiência vazia)", () => {
+    const semPublicoAlvo = { audienciaSetores: { none: {} }, audienciaUsuarios: { none: {} } };
+    // Sem setor: só a checagem "sem público-alvo" (todos) + "eu individualmente".
+    expect(filtroVisibilidade(u("colaborador"))).toEqual({
+      estado: "publicada",
+      OR: [semPublicoAlvo, { audienciaUsuarios: { some: { id: "1" } } }],
+    });
+    // Com setor: soma a checagem por setor também.
+    expect(filtroVisibilidade(u("colaborador", ["s1"]))).toEqual({
+      estado: "publicada",
+      OR: [
+        semPublicoAlvo,
+        { audienciaSetores: { some: { id: { in: ["s1"] } } } },
+        { audienciaUsuarios: { some: { id: "1" } } },
+      ],
+    });
+  });
+
+  it("area sem setor cai na mesma regra de audiência do colaborador", () => {
+    expect(filtroVisibilidade(u("area", []))).toEqual(filtroVisibilidade(u("colaborador", [])));
   });
 });
