@@ -94,6 +94,10 @@ export async function publicarPolitica(id: string): Promise<ResultadoAcao> {
 
   // Snapshot do conteúdo no momento da publicação (texto oficial congelado).
   const snapshot = montarSnapshot(politica.secoes);
+  // Revisão do cabeçalho institucional (Manual SGI cap. 11): 0 na primeira
+  // publicação; incrementa a cada republicação (só se já tinha sido publicada
+  // antes — reabrir→editar→publicar de novo).
+  const novaRevisao = politica.publicadaEm ? politica.revisao + 1 : politica.revisao;
 
   await prisma.politica.update({
     where: { id },
@@ -104,6 +108,7 @@ export async function publicarPolitica(id: string): Promise<ResultadoAcao> {
       publicadaPorEmail: usuario!.email,
       conteudoPublicado: snapshot as never,
       revogadaEm: null,
+      revisao: novaRevisao,
     },
   });
   await registrar("politica.publicar", "Politica", id, politica.titulo);
