@@ -108,6 +108,10 @@ model Politica {
   publicadaPorNome  String?
   publicadaPorEmail String?
   conteudoPublicado Json? // v2: snapshot das seções no momento da publicação (texto oficial congelado)
+  // v3: número de revisão do cabeçalho institucional (Manual SGI cap. 11).
+  // 0 na primeira publicação; incrementa a cada republicação (reabrir →
+  // editar → publicar de novo) — nunca na primeira vez.
+  revisao       Int            @default(0)
   revogadaEm    DateTime?
   ciencias      Ciencia[]
   // Público-alvo da notificação de publicação (v3). Os dois vazios = "todos os

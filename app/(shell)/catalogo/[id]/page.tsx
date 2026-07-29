@@ -124,6 +124,11 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
                 politicaId={politica.id}
                 secoes={(politica.conteudoPublicado as SecaoSnapshot[] | null) ?? []}
                 jaCiente={!!minhaCiencia}
+                codigo={politica.codigo}
+                tituloPolitica={politica.titulo}
+                areaNome={politica.area.nome}
+                publicadaEm={politica.publicadaEm}
+                revisao={politica.revisao}
               />
             </div>
           </div>

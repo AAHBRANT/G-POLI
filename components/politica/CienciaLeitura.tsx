@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { darCiencia } from "@/app/(shell)/catalogo/[id]/ciencia-actions";
+import Brand from "@/components/shell/Brand";
 
 type SecaoLeitura = {
   codigo: string;
@@ -25,6 +26,11 @@ export default function CienciaLeitura({
   politicaId,
   secoes,
   jaCiente = false,
+  codigo,
+  tituloPolitica,
+  areaNome,
+  publicadaEm,
+  revisao,
 }: {
   politicaId: string;
   secoes: SecaoLeitura[];
@@ -33,6 +39,17 @@ export default function CienciaLeitura({
   // permissão). Nesse modo o modal só mostra o conteúdo, sem gate de
   // rolagem nem confirmação — já foi confirmado antes.
   jaCiente?: boolean;
+  // Cabeçalho/rodapé institucional (Manual de Padronização Documental, cap.
+  // 11-12) — mesmo modelo de todo documento oficial da AAHBRANT. Campo
+  // "Página X de Y" do Manual foi omitido de propósito: o modal é uma tela
+  // rolável, sem paginação real, e mostrar um número sem significado seria
+  // pior do que não mostrar nada. Campo "Unidade" fica em branco por ora
+  // (decisão explícita, pendente de valor definitivo).
+  codigo: string | null;
+  tituloPolitica: string;
+  areaNome: string;
+  publicadaEm: Date | null;
+  revisao: number;
 }) {
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
@@ -96,6 +113,38 @@ export default function CienciaLeitura({
               </p>
             </div>
 
+            {/* Cabeçalho institucional padrão (Manual SGI, cap. 11) — repete
+                a cada leitura, como no documento impresso repetiria a cada
+                página. */}
+            <table className="w-full table-fixed border-collapse border border-black/40 text-[9px] text-black">
+              <tbody>
+                <tr>
+                  <td rowSpan={2} className="w-1/2 border border-black/40 px-2 py-1.5 align-middle">
+                    <div className="flex items-center gap-2">
+                      <Brand size="sm" />
+                      <span className="font-bold uppercase leading-tight">{tituloPolitica}</span>
+                    </div>
+                  </td>
+                  <td className="border border-black/40 px-2 py-1">
+                    <strong>Código:</strong> {codigo ?? "—"}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="border border-black/40 px-2 py-1">
+                    <strong>Data:</strong> {publicadaEm ? publicadaEm.toLocaleDateString("pt-BR") : "—"}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="border border-black/40 px-2 py-1">
+                    <strong>Unidade:</strong>
+                  </td>
+                  <td className="border border-black/40 px-2 py-1">
+                    <strong>Área Responsável:</strong> {areaNome} &nbsp;·&nbsp; <strong>Revisão:</strong> {String(revisao).padStart(2, "0")}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
             <div
               ref={aoMontarArea}
               onScroll={(e) => checarFim(e.currentTarget)}
@@ -140,6 +189,13 @@ export default function CienciaLeitura({
                   </div>
                 ))
               )}
+
+              {/* Rodapé institucional padrão (Manual SGI, cap. 12). */}
+              <div className="pt-2 text-center text-[9px] font-bold leading-tight text-black">
+                <p>Propriedade da</p>
+                <p>AAHBRANT ENGENHARIA E CONSTRUÇÕES</p>
+                <p>uso exclusivamente interno</p>
+              </div>
             </div>
 
             <div className="flex items-center justify-between gap-3 border-t border-black/10 px-5 py-3">
