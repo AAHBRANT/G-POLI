@@ -43,7 +43,7 @@ export default function ConvidarUsuarioForm({
 
   if (!aberto) {
     return (
-      <button onClick={() => setAberto(true)} className="rounded-md bg-marsala px-4 py-2 text-sm font-medium text-white transition hover:bg-marsala-600">
+      <button onClick={() => setAberto(true)} className="rounded-md bg-gradient-to-r from-marsala to-marsala-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:opacity-90">
         + Convidar usuário
       </button>
     );

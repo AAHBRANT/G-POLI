@@ -34,7 +34,9 @@ export default function Sidebar() {
 
   const item = (m: { nome: string; href: string; icone: string; futuro?: boolean }) => {
     const ativo = m.href === "/" ? pathname === "/" : pathname.startsWith(m.href);
-    const base = "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition";
+    // Indicador de item ativo é uma barra lateral (borda), não preenchimento de
+    // fundo — mais discreto, mesmo padrão pros itens normais e o de admin.
+    const base = "flex items-center gap-3 rounded-md border-l-2 px-3 py-1.5 text-sm transition";
     const ico = (
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
         <path d={m.icone} />
@@ -42,7 +44,7 @@ export default function Sidebar() {
     );
     if (m.futuro) {
       return (
-        <span key={m.nome} title="Próximo incremento" className={`${base} cursor-not-allowed text-white/35`}>
+        <span key={m.nome} title="Próximo incremento" className={`${base} cursor-not-allowed border-transparent text-white/35`}>
           {ico}
           {m.nome}
           <span className="ml-auto rounded-full bg-white/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wide">em breve</span>
@@ -53,7 +55,7 @@ export default function Sidebar() {
       <Link
         key={m.nome}
         href={m.href}
-        className={`${base} ${ativo ? "bg-white/15 font-medium text-white shadow-sm" : "text-white/75 hover:bg-white/10 hover:text-white"}`}
+        className={`${base} ${ativo ? "border-bege bg-white/10 font-medium text-white" : "border-transparent text-white/75 hover:bg-white/5 hover:text-white"}`}
       >
         {ico}
         {m.nome}

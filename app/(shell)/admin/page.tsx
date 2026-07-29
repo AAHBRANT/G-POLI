@@ -8,7 +8,7 @@ import { CARGOS } from "@/lib/auth/perfis";
 
 export const dynamic = "force-dynamic";
 
-type Params = { q?: string; cargo?: string; status?: string };
+type Params = { q?: string; cargo?: string; status?: string; tab?: string };
 
 export default async function AdminPage({ searchParams }: { searchParams: Params }) {
   const atual = await getUsuarioAtual();
@@ -27,6 +27,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Params
   const q = (searchParams.q ?? "").trim();
   const cargo = searchParams.cargo ?? "";
   const status = searchParams.status ?? "";
+  const tab = searchParams.tab === "setores" && gerirSetores ? "setores" : "usuarios";
 
   const and: Record<string, unknown>[] = [];
   if (q) and.push({ OR: [{ nome: { contains: q, mode: "insensitive" } }, { email: { contains: q, mode: "insensitive" } }] });
@@ -46,6 +47,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Params
   ]);
 
   const setoresAtivos = setores.filter((s) => s.ativa).map((s) => ({ id: s.id, nome: s.nome }));
+  const filtroAtivo = Boolean(q || cargo || status);
+
+  const abaClasse = (ativa: boolean) =>
+    `border-b-2 px-1 py-2.5 text-sm font-medium transition ${
+      ativa ? "border-marsala text-marsala" : "border-transparent text-black/50 hover:text-black/70"
+    }`;
 
   return (
     <div className="space-y-5">
@@ -56,84 +63,109 @@ export default async function AdminPage({ searchParams }: { searchParams: Params
             Convite = liberação de acesso. Cargos (RBAC) e setores controlam o que cada um faz.
           </p>
         </div>
-        <Link href="/admin/auditoria" className="shrink-0 rounded-md border border-black/15 px-3 py-1.5 text-xs text-black/70 transition hover:bg-black/5">
-          Ver auditoria →
+        {ehGestorTopo && tab === "usuarios" && <ConvidarUsuarioForm setores={setoresAtivos} podeAdmins={gerirAdmins} />}
+      </div>
+
+      <div className="flex items-center gap-5 border-b border-black/10">
+        <Link href="/admin?tab=usuarios" className={abaClasse(tab === "usuarios")}>
+          Usuários ({usuarios.length})
+        </Link>
+        {gerirSetores && (
+          <Link href="/admin?tab=setores" className={abaClasse(tab === "setores")}>
+            Setores ({setores.length})
+          </Link>
+        )}
+        <Link href="/admin/auditoria" className={abaClasse(false)}>
+          Auditoria
         </Link>
       </div>
 
-      {gerirSetores && <GerenciarSetores setores={setores.map((s) => ({ id: s.id, nome: s.nome, ativa: s.ativa }))} />}
+      {tab === "setores" ? (
+        <GerenciarSetores setores={setores.map((s) => ({ id: s.id, nome: s.nome, ativa: s.ativa }))} />
+      ) : (
+        <>
+          {/* Filtros */}
+          <form method="get" className="flex flex-wrap items-end gap-3 rounded-lg border border-black/10 bg-white p-3 shadow-card">
+            <input type="hidden" name="tab" value="usuarios" />
+            <div className="min-w-[200px] flex-1">
+              <label className="mb-1 block text-[11px] uppercase tracking-wide text-black/40">Buscar</label>
+              <input name="q" defaultValue={q} placeholder="Nome ou e-mail…" className="h-10 w-full rounded border border-black/15 px-3 text-sm" />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] uppercase tracking-wide text-black/40">Cargo</label>
+              <select name="cargo" defaultValue={cargo} className="h-10 rounded border border-black/15 px-2 text-sm">
+                <option value="">Todos</option>
+                {CARGOS.map((c) => (<option key={c.valor} value={c.valor}>{c.rotulo}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] uppercase tracking-wide text-black/40">Status</label>
+              <select name="status" defaultValue={status} className="h-10 rounded border border-black/15 px-2 text-sm">
+                <option value="">Todos</option>
+                <option value="ativo">Ativo</option>
+                <option value="inativo">Inativo</option>
+              </select>
+            </div>
+            <button className="h-10 rounded-md bg-marsala px-4 text-sm font-medium text-white hover:bg-marsala-600">Filtrar</button>
+            {filtroAtivo && (
+              <Link
+                href="/admin"
+                title="Limpar filtros"
+                className="grid h-10 w-10 place-items-center rounded-md border border-black/15 text-black/50 transition hover:bg-black/5 hover:text-black/70"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </Link>
+            )}
+          </form>
 
-      {ehGestorTopo && <ConvidarUsuarioForm setores={setoresAtivos} podeAdmins={gerirAdmins} />}
-
-      {/* Filtros */}
-      <form method="get" className="flex flex-wrap items-end gap-3 rounded-lg border border-black/10 bg-white p-3 shadow-card">
-        <div className="min-w-[200px] flex-1">
-          <label className="mb-1 block text-[11px] uppercase tracking-wide text-black/40">Buscar</label>
-          <input name="q" defaultValue={q} placeholder="Nome ou e-mail…" className="w-full rounded border border-black/15 px-3 py-1.5 text-sm" />
-        </div>
-        <div>
-          <label className="mb-1 block text-[11px] uppercase tracking-wide text-black/40">Cargo</label>
-          <select name="cargo" defaultValue={cargo} className="rounded border border-black/15 px-2 py-1.5 text-sm">
-            <option value="">Todos</option>
-            {CARGOS.map((c) => (<option key={c.valor} value={c.valor}>{c.rotulo}</option>))}
-          </select>
-        </div>
-        <div>
-          <label className="mb-1 block text-[11px] uppercase tracking-wide text-black/40">Status</label>
-          <select name="status" defaultValue={status} className="rounded border border-black/15 px-2 py-1.5 text-sm">
-            <option value="">Todos</option>
-            <option value="ativo">Ativo</option>
-            <option value="inativo">Inativo</option>
-          </select>
-        </div>
-        <button className="rounded-md bg-marsala px-4 py-1.5 text-sm font-medium text-white hover:bg-marsala-600">Filtrar</button>
-        <Link href="/admin" className="text-xs text-black/40 hover:text-black/70">limpar</Link>
-      </form>
-
-      <div className="overflow-hidden rounded-lg border border-black/10 bg-white shadow-card">
-        <div className="border-b border-black/5 px-4 py-2 text-xs text-black/50">
-          {usuarios.length} usuário{usuarios.length === 1 ? "" : "s"}
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-black/[0.03] text-left text-xs uppercase tracking-wide text-black/50">
-              <tr>
-                <th className="px-4 py-2 font-medium">Nome</th>
-                <th className="px-4 py-2 font-medium">E-mail</th>
-                <th className="px-4 py-2 font-medium">Cargo</th>
-                <th className="px-4 py-2 font-medium">Setor</th>
-                <th className="px-4 py-2 font-medium">Status</th>
-                <th className="px-4 py-2 font-medium">Cadastro</th>
-                <th className="px-4 py-2 font-medium">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-black/5">
-              {usuarios.length === 0 ? (
-                <tr><td colSpan={7} className="p-6 text-center text-black/50">Nenhum usuário para os filtros.</td></tr>
-              ) : (
-                usuarios.map((u) => (
-                  <LinhaUsuario
-                    key={u.id}
-                    usuario={{
-                      id: u.id,
-                      nome: u.nome,
-                      email: u.email,
-                      perfil: u.perfil,
-                      ativo: u.ativo,
-                      pendente: !u.oid,
-                      dataCadastro: u.criadoEm.toLocaleDateString("pt-BR"),
-                      setores: u.setores.map((s) => ({ id: s.id, nome: s.nome })),
-                    }}
-                    setores={setoresAtivos}
-                    podeAdmins={gerirAdmins}
-                    ehVoceMesmo={atual!.id === u.id}
-                  />
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+          <div className="overflow-hidden rounded-lg border border-black/10 bg-white shadow-card">
+            <div className="border-b border-black/5 px-4 py-2 text-xs text-black/50">
+              {usuarios.length} usuário{usuarios.length === 1 ? "" : "s"}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-black/[0.03] text-left text-xs uppercase tracking-wide text-black/50">
+                  <tr>
+                    <th className="px-4 py-2 font-medium">Nome</th>
+                    <th className="px-4 py-2 font-medium">E-mail</th>
+                    <th className="px-4 py-2 font-medium">Cargo</th>
+                    <th className="px-4 py-2 font-medium">Setor</th>
+                    <th className="px-4 py-2 font-medium">Status</th>
+                    <th className="px-4 py-2 font-medium">Cadastro</th>
+                    <th className="px-4 py-2 font-medium">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-black/5">
+                  {usuarios.length === 0 ? (
+                    <tr><td colSpan={7} className="p-6 text-center text-black/50">Nenhum usuário para os filtros.</td></tr>
+                  ) : (
+                    usuarios.map((u) => (
+                      <LinhaUsuario
+                        key={u.id}
+                        usuario={{
+                          id: u.id,
+                          nome: u.nome,
+                          email: u.email,
+                          perfil: u.perfil,
+                          ativo: u.ativo,
+                          pendente: !u.oid,
+                          dataCadastro: u.criadoEm.toLocaleDateString("pt-BR"),
+                          setores: u.setores.map((s) => ({ id: s.id, nome: s.nome })),
+                        }}
+                        setores={setoresAtivos}
+                        podeAdmins={gerirAdmins}
+                        ehVoceMesmo={atual!.id === u.id}
+                      />
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

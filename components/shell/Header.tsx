@@ -1,6 +1,8 @@
 import { authEnabled } from "@/lib/auth/config";
 import { getUsuarioAtual } from "@/lib/auth/usuario";
 import { CARGOS, rotuloCargo } from "@/lib/auth/perfis";
+import Breadcrumb from "@/components/shell/Breadcrumb";
+import MenuPerfil from "@/components/shell/MenuPerfil";
 
 const DEV_PERFIS = CARGOS.map((c) => c.valor);
 
@@ -17,7 +19,7 @@ export default async function Header() {
   return (
     <header className="flex items-center justify-between border-b border-black/10 bg-white px-6 py-3">
       <div className="flex items-center gap-3">
-        <span className="text-sm font-medium text-marsala">Gestão de Políticas e Normativos</span>
+        <Breadcrumb />
         {!authEnabled && (
           <span className="rounded-full bg-bege/60 px-2 py-0.5 text-[10px] font-medium text-black/60">
             auth desativada (dev)
@@ -43,21 +45,12 @@ export default async function Header() {
         )}
 
         {u && (
-          <span className="rounded-full bg-marsala/10 px-2.5 py-1 text-[11px] font-medium text-marsala">
-            {rotuloCargo(u.perfil)}
-          </span>
-        )}
-        <span className="text-sm text-black/60">{nomeExibicao}</span>
-        <div className="grid h-8 w-8 place-items-center rounded-full bg-marsala text-xs font-semibold text-white">
-          {iniciais(u?.nome ?? "", u?.email ?? "")}
-        </div>
-        {authEnabled && u && (
-          <a
-            href="/api/auth/logout"
-            className="rounded-md border border-black/15 px-3 py-1.5 text-xs text-black/70 transition hover:bg-black/5"
-          >
-            Sair
-          </a>
+          <MenuPerfil
+            nome={nomeExibicao}
+            cargoRotulo={rotuloCargo(u.perfil)}
+            iniciais={iniciais(u.nome ?? "", u.email ?? "")}
+            authEnabled={authEnabled}
+          />
         )}
       </div>
     </header>
