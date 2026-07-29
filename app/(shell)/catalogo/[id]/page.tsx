@@ -6,7 +6,7 @@ import AcoesEstado from "@/components/politica/AcoesEstado";
 import CienciaLeitura from "@/components/politica/CienciaLeitura";
 import AudienciaSelector from "@/components/politica/AudienciaSelector";
 import { corClassificacao, rotuloClassificacao, ESTADOS_POLITICA, tipoDocumento } from "@/lib/constants";
-import { getUsuarioAtual, podeEditarConteudo, podePublicar } from "@/lib/auth/usuario";
+import { getUsuarioAtual, podeEditarConteudo, podePublicar, filtroVisibilidade } from "@/lib/auth/usuario";
 
 export const dynamic = "force-dynamic";
 
@@ -28,8 +28,13 @@ function formatoTamanho(bytes: number): string {
 }
 
 export default async function PoliticaDetalhe({ params }: { params: { id: string } }) {
-  const politica = await prisma.politica.findUnique({
-    where: { id: params.id },
+  const usuario = await getUsuarioAtual();
+  // findFirst (não findUnique) para poder combinar o id com o filtro de
+  // visibilidade — sem isso, colaborador abria qualquer política direto pela
+  // URL, ignorando estado/área/público-alvo. Sem permissão = "não encontrada",
+  // igual a não existir (não revela que a política existe e está restrita).
+  const politica = await prisma.politica.findFirst({
+    where: { id: params.id, AND: [filtroVisibilidade(usuario)] },
     include: {
       area: true,
       versoes: { include: { documento: true }, orderBy: { numero: "desc" } },
@@ -42,8 +47,6 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
   });
 
   if (!politica) notFound();
-
-  const usuario = await getUsuarioAtual();
   const podeEditar = podeEditarConteudo(usuario, politica);
   const podePub = podePublicar(usuario);
   const minhaCiencia = usuario ? politica.ciencias.find((c) => c.usuarioOid === usuario.oid) : undefined;

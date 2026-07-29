@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import NovaPoliticaForm from "@/components/politica/NovaPoliticaForm";
 import CatalogoTabela from "@/components/politica/CatalogoTabela";
-import { getUsuarioAtual, podeCriarPolitica } from "@/lib/auth/usuario";
+import { getUsuarioAtual, podeCriarPolitica, filtroVisibilidade } from "@/lib/auth/usuario";
 import { tipoDocumentoValido, tipoDocumento, artigoDocumento } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ export default async function TipoDocumentoPage({ params }: { params: { tipo: st
   const usuario = await getUsuarioAtual();
   const podeCriar = podeCriarPolitica(usuario);
   const itens = await prisma.politica.findMany({
-    where: { tipo: params.tipo },
+    where: { AND: [{ tipo: params.tipo }, filtroVisibilidade(usuario)] },
     include: { area: true, _count: { select: { versoes: true } } },
     orderBy: { criadaEm: "desc" },
   });
