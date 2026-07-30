@@ -34,7 +34,10 @@ export const config = {
   // — referenciadas pelo manifest do Teams), rotas de auth, o health check das
   // probes, assets e arquivos estáticos. /api/health precisa ser público senão
   // as probes do Container App tomam 302→/login e o app nunca fica "saudável".
+  // /logo precisa ser público: é servido de public/logo (logomarca oficial) e
+  // aparece na própria tela de login — sem essa exceção, next/image recebia a
+  // página de login (HTML) no lugar do PNG ao tentar buscar o arquivo.
   matcher: [
-    "/((?!login|sem-acesso|privacidade|termos|entrar/teams-fim|api/auth|api/health|_next/static|_next/image|favicon.ico).*)",
+    "/((?!login|sem-acesso|privacidade|termos|entrar/teams-fim|api/auth|api/health|logo|_next/static|_next/image|favicon.ico).*)",
   ],
 };

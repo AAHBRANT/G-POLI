@@ -1,12 +1,41 @@
-// Marca G-Políticas / AAHBRANT — monograma + wordmark. Reutilizável.
+import Image from "next/image";
+
+// Marca G-Políticas / AAHBRANT. Logomarca oficial (identidade-aahbrant) +
+// wordmark do produto — reutilizável.
+//
+// Proporção real dos arquivos (public/logo): positivo 883x190, negativo
+// 1118x266 — mantidas aqui para o next/image não distorcer.
+const LOGO_POSITIVO = { src: "/logo/aahbrant-logo.png", w: 883, h: 190 };
+const LOGO_NEGATIVO = { src: "/logo/aahbrant-logo-negativo.png", w: 1118, h: 266 };
+
 export default function Brand({
   size = "md",
   invertido = false,
+  somenteLogo = false,
 }: {
   size?: "sm" | "md" | "lg";
-  invertido?: boolean; // true = sobre fundo escuro (sidebar/marsala)
+  invertido?: boolean; // true = sobre fundo escuro/vinho (sidebar) — usa a versão negativa (bege sobre vinho)
+  // true = só a logomarca oficial, sem o wordmark "G-Políticas" — para
+  // cabeçalhos institucionais de documento (Manual SGI), onde a marca do
+  // aplicativo não deve aparecer junto do timbre oficial.
+  somenteLogo?: boolean;
 }) {
-  const dim = size === "lg" ? 44 : size === "sm" ? 30 : 36;
+  const altura = size === "lg" ? 34 : size === "sm" ? 18 : 24;
+  const logo = invertido ? LOGO_NEGATIVO : LOGO_POSITIVO;
+  const largura = Math.round((altura * logo.w) / logo.h);
+
+  const imagem = (
+    <Image
+      src={logo.src}
+      alt="AAHBRANT Engenharia & Construções"
+      width={largura}
+      height={altura}
+      priority
+    />
+  );
+
+  if (somenteLogo) return imagem;
+
   const tituloCls =
     size === "lg" ? "text-lg" : size === "sm" ? "text-sm" : "text-[15px]";
   const corTitulo = invertido ? "text-white" : "text-marsala";
@@ -14,15 +43,7 @@ export default function Brand({
 
   return (
     <div className="flex items-center gap-2.5">
-      <svg width={dim} height={dim} viewBox="0 0 44 44" fill="none" aria-hidden>
-        <rect width="44" height="44" rx="11" fill="#670000" />
-        <rect x="0.5" y="0.5" width="43" height="43" rx="10.5" stroke="#EBE9AD" strokeOpacity="0.35" />
-        {/* G estilizado */}
-        <path
-          d="M28.5 16.2c-1.5-1.6-3.7-2.6-6.2-2.6-4.7 0-8.3 3.6-8.3 8.4s3.6 8.4 8.3 8.4c4 0 7-2.4 7.7-6.1h-8.2v-3.3H33v2.1c0 6.2-4.4 10.9-10.7 10.9-6.6 0-11.7-5.1-11.7-11.9S15.7 10 22.3 10c3.6 0 6.7 1.5 8.8 3.9l-2.6 2.3z"
-          fill="#EBE9AD"
-        />
-      </svg>
+      {imagem}
       <div className="leading-tight">
         <div className={`font-semibold tracking-tight ${tituloCls} ${corTitulo}`}>G-Políticas</div>
         <div className={`text-[10px] font-medium uppercase tracking-[0.14em] ${corSub}`}>AAHBRANT</div>
