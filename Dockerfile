@@ -28,7 +28,11 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
 
 COPY docker-entrypoint.sh ./
-RUN chmod +x docker-entrypoint.sh
+# Normaliza CRLF->LF incondicionalmente: o checkout do agente de CI (Windows,
+# self-hosted) não respeitou o eol=lf do .gitattributes, gerando um shebang
+# "#!/bin/sh\r" quebrado (container falhava com "exec: not found" no start).
+# `sed` aqui garante LF independente de como o agente fez o checkout.
+RUN sed -i 's/\r$//' docker-entrypoint.sh && chmod +x docker-entrypoint.sh
 
 EXPOSE 3000
 CMD ["./docker-entrypoint.sh"]
