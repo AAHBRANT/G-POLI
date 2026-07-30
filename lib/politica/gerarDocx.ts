@@ -1,0 +1,45 @@
+import fs from "fs/promises";
+import path from "path";
+import { createReport } from "docx-templates";
+
+// Modelo Word real (não uma reprodução em HTML) — ver
+// docs/superpowers/specs/2026-07-30-geracao-docx-oficial-design.md.
+const CAMINHO_MODELO = path.join(process.cwd(), "templates", "politica-modelo.docx");
+
+export type SecaoDocx = {
+  codigo: string;
+  titulo: string;
+  corpo: string; // já achatado por corpoParaTexto (lib/politica/dominio.ts)
+};
+
+export type DadosDocumentoOficial = {
+  titulo: string;
+  codigo: string | null;
+  publicadaEm: Date;
+  areaNome: string;
+  revisao: number;
+  secoes: SecaoDocx[];
+};
+
+// Gera o .docx oficial preenchendo o modelo real. Erros de leitura do
+// template ou de preenchimento (tag ausente, XML inválido) SOBEM para o
+// chamador — nunca engolir aqui (ver docs/learnings.md, regra sobre catch
+// silencioso). Quem decide o que fazer com a falha é publicarPolitica
+// (fail-closed: bloqueia a publicação).
+export async function gerarDocumentoOficial(dados: DadosDocumentoOficial): Promise<Buffer> {
+  const template = await fs.readFile(CAMINHO_MODELO);
+  const resultado = await createReport({
+    template,
+    cmdDelimiter: ["{", "}"],
+    data: {
+      titulo: dados.titulo,
+      codigo: dados.codigo ?? "—",
+      data: dados.publicadaEm.toLocaleDateString("pt-BR"),
+      unidade: "",
+      areaResponsavel: dados.areaNome,
+      revisao: String(dados.revisao).padStart(2, "0"),
+      secoes: dados.secoes,
+    },
+  });
+  return Buffer.from(resultado);
+}

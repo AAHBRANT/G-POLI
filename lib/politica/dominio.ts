@@ -264,3 +264,26 @@ export function leituraValida(abertoEm: string, agora: Date): boolean {
   const inicio = Date.parse(abertoEm);
   return Number.isFinite(inicio) && agora.getTime() - inicio >= TEMPO_MINIMO_LEITURA_MS;
 }
+
+// ---------------------------------------------------------------------------
+// Geração do documento oficial (.docx)
+// ---------------------------------------------------------------------------
+
+// Achata uma seção pro texto simples do .docx gerado. Seção de tabela vira
+// linhas separadas por quebra, células por " | " — v1 não gera tabela Word
+// real (ver docs/superpowers/specs/2026-07-30-geracao-docx-oficial-design.md,
+// "Não-objetivos"), só o cabeçalho/rodapé precisam de fidelidade perfeita.
+export function corpoParaTexto(secao: {
+  tipo: string;
+  corpo: string;
+  colunas?: unknown;
+  linhas?: unknown;
+}): string {
+  if (secao.tipo !== "tabela") return secao.corpo;
+  const colunas = (secao.colunas as string[] | null) ?? [];
+  const linhas = (secao.linhas as string[][] | null) ?? [];
+  const partes: string[] = [];
+  if (colunas.length > 0) partes.push(colunas.join(" | "));
+  for (const linha of linhas) partes.push(linha.join(" | "));
+  return partes.join("\n");
+}
