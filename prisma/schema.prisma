@@ -17,16 +17,18 @@ enum Classificacao {
 }
 
 // v3: categoria de documento do PRODUTO — cada uma tem sua seção própria no
-// menu (ver lib/constants.ts). Deliberadamente SEM correspondência com os 17
-// tipos de documento (TD) oficiais do SGI (MAN, PRO, POL, RGL, CI...): essa
-// vinculação foi adiada até o SGI confirmar o mapeamento exato.
+// menu (ver lib/constants.ts). Mapeamento com os TDs oficiais do SGI (tabela
+// "Tipos de Documento" da planilha Codificação de Documentos) confirmado em
+// 2026-07-30: politica=POL, procedimento=PRO, instrucao_trabalho=IT,
+// manual=MAN, formulario=FOR batem exatamente. `norma` e `codigo` foram
+// removidos — a tabela oficial do SGI não tem TD correspondente para eles.
+// `comunicado_normativo` fica sem TD oficial equivalente por decisão (o mais
+// próximo, Comunicado Interno/CI, usa formato de código incompatível).
 enum TipoDocumento {
   politica
-  norma
   procedimento
   instrucao_trabalho
   manual
-  codigo
   formulario
   comunicado_normativo
 }

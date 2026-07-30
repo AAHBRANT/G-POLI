@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
   siglaArea,
   proximoSequencial,
+  proximoSequencialArea,
   formatarCodigoNormativo,
+  ORG_PADRAO,
   editavel,
   transicao,
   temConteudo,
@@ -25,17 +27,24 @@ import { ESQUELETO_PADRAO } from "@/lib/politica/esqueleto";
 // Código normativo
 // ===========================================================================
 describe("Código normativo", () => {
-  it("sigla: multi-palavra vira iniciais (até 4)", () => {
+  it("sigla: área com nome oficial usa a sigla da tabela do SGI (2026-07-30)", () => {
     expect(siglaArea("Recursos Humanos")).toBe("RH");
+    expect(siglaArea("Tecnologia da Informação")).toBe("TI");
+    // "Financeiro" é absorvido por "Administrativo e Financeiro" (ADM) na
+    // tabela oficial — deixou de ser sigla própria.
+    expect(siglaArea("Financeiro")).toBe("ADM");
+    expect(siglaArea("financeiro")).toBe("ADM"); // normalizado (minúsculo bate igual)
+  });
+
+  it("sigla: multi-palavra fora da tabela oficial vira iniciais (até 4)", () => {
     expect(siglaArea("Tecnologia da Informação Corporativa")).toBe("TDIC");
   });
 
-  it("sigla: palavra única vira 3 letras", () => {
-    expect(siglaArea("Financeiro")).toBe("FIN");
-    expect(siglaArea("TI")).toBe("TI");
+  it("sigla: palavra única fora da tabela oficial vira 3 letras", () => {
+    expect(siglaArea("Logística")).toBe("LOG");
   });
 
-  it("sigla: remove acentos e pontuação, sobe caixa", () => {
+  it("sigla: remove acentos e pontuação, sobe caixa (fallback)", () => {
     expect(siglaArea("Produção")).toBe("PRO");
     expect(siglaArea("Jurídico & Compliance")).toBe("JC");
   });
@@ -44,23 +53,31 @@ describe("Código normativo", () => {
     expect(siglaArea("   ")).toBe("GER");
   });
 
-  it("sequencial: começa em 1 quando não há códigos", () => {
+  it("sequencial (por prefixo fixo): começa em 1 quando não há códigos", () => {
     expect(proximoSequencial("POL-RH-", [])).toBe(1);
   });
 
-  it("sequencial: usa o maior existente + 1 (ignora buracos e inválidos)", () => {
+  it("sequencial (por prefixo fixo): usa o maior existente + 1 (ignora buracos e inválidos)", () => {
     expect(proximoSequencial("POL-RH-", ["POL-RH-001", "POL-RH-003", "POL-RH-002"])).toBe(4);
     expect(proximoSequencial("POL-RH-", ["POL-RH-abc", null, undefined, "POL-RH-005"])).toBe(6);
   });
 
-  it("formata no padrão POL-<SIGLA>-NNN com zero-pad (POL é o default, sem 3º argumento)", () => {
-    expect(formatarCodigoNormativo("RH", 1)).toBe("POL-RH-001");
-    expect(formatarCodigoNormativo("TI", 42)).toBe("POL-TI-042");
+  it("sequencial por área: comum a todos os TDs (regra oficial — SEQ não é por tipo)", () => {
+    expect(proximoSequencialArea([])).toBe(1);
+    expect(
+      proximoSequencialArea(["AHBT-POL-ENG-001", "AHBT-PRO-ENG-002", "AHBT-IT-ENG-003"]),
+    ).toBe(4);
+    expect(proximoSequencialArea(["AHBT-POL-ENG-abc", null, undefined, "AHBT-MAN-ENG-005"])).toBe(6);
+  });
+
+  it("formata no padrão oficial AHBT-<TD>-<SIGLA>-NNN com zero-pad (POL é o TD default)", () => {
+    expect(formatarCodigoNormativo("RH", 1)).toBe(`${ORG_PADRAO}-POL-RH-001`);
+    expect(formatarCodigoNormativo("TI", 42)).toBe(`${ORG_PADRAO}-POL-TI-042`);
   });
 
   it("v3: aceita prefixo de outros tipos de documento", () => {
-    expect(formatarCodigoNormativo("RH", 1, "NOR")).toBe("NOR-RH-001");
-    expect(formatarCodigoNormativo("TI", 7, "PRO")).toBe("PRO-TI-007");
+    expect(formatarCodigoNormativo("RH", 1, "PRO")).toBe(`${ORG_PADRAO}-PRO-RH-001`);
+    expect(formatarCodigoNormativo("TI", 7, "IT")).toBe(`${ORG_PADRAO}-IT-TI-007`);
   });
 });
 
@@ -292,7 +309,7 @@ describe("Invariantes do domínio", () => {
     const a = formatarCodigoNormativo(siglaArea("Recursos Humanos"), proximoSequencial("POL-RH-", ["POL-RH-001"]));
     const b = formatarCodigoNormativo(siglaArea("Recursos Humanos"), proximoSequencial("POL-RH-", ["POL-RH-001"]));
     expect(a).toBe(b);
-    expect(a).toMatch(/^POL-[A-Z0-9]+-\d{3}$/);
+    expect(a).toMatch(/^AHBT-POL-[A-Z0-9]+-\d{3}$/);
   });
 });
 
