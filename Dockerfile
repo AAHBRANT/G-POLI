@@ -16,9 +16,13 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
-# Next standalone (server.js + node_modules mínimos)
+# Next standalone (server.js + node_modules mínimos). O output standalone do
+# Next NÃO inclui public/ nem .next/static automaticamente — tem que copiar
+# os dois à mão (gotcha documentado do Next.js). Nunca deu problema até agora
+# porque não existia public/ no projeto antes da logomarca oficial (PR #47).
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
 
 # Prisma: CLI + client + engines + migrations (para migrate deploy no start)
 COPY --from=builder /app/prisma ./prisma
