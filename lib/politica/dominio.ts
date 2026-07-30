@@ -7,8 +7,54 @@ import path from "path";
 // Código normativo
 // ---------------------------------------------------------------------------
 
-// Sigla da área para o código normativo. Multi-palavra → iniciais; palavra única → 3 letras.
+// Sigla oficial de Área Responsável (AR) — tabela "Areas Responsaveis" da
+// planilha Codificação de Documentos (Tabelas de Apoio), conferida em
+// 2026-07-30. Chave normalizada (minúsculo, sem acento) → sigla oficial.
+const AREAS_OFICIAIS: Record<string, string> = {
+  "diretoria": "DIR",
+  "alta direcao": "DIR",
+  "sistema de gestao integrado": "SGI",
+  "sgi": "SGI",
+  "qualidade": "QUA",
+  "engenharia e projetos": "ENG",
+  "engenharia": "ENG",
+  "obras e producao": "OBR",
+  "obras": "OBR",
+  "suprimentos e compras": "SUP",
+  "suprimentos": "SUP",
+  "comercial e orcamentos": "COM",
+  "comercial": "COM",
+  "administrativo e financeiro": "ADM",
+  "administrativo": "ADM",
+  "financeiro": "ADM",
+  "recursos humanos": "RH",
+  "seguranca do trabalho e saude ocupacional": "SSO",
+  "seguranca do trabalho": "SSO",
+  "sso": "SSO",
+  "meio ambiente": "MA",
+  "planejamento": "PLJ",
+  "proposta": "PRP",
+  "social": "SOC",
+  "tecnologia da informacao": "TI",
+  "ti": "TI",
+};
+
+function normalizarNomeArea(nome: string): string {
+  return nome
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+}
+
+// Sigla da área para o código normativo. Área cadastrada com nome que bate
+// (exato, normalizado) com a tabela oficial do SGI usa a sigla oficial;
+// senão cai no fallback anterior (iniciais/3 letras) — área ainda não
+// alinhada ao vocabulário oficial não pode travar o cadastro.
 export function siglaArea(nome: string): string {
+  const oficial = AREAS_OFICIAIS[normalizarNomeArea(nome)];
+  if (oficial) return oficial;
+
   const limpo = nome.trim().replace(/[^A-Za-zÀ-ÿ0-9\s]/g, "");
   const palavras = limpo.split(/\s+/).filter(Boolean);
   let sigla: string;
@@ -23,6 +69,11 @@ export function siglaArea(nome: string): string {
     .toUpperCase();
 }
 
+// Organização emissora padrão (código ORG-TD-AR-SEQ). AAHBRANT isolada, sempre
+// "AHBT" — a exceção (consórcio, ORG diferente) foi adiada por decisão do
+// usuário (2026-07-30): não há hoje seleção de ORG no cadastro de política.
+export const ORG_PADRAO = "AHBT";
+
 // Próximo sequencial dado o prefixo e os códigos já existentes com esse prefixo.
 export function proximoSequencial(prefixo: string, codigos: (string | null | undefined)[]): number {
   let max = 0;
@@ -33,11 +84,29 @@ export function proximoSequencial(prefixo: string, codigos: (string | null | und
   return max + 1;
 }
 
-// Formata o código normativo no padrão <PREFIXO>-<SIGLA>-NNN. `prefixo` é
-// opcional (default "POL") para não quebrar chamadas antigas — mas
-// gerarCodigoNormativo (lib/codigo.ts) sempre passa o prefixo do tipo.
+// Próximo sequencial por ÁREA (regra oficial — ver Codificação de Documentos,
+// aba "Gerador de Código": SEQ é comum a todos os TDs da mesma área, não
+// isolado por tipo). Diferente de `proximoSequencial`, não recebe prefixo:
+// os códigos podem ter tipos (segmento TD) diferentes entre si, então extrai
+// só o último segmento (o SEQ) de cada código, ignorando o resto.
+export function proximoSequencialArea(codigos: (string | null | undefined)[]): number {
+  let max = 0;
+  for (const c of codigos) {
+    if (!c) continue;
+    const partes = c.split("-");
+    const n = parseInt(partes[partes.length - 1], 10);
+    if (!Number.isNaN(n) && n > max) max = n;
+  }
+  return max + 1;
+}
+
+// Formata o código normativo no padrão oficial ORG-TD-AR-SEQ (planilha
+// Codificação de Documentos, conferida em 2026-07-30). Revisão fica de fora
+// de propósito: `Politica.revisao` já é rastreada à parte e muda a cada
+// republicação — embuti-la aqui obrigaria mudar um campo @unique toda vez
+// que a política fosse republicada.
 export function formatarCodigoNormativo(sigla: string, sequencial: number, prefixo = "POL"): string {
-  return `${prefixo}-${sigla}-${String(sequencial).padStart(3, "0")}`;
+  return `${ORG_PADRAO}-${prefixo}-${sigla}-${String(sequencial).padStart(3, "0")}`;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,14 +1,15 @@
 import { prisma } from "@/lib/prisma";
-import { siglaArea, proximoSequencial, formatarCodigoNormativo } from "@/lib/politica/dominio";
+import { siglaArea, proximoSequencialArea, formatarCodigoNormativo } from "@/lib/politica/dominio";
 import { tipoDocumento, type TipoDocumentoValor } from "@/lib/constants";
 
 // Reexporta a regra pura (compatibilidade com quem importava daqui).
 export { siglaArea };
 
-// Próximo código normativo da área, ex.: POL-RH-001 (sequência por sigla).
-// v3: o prefixo vem do tipo de documento (Política=POL, Norma=NOR...) — a
-// sequência é isolada por prefixo+área, então tipos diferentes na mesma área
-// não competem pelo mesmo número.
+// Próximo código normativo, no padrão oficial AHBT-TD-AR-SEQ (planilha
+// Codificação de Documentos, "Gerador de Código", conferida em 2026-07-30).
+// SEQ é por ÁREA (AR), não por tipo+área: Política, Procedimento e Instrução
+// da mesma área compartilham a mesma sequência — por isso a busca é por
+// `areaId`, e não por um prefixo tipo+sigla.
 export async function gerarCodigoNormativo(
   areaId: string,
   areaNome: string,
@@ -16,11 +17,10 @@ export async function gerarCodigoNormativo(
 ): Promise<string> {
   const sigla = siglaArea(areaNome);
   const prefixoTipo = tipoDocumento(tipo).prefixo;
-  const prefixo = `${prefixoTipo}-${sigla}-`;
   const existentes = await prisma.politica.findMany({
-    where: { codigo: { startsWith: prefixo } },
+    where: { areaId },
     select: { codigo: true },
   });
-  const seq = proximoSequencial(prefixo, existentes.map((p) => p.codigo));
+  const seq = proximoSequencialArea(existentes.map((p) => p.codigo));
   return formatarCodigoNormativo(sigla, seq, prefixoTipo);
 }
