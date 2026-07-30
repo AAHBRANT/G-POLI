@@ -105,25 +105,22 @@ export default function CienciaLeitura({
 
       {aberto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-lg bg-white shadow-xl">
-            <div className="border-b border-black/10 px-5 py-3">
-              <h3 className="text-sm font-semibold text-black/80">Termo de ciência de leitura</h3>
-              <p className="text-xs text-black/45">
-                Role até o final do documento para liberar a confirmação.
-              </p>
-            </div>
-
-            {/* Cabeçalho institucional padrão (Manual SGI, cap. 11) — repete
-                a cada leitura, como no documento impresso repetiria a cada
-                página. */}
+          <div className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-white shadow-xl">
+            {/* Cabeçalho institucional padrão (Manual SGI, cap. 11) — repete a
+                cada leitura, como no documento impresso repetiria a cada
+                página. Sem título de modal solto: o cabeçalho oficial já traz
+                o nome do documento, então um "Termo de ciência de leitura"
+                avulso ficaria redundante. Estrutura de colunas (logo | título
+                | código-data | unidade-área-revisão) segue o padrão do
+                Manual, não a marca do aplicativo — por isso `somenteLogo`. */}
             <table className="w-full table-fixed border-collapse border border-black/40 text-[9px] text-black">
               <tbody>
                 <tr>
-                  <td rowSpan={2} className="w-1/2 border border-black/40 px-2 py-1.5 align-middle">
-                    <div className="flex items-center gap-2">
-                      <Brand size="sm" />
-                      <span className="font-bold uppercase leading-tight">{tituloPolitica}</span>
-                    </div>
+                  <td rowSpan={2} className="w-[22%] border border-black/40 px-2 py-1.5 align-middle">
+                    <Brand somenteLogo />
+                  </td>
+                  <td rowSpan={2} className="w-[48%] border border-black/40 px-2 py-1.5 text-center align-middle">
+                    <span className="font-bold uppercase leading-tight">{tituloPolitica}</span>
                   </td>
                   <td className="border border-black/40 px-2 py-1">
                     <strong>Código:</strong> {codigo ?? "—"}
@@ -139,7 +136,10 @@ export default function CienciaLeitura({
                     <strong>Unidade:</strong>
                   </td>
                   <td className="border border-black/40 px-2 py-1">
-                    <strong>Área Responsável:</strong> {areaNome} &nbsp;·&nbsp; <strong>Revisão:</strong> {String(revisao).padStart(2, "0")}
+                    <strong>Área Responsável:</strong> {areaNome}
+                  </td>
+                  <td className="border border-black/40 px-2 py-1">
+                    <strong>Revisão:</strong> {String(revisao).padStart(2, "0")}
                   </td>
                 </tr>
               </tbody>
