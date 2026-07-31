@@ -170,7 +170,9 @@ A IA **assiste** a redação, gerando um rascunho das seções a partir de um te
 4. Publicar **exige o núcleo** (Objetivo + Diretrizes Gerais).
 5. **Toda Norma publicada tem um snapshot**; o snapshot é imutável enquanto publicada.
 6. Uma Norma está **sempre em exatamente um estado**, e só muda por transição válida.
-7. Existe **no máximo uma versão ativa** de documento por Norma.
+7. Existe **no máximo um documento oficial ativo** por Norma (substituído a cada
+   republicação); anexos manuais coexistem sem limite, nunca substituindo nada
+   (ver "Versionamento" acima).
 8. **Versão nunca é apagada** — o histórico é imutável.
 9. **Uma ciência por (pessoa, Norma)**, e somente de Norma publicada.
 10. **Aplicar IA é atômico** (tudo-ou-nada).
