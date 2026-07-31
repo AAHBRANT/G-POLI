@@ -147,10 +147,11 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
               ) : (
                 <ul className="flex flex-wrap gap-2">
                   {politica.ciencias.map((c) => {
+                    // Mesma regra conservadora do gate acima (linha ~54): ciência sem
+                    // versão registrada (dado legado, pré-migration) conta como
+                    // desatualizada, não como "em dia".
                     const desatualizada =
-                      !!c.politicaPublicadaEm &&
-                      !!politica.publicadaEm &&
-                      c.politicaPublicadaEm.getTime() !== politica.publicadaEm.getTime();
+                      c.politicaPublicadaEm?.getTime() !== politica.publicadaEm?.getTime();
                     return (
                       <li
                         key={c.id}
