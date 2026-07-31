@@ -207,4 +207,17 @@ describe("publicarPolitica — cria Pendencia (best-effort)", () => {
 
     expect(resultado.ok).toBe(true); // publicação já estava commitada antes deste bloco
   });
+
+  it("resolverAudiencia falhando (hiccup transitório de banco) não impede a publicação nem os revalidatePath (fail-open)", async () => {
+    // 1ª chamada a findUnique: a que já existia em publicarPolitica (carrega a política).
+    // 2ª chamada: a de resolverAudiencia — é essa que falha aqui.
+    findUnique.mockResolvedValueOnce(politicaBase()).mockRejectedValueOnce(new Error("db fora do ar"));
+
+    const resultado = await publicarPolitica("p1");
+
+    expect(resultado.ok).toBe(true); // publicação já estava commitada antes deste bloco
+    expect(revalidar).toHaveBeenCalledWith(`/catalogo/p1`);
+    expect(revalidar).toHaveBeenCalledWith("/catalogo");
+    expect(revalidar).toHaveBeenCalledWith("/");
+  });
 });

@@ -202,7 +202,16 @@ export async function publicarPolitica(id: string): Promise<ResultadoAcao> {
 
   await registrar("politica.publicar", "Politica", id, politica.titulo);
 
-  const alvos = await resolverAudiencia(id);
+  // Fail-open (mesma filosofia de antes desta task, quando essa query vivia
+  // dentro de notificarAudiencia): um hiccup transitório de banco aqui nunca
+  // pode deixar os revalidatePath abaixo de fora — a publicação já está
+  // commitada. Fallback [] só deixa de criar pendência/notificar desta vez.
+  let alvos: UsuarioAlvo[] = [];
+  try {
+    alvos = await resolverAudiencia(id);
+  } catch (erro) {
+    console.error("Falha ao resolver audiencia (publicação já confirmada):", erro);
+  }
 
   // Nunca deixar a criação de pendência ou a notificação falharem a
   // publicação: ela já está confirmada.
