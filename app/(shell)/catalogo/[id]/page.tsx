@@ -49,7 +49,11 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
   if (!politica) notFound();
   const podeEditar = podeEditarConteudo(usuario, politica);
   const podePub = podePublicar(usuario);
-  const minhaCiencia = usuario ? politica.ciencias.find((c) => c.usuarioOid === usuario.oid) : undefined;
+  const minhaCiencia = usuario
+    ? politica.ciencias.find(
+        (c) => c.usuarioOid === usuario.oid && c.politicaPublicadaEm?.getTime() === politica.publicadaEm?.getTime(),
+      )
+    : undefined;
   // Mesma alçada para o relatório de ciência e o de notificação (ambos falam da
   // audiência da política, não do conteúdo).
   const verRelatorioCiencia = !!usuario && ["sgi", "admin", "diretoria"].includes(usuario.perfil);

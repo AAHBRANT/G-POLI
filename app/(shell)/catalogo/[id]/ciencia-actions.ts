@@ -35,7 +35,7 @@ export async function darCiencia(politicaId: string, abertoEm: string): Promise<
 
   await prisma.ciencia.upsert({
     where: { politicaId_usuarioOid: { politicaId, usuarioOid: usuario.oid } },
-    update: {},
+    update: { politicaPublicadaEm: politica.publicadaEm, ip: ipDoRequest(), criadoEm: new Date() },
     create: {
       politicaId,
       usuarioOid: usuario.oid,
@@ -45,10 +45,16 @@ export async function darCiencia(politicaId: string, abertoEm: string): Promise<
       politicaPublicadaEm: politica.publicadaEm,
     },
   });
-  await prisma.pendencia.updateMany({
-    where: { politicaId, usuarioId: usuario.id!, politicaPublicadaEm: politica.publicadaEm!, estado: "pendente" },
-    data: { estado: "resolvida", resolvidaEm: new Date() },
-  });
+  // Best-effort: a Ciencia acima já foi commitada — um erro aqui nunca deve
+  // fazer a Server Action reportar falha para uma ciência que já foi registrada.
+  try {
+    await prisma.pendencia.updateMany({
+      where: { politicaId, usuarioId: usuario.id!, politicaPublicadaEm: politica.publicadaEm!, estado: "pendente" },
+      data: { estado: "resolvida", resolvidaEm: new Date() },
+    });
+  } catch (erro) {
+    console.error("Falha ao resolver pendencia de ciencia (ciencia já confirmada):", erro);
+  }
   await registrar("ciencia.dar", "Politica", politicaId, politica.titulo);
   revalidatePath(`/catalogo/${politicaId}`);
   return { ok: true };
