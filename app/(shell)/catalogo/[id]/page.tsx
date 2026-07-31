@@ -283,7 +283,20 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-2 text-black/70">{v.documento?.nome ?? "—"}</td>
+                  <td className="px-4 py-2 text-black/70">
+                    {v.documento?.nome ?? "—"}
+                    {v.documento && (
+                      <span
+                        className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                          v.documento.oficial
+                            ? "bg-marsala/10 text-marsala"
+                            : "bg-black/5 text-black/60"
+                        }`}
+                      >
+                        {v.documento.oficial ? "Documento oficial" : "Anexo"}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-2 text-black/60">
                     {v.documento ? formatoTamanho(v.documento.tamanho) : "—"}
                   </td>

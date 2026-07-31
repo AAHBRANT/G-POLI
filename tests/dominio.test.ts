@@ -17,6 +17,7 @@ import {
   unirAudiencia,
   leituraValida,
   TEMPO_MINIMO_LEITURA_MS,
+  corpoParaTexto,
   type Estado,
   type AcaoEstado,
   type UsuarioAlvo,
@@ -411,5 +412,40 @@ describe("leituraValida (ciência de leitura — trava de tempo mínimo)", () =>
 
   it("rejeita timestamp de abertura inválido", () => {
     expect(leituraValida("nao-e-uma-data", new Date())).toBe(false);
+  });
+});
+
+// ===========================================================================
+// Geração do documento oficial (.docx)
+// ===========================================================================
+describe("corpoParaTexto (achatamento de seção-tabela para texto)", () => {
+  it("seção de texto: devolve o corpo como está", () => {
+    expect(corpoParaTexto({ tipo: "texto", corpo: "Um parágrafo qualquer." })).toBe(
+      "Um parágrafo qualquer.",
+    );
+  });
+
+  it("seção de tabela: cabeçalho + linhas, células separadas por ' | '", () => {
+    const resultado = corpoParaTexto({
+      tipo: "tabela",
+      corpo: "",
+      colunas: ["Termo", "Definição"],
+      linhas: [
+        ["Ativo", "Bem de valor econômico."],
+        ["Passivo", "Obrigação a pagar."],
+      ],
+    });
+    expect(resultado).toBe(
+      "Termo | Definição\nAtivo | Bem de valor econômico.\nPassivo | Obrigação a pagar.",
+    );
+  });
+
+  it("seção de tabela sem colunas definidas: só as linhas", () => {
+    const resultado = corpoParaTexto({ tipo: "tabela", corpo: "", colunas: null, linhas: [["a", "b"]] });
+    expect(resultado).toBe("a | b");
+  });
+
+  it("seção de tabela vazia: string vazia", () => {
+    expect(corpoParaTexto({ tipo: "tabela", corpo: "", colunas: null, linhas: null })).toBe("");
   });
 });

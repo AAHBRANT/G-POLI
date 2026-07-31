@@ -8,12 +8,16 @@ import {
   transicao,
   temConteudo,
   montarSnapshot,
+  corpoParaTexto,
+  proximoNumeroVersao,
   audienciaVazia,
   unirAudiencia,
   type Estado,
   type UsuarioAlvo,
 } from "@/lib/politica/dominio";
 import { enviarNotificacaoPoliticaPublicada } from "@/lib/notificacao/graph";
+import { salvarArquivo } from "@/lib/storage";
+import { gerarDocumentoOficial } from "@/lib/politica/gerarDocx";
 
 export type ResultadoAcao = { ok: boolean; erro?: string };
 
@@ -83,7 +87,10 @@ export async function publicarPolitica(id: string): Promise<ResultadoAcao> {
   const usuario = await getUsuarioAtual();
   if (!podePublicar(usuario)) return { ok: false, erro: "Sem permissão para publicar (apenas Diretoria/admin)." };
 
-  const politica = await prisma.politica.findUnique({ where: { id }, include: { secoes: true } });
+  const politica = await prisma.politica.findUnique({
+    where: { id },
+    include: { secoes: true, area: true },
+  });
   if (!politica) return { ok: false, erro: "Política não encontrada." };
 
   const t = transicao(politica.estado as Estado, "publicar");
@@ -92,25 +99,78 @@ export async function publicarPolitica(id: string): Promise<ResultadoAcao> {
     return { ok: false, erro: "Não é possível publicar sem conteúdo — preencha ao menos uma seção." };
   }
 
-  // Snapshot do conteúdo no momento da publicação (texto oficial congelado).
   const snapshot = montarSnapshot(politica.secoes);
-  // Revisão do cabeçalho institucional (Manual SGI cap. 11): 0 na primeira
-  // publicação; incrementa a cada republicação (só se já tinha sido publicada
-  // antes — reabrir→editar→publicar de novo).
   const novaRevisao = politica.publicadaEm ? politica.revisao + 1 : politica.revisao;
+  const agora = new Date();
 
-  await prisma.politica.update({
-    where: { id },
-    data: {
-      estado: t.estado,
-      publicadaEm: new Date(),
-      publicadaPorNome: usuario!.nome,
-      publicadaPorEmail: usuario!.email,
-      conteudoPublicado: snapshot as never,
-      revogadaEm: null,
+  // Fail-closed (ver docs/DEPLOY.md e a spec desta feature): sem o
+  // documento oficial gerado, a política NÃO fica publicada.
+  let docxBuffer: Buffer;
+  try {
+    docxBuffer = await gerarDocumentoOficial({
+      titulo: politica.titulo,
+      codigo: politica.codigo,
+      publicadaEm: agora,
+      areaNome: politica.area.nome,
       revisao: novaRevisao,
-    },
-  });
+      secoes: snapshot.map((s) => ({ codigo: s.codigo, titulo: s.titulo, corpo: corpoParaTexto(s) })),
+    });
+  } catch (erro) {
+    console.error("Falha ao gerar o documento oficial (.docx) — publicação bloqueada:", erro);
+    return {
+      ok: false,
+      erro: "Falha ao gerar o documento oficial (.docx). Publicação cancelada — avise o suporte.",
+    };
+  }
+
+  const nomeArquivo = `${politica.codigo ?? politica.titulo}.docx`;
+
+  try {
+    const salvo = await salvarArquivo(id, nomeArquivo, docxBuffer);
+
+    await prisma.$transaction(async (tx) => {
+      // Só a cadeia de documentos OFICIAIS tem substituição — anexo manual
+      // nunca entra aqui (ver adicionarVersao, Task 5).
+      await tx.versao.updateMany({
+        where: { politicaId: id, estado: "ativa", documento: { oficial: true } },
+        data: { estado: "substituida" },
+      });
+      const totais = await tx.versao.count({ where: { politicaId: id } });
+      await tx.versao.create({
+        data: {
+          politicaId: id,
+          numero: proximoNumeroVersao(totais),
+          estado: "ativa",
+          documento: {
+            create: {
+              nome: nomeArquivo,
+              tipo: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              tamanho: salvo.tamanho,
+              hash: salvo.hash,
+              estado: "importado",
+              oficial: true,
+            },
+          },
+        },
+      });
+      await tx.politica.update({
+        where: { id },
+        data: {
+          estado: t.estado,
+          publicadaEm: agora,
+          publicadaPorNome: usuario!.nome,
+          publicadaPorEmail: usuario!.email,
+          conteudoPublicado: snapshot as never,
+          revogadaEm: null,
+          revisao: novaRevisao,
+        },
+      });
+    });
+  } catch (erro) {
+    console.error("Falha ao salvar o documento oficial — publicação cancelada:", erro);
+    return { ok: false, erro: "Falha ao salvar o documento oficial. Publicação cancelada — tente novamente." };
+  }
+
   await registrar("politica.publicar", "Politica", id, politica.titulo);
 
   // Nunca deixar a notificação falhar a publicação: ela já está confirmada.

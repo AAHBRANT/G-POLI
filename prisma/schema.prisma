@@ -218,5 +218,9 @@ model Documento {
   tamanho   Int
   hash      String          @unique
   estado    EstadoDocumento @default(importado)
+  // v3: true = gerado automaticamente na publicação (documento oficial,
+  // substitui o anterior a cada republicação); false = anexo manual (ex.:
+  // planilha de apoio) - convive com outros anexos, nunca substitui nada.
+  oficial   Boolean         @default(false)
   enviadoEm DateTime        @default(now())
 }
