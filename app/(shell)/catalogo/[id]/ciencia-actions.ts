@@ -45,6 +45,10 @@ export async function darCiencia(politicaId: string, abertoEm: string): Promise<
       politicaPublicadaEm: politica.publicadaEm,
     },
   });
+  await prisma.pendencia.updateMany({
+    where: { politicaId, usuarioId: usuario.id!, politicaPublicadaEm: politica.publicadaEm!, estado: "pendente" },
+    data: { estado: "resolvida", resolvidaEm: new Date() },
+  });
   await registrar("ciencia.dar", "Politica", politicaId, politica.titulo);
   revalidatePath(`/catalogo/${politicaId}`);
   return { ok: true };
