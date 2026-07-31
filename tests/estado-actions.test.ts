@@ -26,6 +26,8 @@ vi.mock("@/lib/politica/gerarDocx", () => ({ gerarDocumentoOficial: vi.fn() }));
 
 import { prisma } from "@/lib/prisma";
 import { getUsuarioAtual, podePublicar } from "@/lib/auth/usuario";
+import { registrar } from "@/lib/auditoria";
+import { revalidatePath } from "next/cache";
 import { enviarNotificacaoPoliticaPublicada } from "@/lib/notificacao/graph";
 import { salvarArquivo } from "@/lib/storage";
 import { gerarDocumentoOficial } from "@/lib/politica/gerarDocx";
@@ -39,6 +41,8 @@ const gerar = gerarDocumentoOficial as ReturnType<typeof vi.fn>;
 const findUnique = prisma.politica.findUnique as ReturnType<typeof vi.fn>;
 const politicaUpdate = prisma.politica.update as ReturnType<typeof vi.fn>;
 const transacao = prisma.$transaction as ReturnType<typeof vi.fn>;
+const auditoriaRegistrar = registrar as ReturnType<typeof vi.fn>;
+const revalidar = revalidatePath as ReturnType<typeof vi.fn>;
 
 const versaoCreate = vi.fn();
 const versaoUpdateMany = vi.fn();
@@ -95,5 +99,20 @@ describe("publicarPolitica — geração do documento oficial", () => {
     expect(resultado.erro).toMatch(/documento oficial/i);
     expect(politicaUpdate).not.toHaveBeenCalled();
     expect(versaoCreate).not.toHaveBeenCalled();
+  });
+
+  it("fail-closed: se salvar o arquivo/transação falhar, não publica nem roda pós-publicação", async () => {
+    findUnique.mockResolvedValue(politicaBase());
+    gerar.mockResolvedValue(Buffer.from("conteudo-fake"));
+    salvar.mockRejectedValue(new Error("disco cheio"));
+
+    const resultado = await publicarPolitica("p1");
+
+    expect(resultado.ok).toBe(false);
+    expect(resultado.erro).toMatch(/documento oficial/i);
+    expect(politicaUpdate).not.toHaveBeenCalled();
+    expect(versaoCreate).not.toHaveBeenCalled();
+    expect(auditoriaRegistrar).not.toHaveBeenCalled();
+    expect(revalidar).not.toHaveBeenCalled();
   });
 });
