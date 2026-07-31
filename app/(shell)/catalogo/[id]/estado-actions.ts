@@ -98,17 +98,24 @@ async function notificarAudiencia(politicaId: string, tituloPolitica: string, al
 // criar a nova, pra nunca contar duas pendências da mesma norma pro mesmo
 // usuário.
 async function criarPendencias(politicaId: string, tipo: string, publicadaEm: Date, alvos: UsuarioAlvo[]): Promise<void> {
-  await prisma.pendencia.updateMany({
-    where: { politicaId, estado: "pendente" },
-    data: { estado: "cancelada" },
-  });
   const linhas = dadosPendencia(politicaId, tipo, publicadaEm, alvos);
-  if (linhas.length > 0) {
+  // Sem linhas pra criar (ex.: resolverAudiencia falhou e caiu no fallback
+  // fail-open []) não cancela o que já existe — perderia silenciosamente a
+  // obrigação de leitura em aberto. Não mexe em nada e sai.
+  if (linhas.length === 0) return;
+  // Cancelamento das pendencias antigas e criação das novas precisam ser
+  // atômicos: nunca deixar a política sem NENHUMA pendência pendente entre
+  // as duas operações.
+  await prisma.$transaction([
+    prisma.pendencia.updateMany({
+      where: { politicaId, estado: "pendente" },
+      data: { estado: "cancelada" },
+    }),
     // dadosPendencia (Task 2) tipa `tipo` como `string` (função pura, genérica);
     // aqui o valor real sempre vem de politica.tipo (enum TipoDocumento) — cast
     // localizado no limite com o Prisma Client, não no dado em si.
-    await prisma.pendencia.createMany({ data: linhas as Prisma.PendenciaCreateManyInput[], skipDuplicates: true });
-  }
+    prisma.pendencia.createMany({ data: linhas as Prisma.PendenciaCreateManyInput[], skipDuplicates: true }),
+  ]);
 }
 
 // Publica: rascunho → publicada. Congela conteúdo (edição bloqueada) e carimba autor/data.
@@ -247,10 +254,16 @@ export async function revogarPolitica(id: string): Promise<ResultadoAcao> {
     where: { id },
     data: { estado: t.estado, revogadaEm: new Date() },
   });
-  await prisma.pendencia.updateMany({
-    where: { politicaId: id, estado: "pendente" },
-    data: { estado: "cancelada" },
-  });
+  // Best-effort (mesma filosofia de publicarPolitica): a revogação da política
+  // acima já foi commitada — falha aqui nunca pode desfazê-la.
+  try {
+    await prisma.pendencia.updateMany({
+      where: { politicaId: id, estado: "pendente" },
+      data: { estado: "cancelada" },
+    });
+  } catch (erro) {
+    console.error("Falha ao cancelar pendencias de ciencia (revogação já confirmada):", erro);
+  }
   await registrar("politica.revogar", "Politica", id, politica.titulo);
   revalidatePath(`/catalogo/${id}`);
   revalidatePath("/catalogo");
