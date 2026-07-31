@@ -110,15 +110,25 @@ do rascunho de trabalho.
 
 ---
 
-## Versionamento (documentos anexos)
+## Versionamento (documentos)
 
-Além do conteúdo estruturado, uma Norma pode ter **documentos anexos** (o arquivo
-original: PDF, planilha, etc.), organizados em **versões**:
+Cada versão tem **um documento obrigatório**, e o histórico é **imutável**: uma
+versão **nunca é apagada** — apenas substituída. Existem dois tipos de documento,
+distinguidos pelo campo `Documento.oficial`, com regras de substituição
+diferentes:
 
-- Cada versão tem **um documento obrigatório**.
-- Existe sempre **uma única versão ativa**; ao enviar uma nova, a anterior passa a
-  **substituída**.
-- O histórico é **imutável**: uma versão **nunca é apagada** — apenas substituída.
+- **Documento oficial** (`oficial: true`) — gerado **automaticamente** ao
+  publicar (ou republicar) a Norma, preenchendo o modelo Word real
+  (`gerarDocumentoOficial`, em `lib/politica/gerarDocx.ts`, chamado dentro de
+  `publicarPolitica`, em `app/(shell)/catalogo/[id]/estado-actions.ts`). A cada
+  republicação, o documento oficial anterior passa a **substituído** — só existe
+  **uma versão oficial ativa** por vez. A geração é **fail-closed**: se falhar
+  (template ausente, tag inválida etc.), a publicação inteira é bloqueada e nada
+  muda no banco.
+- **Anexo manual** (`oficial: false`) — upload feito pelo usuário
+  (`adicionarVersao`, em `app/(shell)/catalogo/[id]/actions.ts`; ex.: uma
+  planilha de apoio, um ISO externo). Nunca substitui nada: múltiplos anexos
+  **coexistem**, todos `ativa` ao mesmo tempo.
 - **O mesmo arquivo pode pertencer a mais de uma Norma** (ex.: uma ISO, um
   formulário institucional ou um POP reutilizado). A unicidade de um anexo é
   **dentro da Norma**, não global.

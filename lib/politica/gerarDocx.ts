@@ -31,6 +31,14 @@ export async function gerarDocumentoOficial(dados: DadosDocumentoOficial): Promi
   const resultado = await createReport({
     template,
     cmdDelimiter: ["{", "}"],
+    // OOXML estrito não permite <w:br/> como filho de <w:t> (só texto) — o
+    // padrão do docx-templates gera exatamente isso para corpo multilinha.
+    // Word tolera na prática, mas isso NÃO é válido pelo schema; esta opção
+    // faz o line break virar um <w:br/> irmão, entre <w:t> separados,
+    // conforme o schema exige (achado na revisão final da feature —
+    // confirmado via inspeção de word/document.xml, ver
+    // docs/superpowers/specs/2026-07-30-geracao-docx-oficial-design.md).
+    processLineBreaksAsNewText: true,
     data: {
       titulo: dados.titulo,
       codigo: dados.codigo ?? "—",

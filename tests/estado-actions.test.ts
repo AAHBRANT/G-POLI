@@ -87,6 +87,33 @@ describe("publicarPolitica — geração do documento oficial", () => {
     expect(gerar).toHaveBeenCalledTimes(1);
     expect(versaoCreate).toHaveBeenCalledTimes(1);
     expect(versaoCreate.mock.calls[0][0].data.documento.create.oficial).toBe(true);
+    // Invariante central: só a cadeia de documentos OFICIAIS é substituída.
+    // Se o filtro `documento: { oficial: true }` sumisse do where, TODOS os
+    // anexos manuais seriam marcados "substituida" a cada publicação.
+    expect(versaoUpdateMany.mock.calls[0][0].where).toMatchObject({
+      documento: { oficial: true },
+    });
+  });
+
+  it("republicação: incrementa a revisão e continua filtrando só o oficial no updateMany", async () => {
+    findUnique.mockResolvedValue({
+      // Reaberta para revisão após já ter sido publicada: estado volta a
+      // "rascunho" (só assim `publicar` é permitido — ver `transicao`), mas
+      // `publicadaEm`/`revisao` carregam o histórico da publicação anterior.
+      ...politicaBase(),
+      estado: "rascunho",
+      publicadaEm: new Date("2026-01-01T00:00:00.000Z"),
+      revisao: 2,
+    });
+    gerar.mockResolvedValue(Buffer.from("conteudo-fake"));
+
+    const resultado = await publicarPolitica("p1");
+
+    expect(resultado.ok).toBe(true);
+    expect(politicaUpdate.mock.calls[0][0].data.revisao).toBe(3);
+    expect(versaoUpdateMany.mock.calls[0][0].where).toMatchObject({
+      documento: { oficial: true },
+    });
   });
 
   it("fail-closed: se a geração falhar, não publica e não mexe no banco", async () => {
