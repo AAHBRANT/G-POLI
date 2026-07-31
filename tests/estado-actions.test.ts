@@ -86,8 +86,12 @@ describe("publicarPolitica — geração do documento oficial", () => {
     // findMany() sem mock retorna undefined e resolverAudiencia lança ao tentar
     // `.map`, quebrando estes testes que não sao sobre audiência/notificação.
     usuarioFindMany.mockResolvedValue([]);
-    transacao.mockImplementation(async (fn: (tx: unknown) => Promise<void>) => {
-      await fn({
+    // $transaction é chamado de 2 formas nesta suíte: callback (transação de
+    // versão/documento, aqui) e array (cancel+create de Pendencia, em
+    // criarPendencias) — o mock precisa suportar as duas.
+    transacao.mockImplementation(async (arg: unknown) => {
+      if (Array.isArray(arg)) return Promise.all(arg);
+      return (arg as (tx: unknown) => Promise<void>)({
         versao: { create: versaoCreate, updateMany: versaoUpdateMany, count: versaoCount },
         politica: { update: politicaUpdate },
       });
@@ -169,8 +173,9 @@ describe("publicarPolitica — cria Pendencia (best-effort)", () => {
     notificar.mockResolvedValue({ ok: true });
     salvar.mockResolvedValue({ hash: "abc123", tamanho: 100, caminhoRelativo: "x" });
     versaoCount.mockResolvedValue(0);
-    transacao.mockImplementation(async (fn: (tx: unknown) => Promise<void>) => {
-      await fn({
+    transacao.mockImplementation(async (arg: unknown) => {
+      if (Array.isArray(arg)) return Promise.all(arg);
+      return (arg as (tx: unknown) => Promise<void>)({
         versao: { create: versaoCreate, updateMany: versaoUpdateMany, count: versaoCount },
         politica: { update: politicaUpdate },
       });
@@ -197,6 +202,9 @@ describe("publicarPolitica — cria Pendencia (best-effort)", () => {
     });
     expect(pendenciaCreateMany).toHaveBeenCalledTimes(1);
     expect(pendenciaCreateMany.mock.calls[0][0].data).toHaveLength(1);
+    // Atomicidade: cancel+create devem viajar juntos no mesmo $transaction([...]).
+    const chamadaPendencia = transacao.mock.calls.find((c: unknown[]) => Array.isArray(c[0]));
+    expect(chamadaPendencia?.[0]).toHaveLength(2);
   });
 
   it("falha ao criar Pendencia NÃO desfaz a publicação (best-effort)", async () => {
