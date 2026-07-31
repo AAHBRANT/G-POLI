@@ -39,11 +39,10 @@ export async function adicionarVersao(
 
     await prisma.$transaction(async (tx) => {
       const totais = await tx.versao.count({ where: { politicaId } });
-      // Versão anterior deixa de ser a ativa.
-      await tx.versao.updateMany({
-        where: { politicaId, estado: "ativa" },
-        data: { estado: "substituida" },
-      });
+      // Anexo manual (planilha, formulário de apoio) NÃO substitui nada —
+      // múltiplos anexos convivem. Só o documento oficial (gerado
+      // automaticamente na publicação) usa "substituida" — ver
+      // publicarPolitica em estado-actions.ts.
       await tx.versao.create({
         data: {
           politicaId,
@@ -56,6 +55,7 @@ export async function adicionarVersao(
               tamanho: salvo.tamanho,
               hash: salvo.hash,
               estado: "importado",
+              oficial: false,
             },
           },
         },
