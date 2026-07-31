@@ -247,6 +247,10 @@ export async function revogarPolitica(id: string): Promise<ResultadoAcao> {
     where: { id },
     data: { estado: t.estado, revogadaEm: new Date() },
   });
+  await prisma.pendencia.updateMany({
+    where: { politicaId: id, estado: "pendente" },
+    data: { estado: "cancelada" },
+  });
   await registrar("politica.revogar", "Politica", id, politica.titulo);
   revalidatePath(`/catalogo/${id}`);
   revalidatePath("/catalogo");

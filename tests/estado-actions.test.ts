@@ -36,7 +36,7 @@ import { enviarNotificacaoPoliticaPublicada } from "@/lib/notificacao/graph";
 import { salvarArquivo } from "@/lib/storage";
 import { gerarDocumentoOficial } from "@/lib/politica/gerarDocx";
 import { dadosPendencia } from "@/lib/politica/pendencia";
-import { publicarPolitica } from "@/app/(shell)/catalogo/[id]/estado-actions";
+import { publicarPolitica, revogarPolitica } from "@/app/(shell)/catalogo/[id]/estado-actions";
 
 const usuarioAtual = getUsuarioAtual as ReturnType<typeof vi.fn>;
 const publicarPermitido = podePublicar as ReturnType<typeof vi.fn>;
@@ -219,5 +219,26 @@ describe("publicarPolitica — cria Pendencia (best-effort)", () => {
     expect(revalidar).toHaveBeenCalledWith(`/catalogo/p1`);
     expect(revalidar).toHaveBeenCalledWith("/catalogo");
     expect(revalidar).toHaveBeenCalledWith("/");
+  });
+});
+
+describe("revogarPolitica — cancela Pendencia pendente", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    usuarioAtual.mockResolvedValue({ id: "u1", nome: "Teste", email: "teste@aahbrant.com" });
+    publicarPermitido.mockReturnValue(true);
+  });
+
+  it("marca toda Pendencia pendente da politica como cancelada", async () => {
+    findUnique.mockResolvedValue({ id: "p1", titulo: "Política de Teste", estado: "publicada" });
+    politicaUpdate.mockResolvedValue({});
+
+    const resultado = await revogarPolitica("p1");
+
+    expect(resultado.ok).toBe(true);
+    expect(pendenciaUpdateMany).toHaveBeenCalledWith({
+      where: { politicaId: "p1", estado: "pendente" },
+      data: { estado: "cancelada" },
+    });
   });
 });
