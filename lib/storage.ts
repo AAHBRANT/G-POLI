@@ -4,7 +4,12 @@ import path from "path";
 
 // Armazenamento de documentos. Em produção (Azure) usa Blob Storage se
 // AZURE_STORAGE_CONNECTION_STRING estiver definido; senão, disco local (dev).
-const RAIZ = path.join(process.cwd(), "uploads");
+// UPLOADS_DIR (opcional) aponta o disco local para fora do checkout — sem
+// isso, cada worktree de feature tem seu próprio uploads/, e apagar o
+// worktree ao final da fase apaga os arquivos, órfãos do registro no banco
+// (compartilhado entre worktrees via mesmo Postgres). Sem a variável, cai no
+// comportamento de sempre (uploads/ dentro do cwd).
+const RAIZ = process.env.UPLOADS_DIR?.trim() || path.join(process.cwd(), "uploads");
 const CONN = process.env.AZURE_STORAGE_CONNECTION_STRING ?? "";
 const CONTAINER = process.env.AZURE_STORAGE_CONTAINER ?? "documentos";
 const usarBlob = CONN.length > 0;
