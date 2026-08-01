@@ -201,6 +201,7 @@ model Pendencia {
   estado              EstadoPendencia @default(pendente)
   criadaEm            DateTime        @default(now())
   resolvidaEm         DateTime?
+  notificadaEm        DateTime? // null = toast da Fase B ainda não mostrado
 
   @@unique([politicaId, usuarioId, politicaPublicadaEm])
   @@index([usuarioId, estado])
