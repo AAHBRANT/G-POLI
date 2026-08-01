@@ -3,6 +3,7 @@ import { getUsuarioAtual } from "@/lib/auth/usuario";
 import { CARGOS, rotuloCargo } from "@/lib/auth/perfis";
 import Breadcrumb from "@/components/shell/Breadcrumb";
 import MenuPerfil from "@/components/shell/MenuPerfil";
+import SinoNotificacoes from "@/components/shell/SinoNotificacoes";
 
 const DEV_PERFIS = CARGOS.map((c) => c.valor);
 
@@ -43,6 +44,8 @@ export default async function Header() {
             <button className="rounded bg-black/10 px-2 py-1 text-xs hover:bg-black/15">trocar</button>
           </form>
         )}
+
+        {u && <SinoNotificacoes />}
 
         {u && (
           <MenuPerfil
