@@ -14,8 +14,14 @@ const nextConfig = {
   reactStrictMode: true,
   output: "standalone", // imagem Docker enxuta para Container Apps
   experimental: {
-    // Uploads de documentos normativos podem ser grandes.
-    serverActions: { bodySizeLimit: "25mb" },
+    serverActions: {
+      // Uploads de documentos normativos podem ser grandes.
+      bodySizeLimit: "25mb",
+      // Teste local do SSO do Teams passa pelo devtunnel (Origin do browser é o
+      // host do túnel, não localhost) — sem isso, toda Server Action nessa
+      // origem falha com "Invalid Server Actions request".
+      allowedOrigins: ["5dbc181s-3000.brs.devtunnels.ms"],
+    },
   },
   async headers() {
     return [
