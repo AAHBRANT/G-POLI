@@ -19,7 +19,11 @@ export default function ToastPendencias() {
     async function buscar() {
       try {
         const resposta = await fetch("/api/pendencias/lista");
-        if (!resposta.ok || cancelado) return;
+        if (cancelado) return;
+        if (!resposta.ok) {
+          console.error("Falha ao buscar pendencia para toast: status", resposta.status);
+          return;
+        }
         const corpo: { itens: ItemPendencia[] } = await resposta.json();
         const naoNotificada = corpo.itens.find((it) => !it.notificadaEm);
         if (naoNotificada && !cancelado) {
