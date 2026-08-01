@@ -33,6 +33,9 @@ export default function SinoNotificacoes() {
       if (resposta.ok) {
         const corpo: { itens: ItemPendencia[] } = await resposta.json();
         setItens(corpo.itens);
+      } else {
+        console.error("Falha ao buscar lista de pendencias: status", resposta.status);
+        setItens([]);
       }
     } catch (erro) {
       console.error("Falha ao buscar lista de pendencias:", erro);
