@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { salvarSecao, alternarAberturaArea } from "@/app/(shell)/catalogo/[id]/conteudo-actions";
 
 type Props = {
@@ -25,6 +25,18 @@ export default function SecaoEditor(props: Props) {
   const [sujo, setSujo] = useState(false); // há mudança não salva
   const [pendente, iniciar] = useTransition();
   const [togglePend, iniciarToggle] = useTransition();
+
+  // Resincroniza com o servidor quando os props mudam (ex.: router.refresh()
+  // após aplicar rascunho da IA) — sem isso, o useState acima só lê o valor
+  // inicial na primeira montagem e a seção fica presa no conteúdo antigo até
+  // o usuário sair da tela e voltar. Só pula a resincronização se houver
+  // edição local não salva, pra nunca sobrescrever o que o usuário digitou.
+  useEffect(() => {
+    if (sujo) return;
+    setCorpo(props.corpo);
+    setLinhas(props.linhas);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.corpo, props.linhas]);
 
   const nCols = props.colunas.length || 2;
   const ro = !props.podeEditar; // read-only
