@@ -52,6 +52,12 @@ enum EstadoDocumento {
   aguardando_acao
 }
 
+enum EstadoPendencia {
+  pendente
+  resolvida // usuário deu ciência
+  cancelada // política revogada antes da ciência, ou pendência superada por republicação
+}
+
 enum TipoSecao {
   texto
   tabela
@@ -92,6 +98,7 @@ model Usuario {
   criadoEm  DateTime @default(now())
   atualizadoEm DateTime @default(now()) @updatedAt
   politicasAudiencia Politica[] @relation("PoliticaAudienciaUsuarios") // v3: individual no público-alvo de quais políticas
+  pendencias Pendencia[]
 }
 
 model Politica {
@@ -116,6 +123,7 @@ model Politica {
   revisao       Int            @default(0)
   revogadaEm    DateTime?
   ciencias      Ciencia[]
+  pendencias    Pendencia[]
   // Público-alvo da notificação de publicação (v3). Os dois vazios = "todos os
   // colaboradores ativos" (comportamento anterior a esta feature, preservado).
   audienciaSetores  Area[]      @relation("PoliticaAudienciaSetores")
@@ -177,6 +185,26 @@ model Auditoria {
 
   @@index([criadoEm])
   @@index([entidade, entidadeId])
+}
+
+// v3: núcleo de pendência de ciência — materializado (não calculado em
+// tempo de leitura) porque o dashboard admin e os lembretes automáticos
+// (fases futuras) precisam varrer "todo mundo pendente" em escala.
+model Pendencia {
+  id                  String          @id @default(cuid())
+  politica            Politica        @relation(fields: [politicaId], references: [id], onDelete: Cascade)
+  politicaId          String
+  usuario             Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuarioId           String
+  politicaPublicadaEm DateTime
+  tipo                TipoDocumento
+  estado              EstadoPendencia @default(pendente)
+  criadaEm            DateTime        @default(now())
+  resolvidaEm         DateTime?
+  notificadaEm        DateTime? // null = toast da Fase B ainda não mostrado
+
+  @@unique([politicaId, usuarioId, politicaPublicadaEm])
+  @@index([usuarioId, estado])
 }
 
 // abertaAArea: quando true, o perfil "area" da área dona pode editar esta seção (#3b).

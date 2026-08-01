@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Brand from "@/components/shell/Brand";
 import { TIPOS_DOCUMENTO } from "@/lib/constants";
+import { usePendencias } from "@/lib/hooks/usePendencias";
 
 const painel = { nome: "Painel", href: "/", icone: "M3 12l9-9 9 9M5 10v10h14V10" };
 
@@ -17,6 +18,7 @@ const documentos = TIPOS_DOCUMENTO.map((t) => ({
   nome: t.rotuloPlural,
   href: t.valor === "politica" ? "/catalogo" : `/tipos/${t.valor}`,
   icone: ICONE_DOCUMENTO,
+  valor: t.valor,
 }));
 
 const ferramentas = [
@@ -31,8 +33,9 @@ const admin = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { total, porTipo, carregando } = usePendencias();
 
-  const item = (m: { nome: string; href: string; icone: string; futuro?: boolean }) => {
+  const item = (m: { nome: string; href: string; icone: string; futuro?: boolean; badge?: number }) => {
     const ativo = m.href === "/" ? pathname === "/" : pathname.startsWith(m.href);
     // Indicador de item ativo é uma barra lateral (borda), não preenchimento de
     // fundo — mais discreto, mesmo padrão pros itens normais e o de admin.
@@ -42,6 +45,11 @@ export default function Sidebar() {
         <path d={m.icone} />
       </svg>
     );
+    const badge = m.badge ? (
+      <span className="ml-auto rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-medium text-white">
+        {m.badge}
+      </span>
+    ) : null;
     if (m.futuro) {
       return (
         <span key={m.nome} title="Próximo incremento" className={`${base} cursor-not-allowed border-transparent text-white/35`}>
@@ -59,6 +67,7 @@ export default function Sidebar() {
       >
         {ico}
         {m.nome}
+        {badge}
       </Link>
     );
   };
@@ -76,9 +85,11 @@ export default function Sidebar() {
           <Brand size="md" invertido />
         </div>
         <nav className="mt-5 flex-1 space-y-1 overflow-y-auto px-3 pb-3">
-          {item(painel)}
+          {item({ ...painel, badge: !carregando && total > 0 ? total : undefined })}
           {rotulo("Documentos")}
-          <div className="space-y-1">{documentos.map(item)}</div>
+          <div className="space-y-1">
+            {documentos.map((d) => item({ ...d, badge: !carregando && porTipo[d.valor] > 0 ? porTipo[d.valor] : undefined }))}
+          </div>
           {rotulo("Ferramentas")}
           <div className="space-y-1">{ferramentas.map(item)}</div>
         </nav>

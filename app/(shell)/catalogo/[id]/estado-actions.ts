@@ -18,6 +18,8 @@ import {
 import { enviarNotificacaoPoliticaPublicada } from "@/lib/notificacao/graph";
 import { salvarArquivo } from "@/lib/storage";
 import { gerarDocumentoOficial } from "@/lib/politica/gerarDocx";
+import { dadosPendencia } from "@/lib/politica/pendencia";
+import type { Prisma } from "@prisma/client";
 
 export type ResultadoAcao = { ok: boolean; erro?: string };
 
@@ -25,11 +27,12 @@ function paraAlvo(u: { id: string; oid: string | null; nome: string; email: stri
   return { id: u.id, oid: u.oid, nome: u.nome, email: u.email };
 }
 
-// Resolve o público-alvo e dispara a notificação do Teams para cada um. Roda
-// DEPOIS da publicação já confirmada no banco: falha de notificação (Graph fora
-// do ar, usuário sem oid, etc.) nunca desfaz nem impede a publicação — só fica
-// registrada em Notificacao para auditoria e para o relatório do gestor.
-async function notificarAudiencia(politicaId: string, tituloPolitica: string): Promise<void> {
+// Resolve o público-alvo de uma política: setores/usuários explícitos, ou
+// "todos os colaboradores ativos" quando a audiência não foi restringida.
+// Reaproveitada tanto pela notificação do Teams quanto pela criação de
+// Pendencia — evita duas queries idênticas e duas cópias da lógica
+// audienciaVazia/unirAudiencia.
+async function resolverAudiencia(politicaId: string): Promise<UsuarioAlvo[]> {
   const politica = await prisma.politica.findUnique({
     where: { id: politicaId },
     include: {
@@ -37,18 +40,25 @@ async function notificarAudiencia(politicaId: string, tituloPolitica: string): P
       audienciaUsuarios: { where: { ativo: true } },
     },
   });
-  if (!politica) return;
+  if (!politica) return [];
 
   const setorIds = politica.audienciaSetores.map((a) => a.id);
   const usuarioIds = politica.audienciaUsuarios.map((u) => u.id);
 
-  const alvos: UsuarioAlvo[] = audienciaVazia(setorIds, usuarioIds)
+  return audienciaVazia(setorIds, usuarioIds)
     ? (await prisma.usuario.findMany({ where: { ativo: true } })).map(paraAlvo)
     : unirAudiencia(
         politica.audienciaSetores.flatMap((a) => a.membros).map(paraAlvo),
         politica.audienciaUsuarios.map(paraAlvo),
       );
+}
 
+// Dispara a notificação do Teams para cada alvo da audiência já resolvida.
+// Roda DEPOIS da publicação já confirmada no banco: falha de notificação
+// (Graph fora do ar, usuário sem oid, etc.) nunca desfaz nem impede a
+// publicação — só fica registrada em Notificacao para auditoria e para o
+// relatório do gestor.
+async function notificarAudiencia(politicaId: string, tituloPolitica: string, alvos: UsuarioAlvo[]): Promise<void> {
   // Sequencial, não paralelo: a audiência de uma política é modesta (dezenas,
   // não milhares) e isso evita estourar limite de requisições do Graph. Se a
   // escala crescer, isso pede fila — não antes disso.
@@ -80,6 +90,32 @@ async function notificarAudiencia(politicaId: string, tituloPolitica: string): P
       },
     });
   }
+}
+
+// Best-effort (nunca fail-closed): falha aqui NUNCA desfaz a publicação
+// já commitada — mesma filosofia de notificarAudiencia. Cancela qualquer
+// pendência ainda "pendente" da MESMA política (versão anterior) antes de
+// criar a nova, pra nunca contar duas pendências da mesma norma pro mesmo
+// usuário.
+async function criarPendencias(politicaId: string, tipo: string, publicadaEm: Date, alvos: UsuarioAlvo[]): Promise<void> {
+  const linhas = dadosPendencia(politicaId, tipo, publicadaEm, alvos);
+  // Sem linhas pra criar (ex.: resolverAudiencia falhou e caiu no fallback
+  // fail-open []) não cancela o que já existe — perderia silenciosamente a
+  // obrigação de leitura em aberto. Não mexe em nada e sai.
+  if (linhas.length === 0) return;
+  // Cancelamento das pendencias antigas e criação das novas precisam ser
+  // atômicos: nunca deixar a política sem NENHUMA pendência pendente entre
+  // as duas operações.
+  await prisma.$transaction([
+    prisma.pendencia.updateMany({
+      where: { politicaId, estado: "pendente" },
+      data: { estado: "cancelada" },
+    }),
+    // dadosPendencia (Task 2) tipa `tipo` como `string` (função pura, genérica);
+    // aqui o valor real sempre vem de politica.tipo (enum TipoDocumento) — cast
+    // localizado no limite com o Prisma Client, não no dado em si.
+    prisma.pendencia.createMany({ data: linhas as Prisma.PendenciaCreateManyInput[], skipDuplicates: true }),
+  ]);
 }
 
 // Publica: rascunho → publicada. Congela conteúdo (edição bloqueada) e carimba autor/data.
@@ -173,9 +209,26 @@ export async function publicarPolitica(id: string): Promise<ResultadoAcao> {
 
   await registrar("politica.publicar", "Politica", id, politica.titulo);
 
-  // Nunca deixar a notificação falhar a publicação: ela já está confirmada.
+  // Fail-open (mesma filosofia de antes desta task, quando essa query vivia
+  // dentro de notificarAudiencia): um hiccup transitório de banco aqui nunca
+  // pode deixar os revalidatePath abaixo de fora — a publicação já está
+  // commitada. Fallback [] só deixa de criar pendência/notificar desta vez.
+  let alvos: UsuarioAlvo[] = [];
   try {
-    await notificarAudiencia(id, politica.titulo);
+    alvos = await resolverAudiencia(id);
+  } catch (erro) {
+    console.error("Falha ao resolver audiencia (publicação já confirmada):", erro);
+  }
+
+  // Nunca deixar a criação de pendência ou a notificação falharem a
+  // publicação: ela já está confirmada.
+  try {
+    await criarPendencias(id, politica.tipo, agora, alvos);
+  } catch (erro) {
+    console.error("Falha ao criar pendencias de ciencia (publicação já confirmada):", erro);
+  }
+  try {
+    await notificarAudiencia(id, politica.titulo, alvos);
   } catch (erro) {
     console.error("Notificação de publicação falhou (publicação já confirmada):", erro);
   }
@@ -201,6 +254,16 @@ export async function revogarPolitica(id: string): Promise<ResultadoAcao> {
     where: { id },
     data: { estado: t.estado, revogadaEm: new Date() },
   });
+  // Best-effort (mesma filosofia de publicarPolitica): a revogação da política
+  // acima já foi commitada — falha aqui nunca pode desfazê-la.
+  try {
+    await prisma.pendencia.updateMany({
+      where: { politicaId: id, estado: "pendente" },
+      data: { estado: "cancelada" },
+    });
+  } catch (erro) {
+    console.error("Falha ao cancelar pendencias de ciencia (revogação já confirmada):", erro);
+  }
   await registrar("politica.revogar", "Politica", id, politica.titulo);
   revalidatePath(`/catalogo/${id}`);
   revalidatePath("/catalogo");

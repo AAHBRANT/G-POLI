@@ -49,7 +49,11 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
   if (!politica) notFound();
   const podeEditar = podeEditarConteudo(usuario, politica);
   const podePub = podePublicar(usuario);
-  const minhaCiencia = usuario ? politica.ciencias.find((c) => c.usuarioOid === usuario.oid) : undefined;
+  const minhaCiencia = usuario
+    ? politica.ciencias.find(
+        (c) => c.usuarioOid === usuario.oid && c.politicaPublicadaEm?.getTime() === politica.publicadaEm?.getTime(),
+      )
+    : undefined;
   // Mesma alçada para o relatório de ciência e o de notificação (ambos falam da
   // audiência da política, não do conteúdo).
   const verRelatorioCiencia = !!usuario && ["sgi", "admin", "diretoria"].includes(usuario.perfil);
@@ -143,10 +147,11 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
               ) : (
                 <ul className="flex flex-wrap gap-2">
                   {politica.ciencias.map((c) => {
+                    // Mesma regra conservadora do gate acima (linha ~54): ciência sem
+                    // versão registrada (dado legado, pré-migration) conta como
+                    // desatualizada, não como "em dia".
                     const desatualizada =
-                      !!c.politicaPublicadaEm &&
-                      !!politica.publicadaEm &&
-                      c.politicaPublicadaEm.getTime() !== politica.publicadaEm.getTime();
+                      c.politicaPublicadaEm?.getTime() !== politica.publicadaEm?.getTime();
                     return (
                       <li
                         key={c.id}

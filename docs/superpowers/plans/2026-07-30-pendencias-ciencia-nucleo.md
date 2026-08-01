@@ -297,29 +297,70 @@ lógica `audienciaVazia`/`unirAudiencia`.
 
 - [ ] **Step 2: Escrever o teste (falhando)**
 
-Em `tests/estado-actions.test.ts`, adicionar aos mocks já existentes no
-topo do arquivo (mesmo padrão de `vi.mock` já usado nesse arquivo para
-`@/lib/prisma`, `@/lib/storage`, `@/lib/politica/gerarDocx` etc.):
+O arquivo real hoje (confirmado por leitura direta) tem este formato de
+mock no topo — cada `vi.mock("@/lib/prisma", ...)` é UM objeto único, e
+`prisma.politica.findUnique` é UMA função mockada compartilhada por TODA
+chamada a esse método no módulo, não importa de onde no código de produção
+ela seja chamada. Como `resolverAudiencia` (Step 4) faz sua PRÓPRIA
+chamada a `prisma.politica.findUnique` (além da já existente no início de
+`publicarPolitica`), as duas chamadas recebem o MESMO objeto mockado —
+por isso `politicaBase()` precisa ganhar `audienciaSetores`/
+`audienciaUsuarios` (vazios = "todos", mesmo default do app hoje), senão
+`resolverAudiencia` quebra tentando `.map()` em `undefined`.
+
+Editar o topo de `tests/estado-actions.test.ts`:
+
+1. No mock de `@/lib/prisma` (linhas 5-10), adicionar `pendencia` e
+   `usuario`:
+
+```ts
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    politica: { findUnique: vi.fn(), update: vi.fn() },
+    pendencia: { createMany: vi.fn(), updateMany: vi.fn() },
+    usuario: { findMany: vi.fn() },
+    $transaction: vi.fn(),
+  },
+}));
+```
+
+2. Novo `vi.mock`, logo depois do de `@/lib/politica/gerarDocx` (linha 25):
 
 ```ts
 vi.mock("@/lib/politica/pendencia", () => ({ dadosPendencia: vi.fn() }));
 ```
 
-E os imports correspondentes:
+3. Novos imports/consts, junto dos já existentes (depois da linha 33/44):
 
 ```ts
 import { dadosPendencia } from "@/lib/politica/pendencia";
 const dadosPendenciaMock = dadosPendencia as ReturnType<typeof vi.fn>;
+const pendenciaCreateMany = prisma.pendencia.createMany as ReturnType<typeof vi.fn>;
+const pendenciaUpdateMany = prisma.pendencia.updateMany as ReturnType<typeof vi.fn>;
+const usuarioFindMany = prisma.usuario.findMany as ReturnType<typeof vi.fn>;
 ```
 
-Adicionar ao mock de `@/lib/prisma` (no objeto `prisma` já mockado):
-`pendencia: { createMany: vi.fn(), updateMany: vi.fn() }` e
-`usuario: { findMany: vi.fn() }` (reaproveitado por `resolverAudiencia`,
-que hoje é código de `notificarAudiencia` — copie a estrutura de mock que
-já existir ali para audiência-vazia-vira-todos-os-colaboradores).
+4. Estender `politicaBase()` (linhas 51-62) — adicionar as duas linhas
+   marcadas, sem remover nada:
 
-Novo teste, no `describe("publicarPolitica — geração do documento oficial")`
-já existente (ou um novo `describe` logo abaixo dele no mesmo arquivo):
+```ts
+function politicaBase() {
+  return {
+    id: "p1",
+    titulo: "Política de Teste",
+    codigo: "AHBT-POL-TI-001",
+    estado: "rascunho",
+    publicadaEm: null,
+    revisao: 0,
+    area: { id: "a1", nome: "Tecnologia da Informação" },
+    secoes: [{ ordem: 1, codigo: "1", titulo: "Objetivo", tipo: "texto", corpo: "Texto.", colunas: null, linhas: null }],
+    audienciaSetores: [],   // NOVO — vazio = "todos os colaboradores" (audienciaVazia)
+    audienciaUsuarios: [],  // NOVO
+  };
+}
+```
+
+5. Novo `describe`, logo depois do `describe("publicarPolitica — geração do documento oficial", ...)` já existente (mesmo arquivo):
 
 ```ts
 describe("publicarPolitica — cria Pendencia (best-effort)", () => {
@@ -330,49 +371,46 @@ describe("publicarPolitica — cria Pendencia (best-effort)", () => {
     notificar.mockResolvedValue({ ok: true });
     salvar.mockResolvedValue({ hash: "abc123", tamanho: 100, caminhoRelativo: "x" });
     versaoCount.mockResolvedValue(0);
-    transacao.mockImplementation(async (fn) => {
+    transacao.mockImplementation(async (fn: (tx: unknown) => Promise<void>) => {
       await fn({
         versao: { create: versaoCreate, updateMany: versaoUpdateMany, count: versaoCount },
         politica: { update: politicaUpdate },
       });
     });
     gerar.mockResolvedValue(Buffer.from("conteudo-fake"));
+    usuarioFindMany.mockResolvedValue([
+      { id: "u1", oid: "oid1", nome: "Teste", email: "teste@aahbrant.com", ativo: true },
+    ]);
+    dadosPendenciaMock.mockReturnValue([
+      { politicaId: "p1", usuarioId: "u1", politicaPublicadaEm: new Date(), tipo: "politica", estado: "pendente" },
+    ]);
   });
 
-  it("cria Pendencia via createMany para a audiência resolvida, e cancela pendências anteriores da mesma politica", async () => {
+  it("cria Pendencia via createMany para a audiência resolvida, e cancela pendências anteriores da mesma política", async () => {
     findUnique.mockResolvedValue(politicaBase());
-    dadosPendenciaMock.mockReturnValue([
-      { politicaId: "p1", usuarioId: "u1", politicaPublicadaEm: expect.any(Date), tipo: "politica", estado: "pendente" },
-    ]);
 
     const resultado = await publicarPolitica("p1");
 
     expect(resultado.ok).toBe(true);
-    expect(pendenciaUpdateMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ politicaId: "p1", estado: "pendente" }),
-        data: { estado: "cancelada" },
-      }),
-    );
+    expect(dadosPendenciaMock).toHaveBeenCalledWith("p1", "politica", expect.any(Date), expect.any(Array));
+    expect(pendenciaUpdateMany).toHaveBeenCalledWith({
+      where: { politicaId: "p1", estado: "pendente" },
+      data: { estado: "cancelada" },
+    });
     expect(pendenciaCreateMany).toHaveBeenCalledTimes(1);
+    expect(pendenciaCreateMany.mock.calls[0][0].data).toHaveLength(1);
   });
 
-  it("falha ao criar Pendencia NAO desfaz a publicacao (best-effort)", async () => {
+  it("falha ao criar Pendencia NÃO desfaz a publicação (best-effort)", async () => {
     findUnique.mockResolvedValue(politicaBase());
-    dadosPendenciaMock.mockReturnValue([{ politicaId: "p1", usuarioId: "u1", politicaPublicadaEm: new Date(), tipo: "politica", estado: "pendente" }]);
     pendenciaCreateMany.mockRejectedValue(new Error("db fora do ar"));
 
     const resultado = await publicarPolitica("p1");
 
-    expect(resultado.ok).toBe(true); // publicação já estava commitada
+    expect(resultado.ok).toBe(true); // publicação já estava commitada antes deste bloco
   });
 });
 ```
-
-(Ajuste os nomes exatos das constantes de mock — `pendenciaUpdateMany`,
-`pendenciaCreateMany` — para casar com como você declarar os mocks no
-Step anterior, seguindo o padrão de `versaoCreate`/`versaoUpdateMany` já
-existente no arquivo.)
 
 - [ ] **Step 3: Rodar e confirmar que falha**
 
