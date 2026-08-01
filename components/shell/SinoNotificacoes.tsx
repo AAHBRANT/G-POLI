@@ -11,6 +11,7 @@ export default function SinoNotificacoes() {
   const [aberto, setAberto] = useState(false);
   const [itens, setItens] = useState<ItemPendencia[]>([]);
   const [buscando, setBuscando] = useState(false);
+  const [erroLista, setErroLista] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   // Mesmo padrão de fechar-ao-clicar-fora de components/shell/MenuPerfil.tsx.
@@ -28,6 +29,7 @@ export default function SinoNotificacoes() {
     if (!proximoAberto) return;
 
     setBuscando(true);
+    setErroLista(false);
     try {
       const resposta = await fetch("/api/pendencias/lista");
       if (resposta.ok) {
@@ -36,9 +38,12 @@ export default function SinoNotificacoes() {
       } else {
         console.error("Falha ao buscar lista de pendencias: status", resposta.status);
         setItens([]);
+        setErroLista(true);
       }
     } catch (erro) {
       console.error("Falha ao buscar lista de pendencias:", erro);
+      setItens([]);
+      setErroLista(true);
     } finally {
       setBuscando(false);
     }
@@ -64,6 +69,8 @@ export default function SinoNotificacoes() {
           </div>
           {buscando ? (
             <p className="px-3 py-4 text-center text-sm text-black/40">Carregando...</p>
+          ) : erroLista ? (
+            <p className="px-3 py-4 text-center text-sm text-black/40">Não foi possível carregar suas pendências. Tente novamente.</p>
           ) : itens.length === 0 ? (
             <p className="px-3 py-4 text-center text-sm text-black/40">Nenhuma pendência.</p>
           ) : (
