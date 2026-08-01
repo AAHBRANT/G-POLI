@@ -68,19 +68,19 @@ export default async function Home() {
   if (!veTudo) {
     // Colaborador (e Gestor de Setor sem setor): painel pessoal, sem números
     // nem atividade da empresa inteira — só o que diz respeito a ele.
-    const pendentesCiencia = usuario
-      ? await prisma.politica.findMany({
-          where: {
-            AND: [
-              { estado: "publicada" },
-              filtroVisibilidade(usuario),
-              { ciencias: { none: { usuarioOid: usuario.oid } } },
-            ],
-          },
-          orderBy: { publicadaEm: "desc" },
-          take: 8,
-        })
-      : [];
+    // v3 (Fase B): fonte única de verdade é a tabela Pendencia (por versão),
+    // não mais Politica/Ciencia direto — a query antiga ignorava versão
+    // (bug corrigido na Fase A no gate de "já ciente" da página do
+    // documento; aqui era a mesma classe de bug, na home).
+    const pendentesCiencia =
+      usuario && usuario.id
+        ? await prisma.pendencia.findMany({
+            where: { usuarioId: usuario.id, estado: "pendente" },
+            include: { politica: { select: { id: true, titulo: true } } },
+            orderBy: { criadaEm: "desc" },
+            take: 8,
+          })
+        : [];
 
     return (
       <div className="space-y-6">
@@ -101,9 +101,9 @@ export default async function Home() {
             <ul className="divide-y divide-black/5">
               {pendentesCiencia.map((p) => (
                 <li key={p.id} className="flex items-center justify-between py-2.5 text-sm">
-                  <Link href={`/catalogo/${p.id}`} className="font-medium text-marsala hover:underline">{p.titulo}</Link>
+                  <Link href={`/catalogo/${p.politica.id}`} className="font-medium text-marsala hover:underline">{p.politica.titulo}</Link>
                   <span className="text-xs text-black/40">
-                    publicada {p.publicadaEm ? tempoRelativo(p.publicadaEm) : ""}
+                    publicada {tempoRelativo(p.politicaPublicadaEm)}
                   </span>
                 </li>
               ))}
