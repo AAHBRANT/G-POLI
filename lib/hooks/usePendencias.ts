@@ -10,9 +10,10 @@ const INTERVALO_MS = 30_000;
 // docs/DEPLOY.md). Busca na montagem e a cada 30s; ver
 // docs/superpowers/specs/2026-07-30-pendencias-ciencia-nucleo-design.md
 // para a decisão. Fase B consome este hook nos badges/sino/painel.
-export function usePendencias(): ContagemPendencias & { carregando: boolean } {
+export function usePendencias(): ContagemPendencias & { carregando: boolean; erro: boolean } {
   const [dados, setDados] = useState<ContagemPendencias>({ total: 0, porTipo: {} });
   const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(false);
 
   useEffect(() => {
     let cancelado = false;
@@ -20,11 +21,19 @@ export function usePendencias(): ContagemPendencias & { carregando: boolean } {
     async function buscar() {
       try {
         const resposta = await fetch("/api/pendencias/contagem");
-        if (!resposta.ok || cancelado) return;
+        if (cancelado) return;
+        if (!resposta.ok) {
+          setErro(true);
+          return;
+        }
         const corpo: ContagemPendencias = await resposta.json();
-        if (!cancelado) setDados(corpo);
-      } catch (erro) {
-        console.error("Falha ao buscar contagem de pendencias:", erro);
+        if (!cancelado) {
+          setDados(corpo);
+          setErro(false);
+        }
+      } catch (erroFetch) {
+        console.error("Falha ao buscar contagem de pendencias:", erroFetch);
+        if (!cancelado) setErro(true);
       } finally {
         if (!cancelado) setCarregando(false);
       }
@@ -38,5 +47,5 @@ export function usePendencias(): ContagemPendencias & { carregando: boolean } {
     };
   }, []);
 
-  return { ...dados, carregando };
+  return { ...dados, carregando, erro };
 }
