@@ -85,11 +85,7 @@ export default function CienciaLeitura({
     <>
       <button
         onClick={abrir}
-        className={
-          jaCiente
-            ? "rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium text-black/70 transition hover:bg-black/5"
-            : "rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-800"
-        }
+        className="rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-800"
       >
         {jaCiente ? "Ver conteúdo" : "Li e estou ciente"}
       </button>
