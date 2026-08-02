@@ -815,6 +815,43 @@ markup cru equivalente.
 Esta nova `<td>` precisa de um `<th>` correspondente no cabeçalho da tabela (arquivo
 `app/(shell)/admin/page.tsx`, Task 7).
 
+**Adendo (achado pelo reviewer, não previsto no draft original desta task):** gestão de consórcio
+é só Super Admin (Global Constraints) — mas a `<td>` acima, como descrita, renderiza o botão
+"editar" e o painel de checkboxes pra QUALQUER usuário com `podeAdministrar` (inclui Gestor de
+Setor), que só seria barrado depois, ao clicar "Salvar" (o server action `definirConsorcios` já
+rejeita corretamente — ver Task 4 — mas a UI não deveria nem oferecer o controle). O arquivo já
+tem o padrão certo pra isso: a prop `podeAdmins: boolean` (linha ~25/31) gate a lista de cargos
+privilegiados em `cargosDisponiveis` (linha ~48). Seguir o mesmo padrão: o componente ganha uma
+nova prop `gerirConsorcios: boolean`; a lista de chips (somente leitura) continua sempre visível,
+mas o botão "editar" e o painel de checkboxes só aparecem se `gerirConsorcios` for `true` —
+senão, mostra só os chips, sem nenhum controle de edição:
+
+```tsx
+      <td className="px-4 py-2">
+        {!editConsorcio ? (
+          <div className="flex flex-wrap items-center gap-1">
+            {usuario.consorcios.length === 0 ? (
+              <span className="text-xs text-black/30">—</span>
+            ) : (
+              usuario.consorcios.map((c) => (
+                <span key={c.id} className="rounded-full bg-marsala-50 px-2 py-0.5 text-[10px] font-medium text-marsala">{c.nome}</span>
+              ))
+            )}
+            {gerirConsorcios && (
+              <button onClick={() => { setSelConsorcio(usuario.consorcios.map((x) => x.id)); setEditConsorcio(true); }} className="ml-1 text-[11px] text-marsala hover:underline">editar</button>
+            )}
+          </div>
+        ) : (
+          // painel de checkboxes + Salvar/cancelar — igual ao já especificado acima
+        )}
+      </td>
+```
+
+(o bloco `else` do painel de checkboxes não muda — só é alcançável se `editConsorcio` for `true`,
+que só acontece clicando "editar", que só existe quando `gerirConsorcios` é `true`; ainda assim,
+se quiser máxima defesa em profundidade, pode envolver o bloco `else` inteiro em `{gerirConsorcios
+&& editConsorcio ? (...) : ...}` — não obrigatório, o server já rejeita).
+
 - [ ] **Step 4: Verificar tipos**
 
 Run: `npx tsc --noEmit`
@@ -897,9 +934,10 @@ Logo abaixo de `const setoresAtivos = ...` (linha 49):
 `ConvidarUsuarioForm` **não muda** (decisão de escopo — Global Constraints). Onde o arquivo
 renderiza `<LinhaUsuario>` (dentro do `.map` da lista de usuários, mais abaixo no arquivo — não
 mostrado no trecho já lido, mas segue o padrão `usuarios.map((u) => <LinhaUsuario usuario={...}
-setores={setoresAtivos} .../>)`), adicionar a prop `consorcios={consorciosAtivos}` e garantir
-que o objeto `usuario` passado inclua `consorcios: u.consorcios` (mesmo formato de `setores:
-u.setores` que já é montado ali).
+setores={setoresAtivos} .../>)`), adicionar as props `consorcios={consorciosAtivos}` e
+`gerirConsorcios={gerirConsorcios}` (esta última é o que gate a UI do editor — ver adendo no
+Task 6) e garantir que o objeto `usuario` passado inclua `consorcios: u.consorcios` (mesmo
+formato de `setores: u.setores` que já é montado ali).
 
 - [ ] **Step 5: Adicionar a aba e o painel**
 
