@@ -366,8 +366,7 @@ git commit -m "feat(auth): getUsuarioAtual carrega consórcios do usuário"
 - Test: `tests/admin-actions.test.ts` (adiciona `describe("definirConsorcios", ...)`)
 
 **Interfaces:**
-- Consumes: `podeGerirConsorcios` (Task 2), `getUsuarioAtual` (Task 3), `podeAdministrar` (já
-  existe).
+- Consumes: `podeGerirConsorcios` (Task 2), `getUsuarioAtual` (Task 3).
 - Produces: `criarConsorcio(nome: string)`, `renomearConsorcio(id: string, nome: string)`,
   `alternarConsorcioAtivo(id: string, ativo: boolean)`, `definirConsorcios(usuarioId: string,
   consorcios: string[])` — todas retornam `Promise<{ ok: boolean; erro?: string }>`.
@@ -540,16 +539,17 @@ Adicionar ao mock de `@/lib/prisma` no topo do arquivo o objeto `usuario.update`
 
 ```ts
 describe("definirConsorcios", () => {
-  it("bloqueia quem não pode administrar", async () => {
-    usuarioAtual.mockResolvedValue(gestorSetor(["setor-1"]));
-    administrar.mockReturnValue(false);
+  it("bloqueia quem não é Super Admin", async () => {
+    usuarioAtual.mockResolvedValue(admin()); // perfil "admin", não "superadmin"
+    gerirConsorcios.mockReturnValue(false);
     const r = await definirConsorcios("alvo-1", ["c1"]);
-    expect(r).toEqual({ ok: false, erro: "Sem permissão." });
+    expect(r).toEqual({ ok: false, erro: "Apenas Super Admin gerencia consórcios." });
+    expect(update).not.toHaveBeenCalled();
   });
 
   it("define os consórcios e registra auditoria em caso de sucesso", async () => {
     usuarioAtual.mockResolvedValue(admin());
-    administrar.mockReturnValue(true);
+    gerirConsorcios.mockReturnValue(true);
     const r = await definirConsorcios("alvo-1", ["c1", "c2"]);
     expect(r).toEqual({ ok: true });
     expect(update).toHaveBeenCalledWith({
@@ -561,8 +561,15 @@ describe("definirConsorcios", () => {
 });
 ```
 
-E adicionar `definirConsorcios` ao import de `@/app/(shell)/admin/actions` no topo do arquivo de
-teste.
+Nota importante: diferente de `definirSetores`/`alternarAtivo`, esta ação usa `podeGerirConsorcios`
+(Super Admin só), NÃO `podeAdministrar` — a spec (docs/superpowers/specs/2026-08-02-consorcios-design.md,
+seção "Decisões confirmadas com o usuário") é explícita: "Gestão de consórcio (criar, renomear,
+ativar/desativar, vincular usuários) é só Super Admin." Adicionar `podeGerirConsorcios` ao mock de
+`@/lib/auth/usuario` no topo do arquivo de teste (junto de `getUsuarioAtual`/`podeAdministrar`/
+`podeGerirAdmins`) e criar a constante `const gerirConsorcios = podeGerirConsorcios as
+ReturnType<typeof vi.fn>;` junto das outras (`administrar`, `gerirAdmins`). Também adicionar
+`definirConsorcios` e `podeGerirConsorcios` aos imports de `@/app/(shell)/admin/actions` e
+`@/lib/auth/usuario` no topo do arquivo de teste.
 
 - [ ] **Step 6: Rodar e confirmar que falha**
 
@@ -571,17 +578,20 @@ Expected: FAIL — `definirConsorcios` não exportada.
 
 - [ ] **Step 7: Implementar `definirConsorcios` em `app/(shell)/admin/actions.ts`**
 
-Adicionar logo abaixo de `definirSetores` (linha 99 do arquivo atual). Nota: diferente de
-`definirSetores`, não tem restrição de escopo de Gestor de Setor — gestão de consórcio é sempre
-Super Admin/Admin via `podeAdministrar`, sem o conceito de "Gestor de Consórcio" (fora de
-escopo, ver Global Constraints):
+Adicionar logo abaixo de `definirSetores` (linha 99 do arquivo atual), e importar
+`podeGerirConsorcios` junto de `podeAdministrar`/`podeGerirAdmins` no topo do arquivo. Nota:
+diferente de `definirSetores`, esta ação usa `podeGerirConsorcios` (Super Admin só — mesma régua
+do CRUD de consórcio da Task 4), NÃO `podeAdministrar` — gestão de consórcio inteira (CRUD +
+vínculo de usuário) é exclusiva de Super Admin por decisão explícita do usuário (ver spec,
+"Decisões confirmadas"), sem o conceito de "Gestor de Consórcio":
 
 ```ts
-// Vincular consórcios (N:N). Super/Admin apenas — sem escopo de Gestor de Setor
-// (não existe "Gestor de Consórcio" nesta versão).
+// Vincular consórcios (N:N). Só Super Admin — mesma régua do CRUD de consórcio
+// (não existe "Gestor de Consórcio" nesta versão; diferente de definirSetores,
+// que usa podeAdministrar porque Gestor de Setor pode gerir seu próprio setor).
 export async function definirConsorcios(usuarioId: string, consorcios: string[]): Promise<ResultadoAcao> {
   const atual = await getUsuarioAtual();
-  if (!podeAdministrar(atual)) return { ok: false, erro: "Sem permissão." };
+  if (!podeGerirConsorcios(atual)) return { ok: false, erro: "Apenas Super Admin gerencia consórcios." };
   await prisma.usuario.update({
     where: { id: usuarioId },
     data: { consorcios: { set: consorcios.map((id) => ({ id })) } },
