@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { definirPerfil, definirSetores, alternarAtivo, removerUsuario } from "@/app/(shell)/admin/actions";
+import { definirPerfil, definirSetores, definirConsorcios, alternarAtivo, removerUsuario } from "@/app/(shell)/admin/actions";
 import { CARGOS, CARGOS_PRIVILEGIADOS, rotuloCargo } from "@/lib/auth/perfis";
 
 type Setor = { id: string; nome: string };
@@ -15,16 +15,19 @@ type U = {
   pendente: boolean;
   dataCadastro: string;
   setores: Setor[];
+  consorcios: Setor[]; // mesmo shape {id, nome} — reaproveita o tipo Setor
 };
 
 export default function LinhaUsuario({
   usuario,
   setores,
+  consorcios,
   podeAdmins,
   ehVoceMesmo,
 }: {
   usuario: U;
   setores: Setor[];
+  consorcios: Setor[];
   podeAdmins: boolean;
   ehVoceMesmo: boolean;
 }) {
@@ -33,6 +36,8 @@ export default function LinhaUsuario({
   const [pendentePerfil, setPendentePerfil] = useState<string | null>(null);
   const [editSet, setEditSet] = useState(false);
   const [sel, setSel] = useState<string[]>(usuario.setores.map((s) => s.id));
+  const [editConsorcio, setEditConsorcio] = useState(false);
+  const [selConsorcio, setSelConsorcio] = useState<string[]>(usuario.consorcios.map((c) => c.id));
   const [msg, setMsg] = useState<null | "ok" | "erro">(null);
   const [erroTxt, setErroTxt] = useState<string | null>(null);
   const [confirmandoRemover, setConfirmandoRemover] = useState(false);
@@ -73,6 +78,13 @@ export default function LinhaUsuario({
   function salvarSetores() {
     agir(() => definirSetores(usuario.id, sel));
     setEditSet(false);
+  }
+  function toggleSelConsorcio(id: string) {
+    setSelConsorcio((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  }
+  function salvarConsorcios() {
+    agir(() => definirConsorcios(usuario.id, selConsorcio));
+    setEditConsorcio(false);
   }
 
   // Convite pendente costuma ter nome = e-mail (placeholder até a pessoa
@@ -124,6 +136,35 @@ export default function LinhaUsuario({
             <div className="flex gap-2">
               <button onClick={salvarSetores} disabled={pend} className="rounded bg-marsala px-2 py-1 text-[11px] font-medium text-white disabled:opacity-60">Salvar</button>
               <button onClick={() => setEditSet(false)} className="text-[11px] text-black/50">cancelar</button>
+            </div>
+          </div>
+        )}
+      </td>
+      <td className="px-4 py-2">
+        {!editConsorcio ? (
+          <div className="flex flex-wrap items-center gap-1">
+            {usuario.consorcios.length === 0 ? (
+              <span className="text-xs text-black/30">—</span>
+            ) : (
+              usuario.consorcios.map((c) => (
+                <span key={c.id} className="rounded-full bg-marsala-50 px-2 py-0.5 text-[10px] font-medium text-marsala">{c.nome}</span>
+              ))
+            )}
+            <button onClick={() => { setSelConsorcio(usuario.consorcios.map((x) => x.id)); setEditConsorcio(true); }} className="ml-1 text-[11px] text-marsala hover:underline">editar</button>
+          </div>
+        ) : (
+          <div className="w-56 rounded border border-black/15 p-2">
+            <div className="mb-2 flex flex-wrap gap-1">
+              {consorcios.map((c) => (
+                <button key={c.id} type="button" onClick={() => toggleSelConsorcio(c.id)}
+                  className={`rounded-full border px-2 py-0.5 text-[10px] transition ${selConsorcio.includes(c.id) ? "border-marsala bg-marsala text-white" : "border-black/15 text-black/60 hover:bg-black/5"}`}>
+                  {c.nome}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={salvarConsorcios} disabled={pend} className="rounded bg-marsala px-2 py-1 text-[11px] font-medium text-white disabled:opacity-60">Salvar</button>
+              <button onClick={() => setEditConsorcio(false)} className="text-[11px] text-black/50">cancelar</button>
             </div>
           </div>
         )}
