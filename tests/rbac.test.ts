@@ -8,13 +8,14 @@ import {
   podeRevogar,
   podeAdministrar,
   podeGerirSetores,
+  podeGerirConsorcios,
   filtroVisibilidade,
   type Perfil,
   type UsuarioAtual,
 } from "@/lib/auth/rbac";
 
-const u = (perfil: Perfil, setores: string[] = []): UsuarioAtual => ({
-  id: "1", oid: "o", nome: "T", email: "t@aahbrant.com", perfil, setores,
+const u = (perfil: Perfil, setores: string[] = [], consorcios: string[] = []): UsuarioAtual => ({
+  id: "1", oid: "o", nome: "T", email: "t@aahbrant.com", perfil, setores, consorcios,
 });
 const ADMINS = ["chefe@aahbrant.com"];
 const DOM = ["aahbrant.com"];
@@ -99,10 +100,40 @@ describe("administração e visibilidade", () => {
     expect(podeGerirSetores(u("admin"))).toBe(false);
     expect(podeGerirSetores(u("superadmin"))).toBe(true);
   });
+
+  it("podeGerirConsorcios: só super", () => {
+    expect(podeGerirConsorcios(u("admin"))).toBe(false);
+    expect(podeGerirConsorcios(u("superadmin"))).toBe(true);
+  });
+
   it("filtroVisibilidade: gestor vê tudo; area com setor vê publicada+setores (irrestrito por audiência)", () => {
     expect(filtroVisibilidade(u("admin"))).toEqual({});
     expect(filtroVisibilidade(u("area", ["s1", "s2"]))).toEqual({
-      OR: [{ estado: "publicada" }, { areaId: { in: ["s1", "s2"] } }],
+      OR: [
+        { estado: "publicada", consorcioId: null },
+        { estado: "publicada", consorcioId: { in: [] } },
+        { areaId: { in: ["s1", "s2"] } },
+      ],
+    });
+  });
+
+  it("filtroVisibilidade: area com setor mas fora do consórcio do documento não vê (exceto se for do próprio setor)", () => {
+    expect(filtroVisibilidade(u("area", ["s1"]))).toEqual({
+      OR: [
+        { estado: "publicada", consorcioId: null },
+        { estado: "publicada", consorcioId: { in: [] } },
+        { areaId: { in: ["s1"] } },
+      ],
+    });
+  });
+
+  it("filtroVisibilidade: area vinculada ao consórcio também vê publicada daquele consórcio", () => {
+    expect(filtroVisibilidade(u("area", ["s1"], ["c1"]))).toEqual({
+      OR: [
+        { estado: "publicada", consorcioId: null },
+        { estado: "publicada", consorcioId: { in: ["c1"] } },
+        { areaId: { in: ["s1"] } },
+      ],
     });
   });
 
@@ -110,16 +141,54 @@ describe("administração e visibilidade", () => {
     const semPublicoAlvo = { audienciaSetores: { none: {} }, audienciaUsuarios: { none: {} } };
     // Sem setor: só a checagem "sem público-alvo" (todos) + "eu individualmente".
     expect(filtroVisibilidade(u("colaborador"))).toEqual({
-      estado: "publicada",
-      OR: [semPublicoAlvo, { audienciaUsuarios: { some: { id: "1" } } }],
+      OR: [
+        { estado: "publicada", consorcioId: null, OR: [semPublicoAlvo, { audienciaUsuarios: { some: { id: "1" } } }] },
+        { estado: "publicada", consorcioId: { in: [] } },
+      ],
     });
     // Com setor: soma a checagem por setor também.
     expect(filtroVisibilidade(u("colaborador", ["s1"]))).toEqual({
-      estado: "publicada",
       OR: [
-        semPublicoAlvo,
-        { audienciaSetores: { some: { id: { in: ["s1"] } } } },
-        { audienciaUsuarios: { some: { id: "1" } } },
+        {
+          estado: "publicada",
+          consorcioId: null,
+          OR: [
+            semPublicoAlvo,
+            { audienciaSetores: { some: { id: { in: ["s1"] } } } },
+            { audienciaUsuarios: { some: { id: "1" } } },
+          ],
+        },
+        { estado: "publicada", consorcioId: { in: [] } },
+      ],
+    });
+  });
+
+  it("colaborador sem consórcio: só publicada sem consórcio, dentro do público-alvo de sempre", () => {
+    const semPublicoAlvo = { audienciaSetores: { none: {} }, audienciaUsuarios: { none: {} } };
+    expect(filtroVisibilidade(u("colaborador"))).toEqual({
+      OR: [
+        {
+          estado: "publicada",
+          consorcioId: null,
+          OR: [semPublicoAlvo, { audienciaUsuarios: { some: { id: "1" } } }],
+        },
+        { estado: "publicada", consorcioId: { in: [] } },
+      ],
+    });
+  });
+
+  it("colaborador vinculado ao consórcio vê publicada daquele consórcio, sem checar público-alvo", () => {
+    expect(filtroVisibilidade(u("colaborador", [], ["c1", "c2"]))).toEqual({
+      OR: [
+        {
+          estado: "publicada",
+          consorcioId: null,
+          OR: [
+            { audienciaSetores: { none: {} }, audienciaUsuarios: { none: {} } },
+            { audienciaUsuarios: { some: { id: "1" } } },
+          ],
+        },
+        { estado: "publicada", consorcioId: { in: ["c1", "c2"] } },
       ],
     });
   });

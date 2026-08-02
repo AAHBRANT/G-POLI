@@ -10,6 +10,7 @@ export type UsuarioAtual = {
   email: string;
   perfil: Perfil;
   setores: string[]; // ids dos setores (Area) vinculados ao usuário
+  consorcios: string[]; // ids dos consórcios vinculados ao usuário
 };
 
 const ehSuper = (u: UsuarioAtual | null) => !!u && u.perfil === "superadmin";
@@ -46,6 +47,11 @@ export function podeGerirSetores(u: UsuarioAtual | null): boolean {
   return ehSuper(u);
 }
 export function podeGerirAdmins(u: UsuarioAtual | null): boolean {
+  return ehSuper(u);
+}
+
+// Gerir consórcios (criar/editar/ativar + vincular usuário): só Super Admin — mesma régua de Setores.
+export function podeGerirConsorcios(u: UsuarioAtual | null): boolean {
   return ehSuper(u);
 }
 
@@ -95,25 +101,39 @@ export function podeRevogar(u: UsuarioAtual | null): boolean {
 }
 
 // Publicada + dentro do público-alvo da política: audiência vazia (setor E
-// usuário nenhum selecionado) = visível a todos, mesma regra de
-// audienciaVazia() em lib/politica/dominio.ts (a notificação de publicação
-// usa a mesma semântica — quem é notificado é quem enxerga).
+// usuário nenhum selecionado) = visível a todos, mesma semântica de
+// audienciaVazia() em lib/politica/dominio.ts. Documento com consorcioId
+// preenchido ignora o público-alvo por setor/usuário — o consórcio já
+// define sozinho quem vê (ver spec docs/superpowers/specs/2026-08-02-consorcios-design.md).
 function filtroPublicadaPorAudiencia(u: UsuarioAtual | null): Record<string, unknown> {
   const semPublicoAlvo = { audienciaSetores: { none: {} }, audienciaUsuarios: { none: {} } };
   const OR: Record<string, unknown>[] = [semPublicoAlvo];
   if (u?.setores.length) OR.push({ audienciaSetores: { some: { id: { in: u.setores } } } });
   if (u?.id) OR.push({ audienciaUsuarios: { some: { id: u.id } } });
-  return { estado: "publicada", OR };
+  return {
+    OR: [
+      { estado: "publicada", consorcioId: null, OR },
+      { estado: "publicada", consorcioId: { in: u?.consorcios ?? [] } },
+    ],
+  };
 }
 
 // Visibilidade (busca/catálogo). super/admin/sgi/diretoria: tudo. area COM
-// setor: publicadas (irrestrito) + seus setores (rascunho incluso — gestão do
-// próprio departamento). Resto (colaborador; area sem setor): só publicadas
-// DENTRO do próprio público-alvo da política.
+// setor: publicadas sem consórcio (irrestrito) + publicadas do(s) consórcio(s)
+// vinculado(s) + rascunhos/publicadas do próprio setor (gestão do próprio
+// departamento, sempre visível independente de consórcio). Resto
+// (colaborador; area sem setor): só publicadas DENTRO do próprio público-alvo
+// (sem consórcio) ou do consórcio vinculado.
 export function filtroVisibilidade(u: UsuarioAtual | null): Record<string, unknown> {
   if (u && (ehAdminOuSuper(u) || u.perfil === "sgi" || u.perfil === "diretoria")) return {};
   if (u && u.perfil === "area" && u.setores.length) {
-    return { OR: [{ estado: "publicada" }, { areaId: { in: u.setores } }] };
+    return {
+      OR: [
+        { estado: "publicada", consorcioId: null },
+        { estado: "publicada", consorcioId: { in: u.consorcios } },
+        { areaId: { in: u.setores } },
+      ],
+    };
   }
   return filtroPublicadaPorAudiencia(u);
 }
