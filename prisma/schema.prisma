@@ -84,6 +84,19 @@ model Area {
   criadoEm  DateTime   @default(now())
 }
 
+// Empresa/consórcio externo (obra em parceria) — dimensão de destino de
+// documento independente de Setor interno. Documento com consorcioId
+// preenchido só é visível a quem está vinculado a este consórcio (ver
+// filtroVisibilidade em lib/auth/rbac.ts).
+model Consorcio {
+  id        String     @id @default(cuid())
+  nome      String     @unique
+  ativo     Boolean    @default(true)
+  membros   Usuario[]  @relation("UsuarioConsorcios")
+  politicas Politica[]
+  criadoEm  DateTime   @default(now())
+}
+
 model Usuario {
   id        String   @id @default(cuid())
   oid       String?  @unique // object id do Entra; null enquanto convidado (ainda não logou)
@@ -93,6 +106,7 @@ model Usuario {
   area      Area?    @relation("SetorPrincipal", fields: [areaId], references: [id]) // legado
   areaId    String?
   setores   Area[]   @relation("UsuarioSetores") // N:N — setores do usuário
+  consorcios Consorcio[] @relation("UsuarioConsorcios") // N:N — consórcios externos do usuário
   ativo     Boolean  @default(true)
   convidadoPor String? // e-mail de quem convidou (auditoria leve)
   criadoEm  DateTime @default(now())
@@ -108,6 +122,10 @@ model Politica {
   tipo          TipoDocumento  @default(politica) // v3: seção do menu a que pertence
   area          Area           @relation(fields: [areaId], references: [id])
   areaId        String
+  // null = AAHBRANT (todos); preenchido = só quem está vinculado a este consórcio (ver spec
+  // docs/superpowers/specs/2026-08-02-consorcios-design.md).
+  consorcio     Consorcio?     @relation(fields: [consorcioId], references: [id])
+  consorcioId   String?
   classificacao Classificacao
   estado        EstadoPolitica @default(rascunho)
   versoes       Versao[]
