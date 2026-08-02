@@ -187,6 +187,8 @@ export async function publicarPolitica(id: string): Promise<ResultadoAcao> {
           politicaId: id,
           numero: proximoNumeroVersao(totais),
           estado: "ativa",
+          conteudoSnapshot: snapshot as never,
+          revisaoNaEpoca: novaRevisao,
           documento: {
             create: {
               nome: nomeArquivo,
