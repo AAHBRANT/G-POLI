@@ -250,6 +250,16 @@ model Versao {
   numero     Int
   estado     EstadoVersao @default(ativa)
   documento  Documento?
+  // Snapshot do conteúdo (mesmo formato de Politica.conteudoPublicado) no
+  // momento em que ESTA versão foi criada — nunca mais sobrescrito depois,
+  // diferente do campo em Politica. Null em versões anteriores a esta
+  // feature (não há como recuperar o histórico exato sem abrir o .docx
+  // antigo — ver docs/superpowers/specs/2026-08-02-versao-substituida-ver-nao-baixar-design.md).
+  conteudoSnapshot Json?
+  // Politica.revisao válido no momento em que esta versão foi criada — usado
+  // no cabeçalho institucional ao "Ver" uma versão antiga (o número de
+  // revisão atual da política pode já ter mudado).
+  revisaoNaEpoca   Int?
   criadaEm   DateTime     @default(now())
 
   @@unique([politicaId, numero])

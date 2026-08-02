@@ -119,6 +119,25 @@ describe("publicarPolitica — geração do documento oficial", () => {
     });
   });
 
+  it("grava conteudoSnapshot e revisaoNaEpoca na nova versão", async () => {
+    findUnique.mockResolvedValue(politicaBase());
+    gerar.mockResolvedValue(Buffer.from("conteudo-fake"));
+
+    const resultado = await publicarPolitica("p1");
+
+    expect(resultado.ok).toBe(true);
+    const dataVersao = versaoCreate.mock.calls[0][0].data;
+    expect(dataVersao.conteudoSnapshot).toEqual(politicaBase().secoes.map((s) => ({
+      codigo: s.codigo,
+      titulo: s.titulo,
+      tipo: s.tipo,
+      corpo: s.corpo,
+      colunas: s.colunas ?? null,
+      linhas: s.linhas ?? null,
+    })));
+    expect(dataVersao.revisaoNaEpoca).toBe(0); // politicaBase().revisao = 0, publicadaEm = null → novaRevisao = revisao (0)
+  });
+
   it("republicação: incrementa a revisão e continua filtrando só o oficial no updateMany", async () => {
     findUnique.mockResolvedValue({
       // Reaberta para revisão após já ter sido publicada: estado volta a

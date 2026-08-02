@@ -18,6 +18,7 @@ import {
   leituraValida,
   TEMPO_MINIMO_LEITURA_MS,
   corpoParaTexto,
+  acaoVersao,
   type Estado,
   type AcaoEstado,
   type UsuarioAlvo,
@@ -447,5 +448,46 @@ describe("corpoParaTexto (achatamento de seção-tabela para texto)", () => {
 
   it("seção de tabela vazia: string vazia", () => {
     expect(corpoParaTexto({ tipo: "tabela", corpo: "", colunas: null, linhas: null })).toBe("");
+  });
+});
+
+// ===========================================================================
+// Ação disponível por versão (v3: "Ver" em vez de "Baixar")
+// ===========================================================================
+describe("acaoVersao (ver docs/superpowers/specs/2026-08-02-versao-substituida-ver-nao-baixar-design.md)", () => {
+  it("sem documento → nenhuma", () => {
+    expect(acaoVersao({ temDocumento: false, oficial: false, estado: "ativa", temSnapshot: false })).toBe(
+      "nenhuma",
+    );
+  });
+
+  it("anexo manual (oficial=false), estado ativa → baixar", () => {
+    expect(acaoVersao({ temDocumento: true, oficial: false, estado: "ativa", temSnapshot: false })).toBe(
+      "baixar",
+    );
+  });
+
+  it("anexo manual (oficial=false), estado substituida → baixar (anexo NUNCA vira ver)", () => {
+    expect(
+      acaoVersao({ temDocumento: true, oficial: false, estado: "substituida", temSnapshot: true }),
+    ).toBe("baixar");
+  });
+
+  it("oficial=true, estado ativa → baixar", () => {
+    expect(acaoVersao({ temDocumento: true, oficial: true, estado: "ativa", temSnapshot: false })).toBe(
+      "baixar",
+    );
+  });
+
+  it("oficial=true, estado substituida, temSnapshot=true → ver", () => {
+    expect(
+      acaoVersao({ temDocumento: true, oficial: true, estado: "substituida", temSnapshot: true }),
+    ).toBe("ver");
+  });
+
+  it("oficial=true, estado substituida, temSnapshot=false → nenhuma", () => {
+    expect(
+      acaoVersao({ temDocumento: true, oficial: true, estado: "substituida", temSnapshot: false }),
+    ).toBe("nenhuma");
   });
 });

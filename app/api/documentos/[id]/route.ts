@@ -15,6 +15,11 @@ export async function GET(
     include: { versao: true },
   });
   if (!doc) return new NextResponse("Não encontrado", { status: 404 });
+  // Versão oficial substituída não é baixável — só visualizável em tela via
+  // VerVersaoAntiga (ver spec 2026-08-02-versao-substituida-ver-nao-baixar-design.md).
+  if (doc.oficial && doc.versao.estado === "substituida") {
+    return new NextResponse("Versão substituída — download indisponível.", { status: 403 });
+  }
 
   const ext = path.extname(doc.nome);
   const caminho = path.join(doc.versao.politicaId, `${doc.hash}${ext}`);
