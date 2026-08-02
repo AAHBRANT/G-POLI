@@ -124,7 +124,7 @@ model Politica {
   areaId        String
   // null = AAHBRANT (todos); preenchido = só quem está vinculado a este consórcio (ver spec
   // docs/superpowers/specs/2026-08-02-consorcios-design.md).
-  consorcio     Consorcio?     @relation(fields: [consorcioId], references: [id])
+  consorcio     Consorcio?     @relation(fields: [consorcioId], references: [id], onDelete: Restrict)
   consorcioId   String?
   classificacao Classificacao
   estado        EstadoPolitica @default(rascunho)

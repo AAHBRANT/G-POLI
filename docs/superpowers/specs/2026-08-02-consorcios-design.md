@@ -114,8 +114,17 @@ Super Admin / Admin / SGI / Diretoria: sem mudança (retornam `{}`, veem tudo).
 Hoje quem é notificado = quem enxerga (mesma semântica documentada em `dominio.ts`). Quando a
 política tem `consorcioId`, os destinatários da notificação passam a ser os usuários vinculados
 àquele consórcio (em vez da união setor/usuário do `AudienciaSelector`, que nesse caso nem
-aparece). Implementação: nova função `usuariosDoConsorcio(consorcioId)` em paralelo a
-`unirAudiencia`.
+aparece).
+
+Implementação real (decisão registrada na Task 8 do plano): a busca dos membros do consórcio
+**não** virou uma função nova em `lib/politica/dominio.ts` — esse módulo é livre de Prisma por
+design (funções puras, testáveis sem banco), e resolver membros de um consórcio exige uma query.
+Em vez disso, a lógica entra direto em `resolverAudiencia`, em
+`app/(shell)/catalogo/[id]/estado-actions.ts`: quando `politica.consorcioId` está preenchido, a
+função busca o `Consorcio` (com seus `membros` ativos) e retorna esses usuários no lugar da união
+setor/usuário; caso contrário, segue o fluxo de sempre (`audienciaVazia`/`unirAudiencia`).
+`resolverAudiencia` é reaproveitada tanto pela notificação do Teams quanto pela criação de
+`Pendencia`, evitando duas cópias da mesma lógica.
 
 ## Fora de escopo (v1)
 
@@ -131,7 +140,8 @@ aparece). Implementação: nova função `usuariosDoConsorcio(consorcioId)` em p
 - `lib/auth/rbac.ts`: casos novos em `tests/rbac.test.ts` — colaborador dentro/fora do consórcio,
   Gestor de Setor dentro/fora do consórcio (incluindo o caso "é do próprio setor mas não do
   consórcio — ainda vê, porque é dono"), Super Admin sempre vê.
-- `lib/politica/dominio.ts`: teste de `usuariosDoConsorcio` (união/dedup, igual ao padrão de
-  `unirAudiencia`).
+- `resolverAudiencia` (em `app/(shell)/catalogo/[id]/estado-actions.ts`): coberto indiretamente
+  pelos testes de publicação/notificação que exercitam o caminho com `consorcioId` preenchido —
+  não há função pura equivalente em `dominio.ts` (ver seção "Notificação de publicação" acima).
 - Verificação manual: criar consórcio, vincular 1 usuário, criar política destinada a esse
   consórcio, confirmar que outro colaborador (fora do consórcio) não vê e o vinculado vê.

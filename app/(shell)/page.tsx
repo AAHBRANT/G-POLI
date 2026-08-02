@@ -25,6 +25,10 @@ const ACAO_INFO: Record<string, { texto: string; icone: string; cor: string; ia?
   "ia.gerar": { texto: "gerou rascunho com IA para", icone: "M13 2L3 14h7l-1 8 10-12h-7l1-8z", cor: "text-violet-600", ia: true },
   "ia.aplicar": { texto: "aplicou rascunho de IA em", icone: "M13 2L3 14h7l-1 8 10-12h-7l1-8z", cor: "text-violet-600", ia: true },
   "politica.audiencia": { texto: "definiu público-alvo de", icone: "M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m5-8.13a4 4 0 110 8 4 4 0 010-8z", cor: "text-black/50" },
+  "consorcio.criar": { texto: "criou consórcio", icone: "M12 4v16m8-8H4", cor: "text-black/50" },
+  "consorcio.renomear": { texto: "renomeou consórcio", icone: "M11 4h9M11 4l-7 7-2 5 5-2 7-7", cor: "text-black/50" },
+  "consorcio.ativo": { texto: "ativou/desativou consórcio", icone: "M5 13l4 4L19 7", cor: "text-black/50" },
+  "usuario.consorcios": { texto: "alterou consórcios do usuário", icone: "M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m5-8.13a4 4 0 110 8 4 4 0 010-8z", cor: "text-black/50" },
 };
 
 const primeiroNome = (n: string) => (n || "").trim().split(/\s+/)[0] || "";
