@@ -34,6 +34,7 @@ import {
   definirSetores,
   alternarAtivo,
   removerUsuario,
+  definirConsorcios,
 } from "@/app/(shell)/admin/actions";
 
 const usuarioAtual = getUsuarioAtual as ReturnType<typeof vi.fn>;
@@ -287,5 +288,26 @@ describe("removerUsuario", () => {
     expect(r).toEqual({ ok: true });
     expect(del).toHaveBeenCalledWith({ where: { id: "alvo-1" } });
     expect(registrar).toHaveBeenCalledWith("usuario.remover", "Usuario", "alvo-1", "alvo@empresa.com");
+  });
+});
+
+describe("definirConsorcios", () => {
+  it("bloqueia quem não pode administrar", async () => {
+    usuarioAtual.mockResolvedValue(gestorSetor(["setor-1"]));
+    administrar.mockReturnValue(false);
+    const r = await definirConsorcios("alvo-1", ["c1"]);
+    expect(r).toEqual({ ok: false, erro: "Sem permissão." });
+  });
+
+  it("define os consórcios e registra auditoria em caso de sucesso", async () => {
+    usuarioAtual.mockResolvedValue(admin());
+    administrar.mockReturnValue(true);
+    const r = await definirConsorcios("alvo-1", ["c1", "c2"]);
+    expect(r).toEqual({ ok: true });
+    expect(update).toHaveBeenCalledWith({
+      where: { id: "alvo-1" },
+      data: { consorcios: { set: [{ id: "c1" }, { id: "c2" }] } },
+    });
+    expect(registrar).toHaveBeenCalledWith("usuario.consorcios", "Usuario", "alvo-1", "2 consórcio(s)");
   });
 });

@@ -98,6 +98,20 @@ export async function definirSetores(usuarioId: string, setores: string[]): Prom
   return { ok: true };
 }
 
+// Vincular consórcios (N:N). Super/Admin apenas — sem escopo de Gestor de Setor
+// (não existe "Gestor de Consórcio" nesta versão).
+export async function definirConsorcios(usuarioId: string, consorcios: string[]): Promise<ResultadoAcao> {
+  const atual = await getUsuarioAtual();
+  if (!podeAdministrar(atual)) return { ok: false, erro: "Sem permissão." };
+  await prisma.usuario.update({
+    where: { id: usuarioId },
+    data: { consorcios: { set: consorcios.map((id) => ({ id })) } },
+  });
+  await registrar("usuario.consorcios", "Usuario", usuarioId, `${consorcios.length} consórcio(s)`);
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
 // Ativar/desativar. Super/Admin (qualquer, menos si); Gestor de Setor só no seu escopo.
 export async function alternarAtivo(usuarioId: string, ativo: boolean): Promise<ResultadoAcao> {
   const atual = await getUsuarioAtual();
