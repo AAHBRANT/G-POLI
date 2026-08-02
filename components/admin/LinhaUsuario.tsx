@@ -23,12 +23,14 @@ export default function LinhaUsuario({
   setores,
   consorcios,
   podeAdmins,
+  gerirConsorcios,
   ehVoceMesmo,
 }: {
   usuario: U;
   setores: Setor[];
   consorcios: Setor[];
   podeAdmins: boolean;
+  gerirConsorcios: boolean;
   ehVoceMesmo: boolean;
 }) {
   const router = useRouter();
@@ -150,7 +152,9 @@ export default function LinhaUsuario({
                 <span key={c.id} className="rounded-full bg-marsala-50 px-2 py-0.5 text-[10px] font-medium text-marsala">{c.nome}</span>
               ))
             )}
-            <button onClick={() => { setSelConsorcio(usuario.consorcios.map((x) => x.id)); setEditConsorcio(true); }} className="ml-1 text-[11px] text-marsala hover:underline">editar</button>
+            {gerirConsorcios && (
+              <button onClick={() => { setSelConsorcio(usuario.consorcios.map((x) => x.id)); setEditConsorcio(true); }} className="ml-1 text-[11px] text-marsala hover:underline">editar</button>
+            )}
           </div>
         ) : (
           <div className="w-56 rounded border border-black/15 p-2">

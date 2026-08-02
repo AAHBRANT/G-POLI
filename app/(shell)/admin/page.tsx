@@ -176,6 +176,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Params
                         setores={setoresAtivos}
                         consorcios={consorciosAtivos}
                         podeAdmins={gerirAdmins}
+                        gerirConsorcios={gerirConsorcios}
                         ehVoceMesmo={atual!.id === u.id}
                       />
                     ))
