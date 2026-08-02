@@ -42,7 +42,7 @@ export default async function PainelCatalogo({
     });
   }
 
-  const [total, publicadas, revogadas, areas, itens] = await Promise.all([
+  const [total, publicadas, revogadas, areas, itens, pendencias] = await Promise.all([
     prisma.politica.count({ where: { AND: [{ tipo }, visibilidade] } }),
     prisma.politica.count({ where: { AND: [{ tipo }, visibilidade, { estado: "publicada" }] } }),
     prisma.politica.count({ where: { AND: [{ tipo }, visibilidade, { estado: "revogada" }] } }),
@@ -52,7 +52,16 @@ export default async function PainelCatalogo({
       include: { area: true, _count: { select: { versoes: true } } },
       orderBy: { criadaEm: "desc" },
     }),
+    // Destaca linha "não lida" na tabela — mesma fonte de verdade da home
+    // (Pendencia por usuário, não Ciencia direto: ver comentário em app/(shell)/page.tsx).
+    usuario?.id
+      ? prisma.pendencia.findMany({
+          where: { usuarioId: usuario.id, estado: "pendente" },
+          select: { politicaId: true },
+        })
+      : [],
   ]);
+  const pendentesIds = new Set(pendencias.map((p) => p.politicaId));
 
   return (
     <div className="space-y-4">
@@ -64,7 +73,7 @@ export default async function PainelCatalogo({
         areaId={areaId}
         estado={estado}
       />
-      {itens.length === 0 ? mensagemVazio : <CatalogoTabela itens={itens} />}
+      {itens.length === 0 ? mensagemVazio : <CatalogoTabela itens={itens} pendentesIds={pendentesIds} />}
     </div>
   );
 }
