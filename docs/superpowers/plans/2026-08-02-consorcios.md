@@ -126,11 +126,13 @@ it("podeGerirConsorcios: só super", () => {
 });
 
 it("filtroVisibilidade: area com setor mas fora do consórcio do documento não vê (exceto se for do próprio setor)", () => {
-  // area do setor s1, sem consórcio algum vinculado
-  const semPublicoAlvo = { audienciaSetores: { none: {} }, audienciaUsuarios: { none: {} } };
+  // area do setor s1, sem consórcio algum vinculado — a implementação é incondicional
+  // (Step 4), então a 3ª cláusula aparece mesmo com consorcios=[] (nunca bate com
+  // nada nesse caso, mas o shape do objeto é sempre o mesmo — ver nota após o Step 4).
   expect(filtroVisibilidade(u("area", ["s1"]))).toEqual({
     OR: [
       { estado: "publicada", consorcioId: null },
+      { estado: "publicada", consorcioId: { in: [] } },
       { areaId: { in: ["s1"] } },
     ],
   });
