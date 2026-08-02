@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { criarSetor, renomearSetor, alternarSetorAtivo } from "@/app/(shell)/admin/setor-actions";
+import { Button } from "@/components/ui/Button";
 
 type Setor = { id: string; nome: string; ativa: boolean };
 
@@ -29,10 +30,9 @@ export default function GerenciarSetores({ setores }: { setores: Setor[] }) {
       <div className="px-4 py-3">
         <div className="mb-3 flex gap-2">
           <input value={novo} onChange={(e) => setNovo(e.target.value)} placeholder="Novo setor (ex.: Financeiro)" className="h-10 flex-1 rounded border border-black/15 px-3 text-sm" />
-          <button onClick={() => { if (novo.trim()) { agir(() => criarSetor(novo)); setNovo(""); } }} disabled={pend}
-            className="h-10 rounded-md bg-marsala px-3 text-xs font-medium text-white hover:bg-marsala-600 disabled:opacity-60">
+          <Button onClick={() => { if (novo.trim()) { agir(() => criarSetor(novo)); setNovo(""); } }} disabled={pend}>
             + Adicionar
-          </button>
+          </Button>
         </div>
         {erro && <p className="mb-2 text-xs text-red-600">{erro}</p>}
         <ul className="divide-y divide-black/5">

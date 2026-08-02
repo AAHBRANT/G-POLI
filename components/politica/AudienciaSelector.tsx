@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { definirAudiencia } from "@/app/(shell)/catalogo/[id]/audiencia-actions";
+import { Button } from "@/components/ui/Button";
 
 type Opcao = { id: string; rotulo: string };
 
@@ -105,13 +106,9 @@ export default function AudienciaSelector({
       </div>
 
       <div className="flex items-center gap-2">
-        <button
-          onClick={salvar}
-          disabled={pendente}
-          className="rounded-md bg-marsala px-3 py-1.5 text-xs font-medium text-white transition hover:bg-marsala-600 disabled:opacity-60"
-        >
+        <Button onClick={salvar} disabled={pendente}>
           {pendente ? "Salvando…" : "Salvar público-alvo"}
-        </button>
+        </Button>
         {erro && <span className="text-xs text-red-600">{erro}</span>}
       </div>
     </div>

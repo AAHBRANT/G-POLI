@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Button } from "@/components/ui/Button";
 
 type Area = { id: string; nome: string };
 
@@ -46,7 +47,7 @@ export default function FiltrosCatalogo({
           <option value="revogada">Revogada</option>
         </select>
       </div>
-      <button className="h-10 rounded-md bg-marsala px-4 text-sm font-medium text-white hover:bg-marsala-600">Filtrar</button>
+      <Button>Filtrar</Button>
       {filtroAtivo && (
         <Link
           href={action}

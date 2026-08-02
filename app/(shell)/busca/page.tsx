@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getUsuarioAtual, filtroVisibilidade } from "@/lib/auth/usuario";
 import { corClassificacao, rotuloClassificacao, ESTADOS_POLITICA, tipoDocumento } from "@/lib/constants";
+import { Button } from "@/components/ui/Button";
 
 export const dynamic = "force-dynamic";
 
@@ -83,9 +84,7 @@ export default async function BuscaPage({ searchParams }: { searchParams: Params
             <option value="revogada">Revogada</option>
           </select>
         </div>
-        <button className="rounded-md bg-marsala px-4 py-1.5 text-sm font-medium text-white hover:bg-marsala-600">
-          Buscar
-        </button>
+        <Button>Buscar</Button>
       </form>
 
       {!temCriterio ? (

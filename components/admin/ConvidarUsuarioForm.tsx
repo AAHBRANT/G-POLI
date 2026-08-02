@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { convidarUsuario } from "@/app/(shell)/admin/actions";
 import { CARGOS, CARGOS_PRIVILEGIADOS } from "@/lib/auth/perfis";
+import { Button } from "@/components/ui/Button";
 
 type Setor = { id: string; nome: string };
 
@@ -43,9 +44,7 @@ export default function ConvidarUsuarioForm({
 
   if (!aberto) {
     return (
-      <button onClick={() => setAberto(true)} className="rounded-md bg-gradient-to-r from-marsala to-marsala-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:opacity-90">
-        + Convidar usuário
-      </button>
+      <Button onClick={() => setAberto(true)}>+ Convidar usuário</Button>
     );
   }
 
@@ -93,9 +92,9 @@ export default function ConvidarUsuarioForm({
       </div>
 
       <div className="mt-3 flex items-center gap-3">
-        <button onClick={enviar} disabled={pendente} className="rounded-md bg-marsala px-4 py-2 text-sm font-medium text-white transition hover:bg-marsala-600 disabled:opacity-60">
+        <Button onClick={enviar} disabled={pendente}>
           {pendente ? "Convidando…" : "Convidar"}
-        </button>
+        </Button>
         {msg && <span className={`text-xs ${msg.tipo === "ok" ? "text-emerald-700" : "text-red-600"}`}>{msg.texto}</span>}
       </div>
     </div>

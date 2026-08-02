@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { salvarSecao, alternarAberturaArea } from "@/app/(shell)/catalogo/[id]/conteudo-actions";
+import { Button } from "@/components/ui/Button";
 
 type Props = {
   id: string;
@@ -25,6 +26,18 @@ export default function SecaoEditor(props: Props) {
   const [sujo, setSujo] = useState(false); // há mudança não salva
   const [pendente, iniciar] = useTransition();
   const [togglePend, iniciarToggle] = useTransition();
+
+  // Resincroniza com o servidor quando os props mudam (ex.: router.refresh()
+  // após aplicar rascunho da IA) — sem isso, o useState acima só lê o valor
+  // inicial na primeira montagem e a seção fica presa no conteúdo antigo até
+  // o usuário sair da tela e voltar. Só pula a resincronização se houver
+  // edição local não salva, pra nunca sobrescrever o que o usuário digitou.
+  useEffect(() => {
+    if (sujo) return;
+    setCorpo(props.corpo);
+    setLinhas(props.linhas);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.corpo, props.linhas]);
 
   const nCols = props.colunas.length || 2;
   const ro = !props.podeEditar; // read-only
@@ -160,13 +173,9 @@ export default function SecaoEditor(props: Props) {
         </p>
       ) : (
         <div className="mt-3 flex items-center gap-3">
-          <button
-            onClick={salvar}
-            disabled={pendente || !sujo}
-            className="rounded-md bg-marsala px-4 py-2 text-sm font-medium text-white transition hover:bg-marsala-600 disabled:opacity-50"
-          >
+          <Button onClick={salvar} disabled={pendente || !sujo}>
             {pendente ? "Salvando…" : "Salvar seção"}
-          </button>
+          </Button>
           {pendente ? (
             <span className="text-sm text-black/40">Salvando…</span>
           ) : sujo ? (

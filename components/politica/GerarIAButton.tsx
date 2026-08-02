@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { gerarRascunhoIA, aplicarSecoesIA } from "@/app/(shell)/catalogo/[id]/ia-actions";
+import { Button } from "@/components/ui/Button";
 
 type SecaoIA = { codigo: string; corpo?: string; linhas?: string[][] };
 const TITULOS: Record<string, string> = {
@@ -38,14 +39,13 @@ export default function GerarIAButton({ politicaId, disponivel }: { politicaId: 
 
   if (!aberto) {
     return (
-      <button
+      <Button
         onClick={() => setAberto(true)}
         disabled={!disponivel}
         title={disponivel ? "" : "IA não configurada neste ambiente"}
-        className="rounded-md bg-gradient-to-r from-marsala to-marsala-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-50"
       >
         ✨ Gerar com IA
-      </button>
+      </Button>
     );
   }
 
@@ -66,10 +66,9 @@ export default function GerarIAButton({ politicaId, disponivel }: { politicaId: 
           className="w-full rounded-md border border-black/15 p-3 text-sm outline-none focus:border-marsala"
         />
         <div className="mt-2 flex items-center gap-3">
-          <button onClick={gerar} disabled={gerando || tema.trim().length < 5}
-            className="rounded-md bg-marsala px-4 py-2 text-sm font-medium text-white hover:bg-marsala-600 disabled:opacity-50">
+          <Button onClick={gerar} disabled={gerando || tema.trim().length < 5}>
             {gerando ? "Gerando… (pode levar alguns segundos)" : draft ? "Gerar de novo" : "Gerar rascunho"}
-          </button>
+          </Button>
           {erro && <span className="text-xs text-red-600">{erro}</span>}
         </div>
 
