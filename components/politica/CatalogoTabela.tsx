@@ -77,7 +77,7 @@ export default function CatalogoTabela({
                 <td className="px-4 py-3">
                   <Link
                     href={`/catalogo/${p.id}`}
-                    className="rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium text-black/70 transition hover:bg-black/5"
+                    className="rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-800"
                   >
                     Ver
                   </Link>
