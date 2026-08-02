@@ -19,6 +19,7 @@ vi.mock("@/lib/auth/usuario", () => ({
   getUsuarioAtual: vi.fn(),
   podeAdministrar: vi.fn(),
   podeGerirAdmins: vi.fn(),
+  podeGerirConsorcios: vi.fn(),
 }));
 
 vi.mock("@/lib/auditoria", () => ({
@@ -26,7 +27,7 @@ vi.mock("@/lib/auditoria", () => ({
 }));
 
 import { prisma } from "@/lib/prisma";
-import { getUsuarioAtual, podeAdministrar, podeGerirAdmins } from "@/lib/auth/usuario";
+import { getUsuarioAtual, podeAdministrar, podeGerirAdmins, podeGerirConsorcios } from "@/lib/auth/usuario";
 import { registrar } from "@/lib/auditoria";
 import {
   convidarUsuario,
@@ -40,6 +41,7 @@ import {
 const usuarioAtual = getUsuarioAtual as ReturnType<typeof vi.fn>;
 const administrar = podeAdministrar as ReturnType<typeof vi.fn>;
 const gerirAdmins = podeGerirAdmins as ReturnType<typeof vi.fn>;
+const gerirConsorcios = podeGerirConsorcios as ReturnType<typeof vi.fn>;
 const findUnique = prisma.usuario.findUnique as ReturnType<typeof vi.fn>;
 const create = prisma.usuario.create as ReturnType<typeof vi.fn>;
 const update = prisma.usuario.update as ReturnType<typeof vi.fn>;
@@ -292,16 +294,17 @@ describe("removerUsuario", () => {
 });
 
 describe("definirConsorcios", () => {
-  it("bloqueia quem não pode administrar", async () => {
-    usuarioAtual.mockResolvedValue(gestorSetor(["setor-1"]));
-    administrar.mockReturnValue(false);
+  it("bloqueia quem não é Super Admin", async () => {
+    usuarioAtual.mockResolvedValue(admin()); // perfil "admin", não "superadmin"
+    gerirConsorcios.mockReturnValue(false);
     const r = await definirConsorcios("alvo-1", ["c1"]);
-    expect(r).toEqual({ ok: false, erro: "Sem permissão." });
+    expect(r).toEqual({ ok: false, erro: "Apenas Super Admin gerencia consórcios." });
+    expect(update).not.toHaveBeenCalled();
   });
 
   it("define os consórcios e registra auditoria em caso de sucesso", async () => {
     usuarioAtual.mockResolvedValue(admin());
-    administrar.mockReturnValue(true);
+    gerirConsorcios.mockReturnValue(true);
     const r = await definirConsorcios("alvo-1", ["c1", "c2"]);
     expect(r).toEqual({ ok: true });
     expect(update).toHaveBeenCalledWith({

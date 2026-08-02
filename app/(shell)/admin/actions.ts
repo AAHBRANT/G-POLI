@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { getUsuarioAtual, podeAdministrar, podeGerirAdmins } from "@/lib/auth/usuario";
+import { getUsuarioAtual, podeAdministrar, podeGerirAdmins, podeGerirConsorcios } from "@/lib/auth/usuario";
 import { registrar } from "@/lib/auditoria";
 import { CARGOS_PRIVILEGIADOS } from "@/lib/auth/perfis";
 
@@ -98,11 +98,12 @@ export async function definirSetores(usuarioId: string, setores: string[]): Prom
   return { ok: true };
 }
 
-// Vincular consórcios (N:N). Super/Admin apenas — sem escopo de Gestor de Setor
-// (não existe "Gestor de Consórcio" nesta versão).
+// Vincular consórcios (N:N). Só Super Admin — mesma régua do CRUD de consórcio
+// (não existe "Gestor de Consórcio" nesta versão; diferente de definirSetores,
+// que usa podeAdministrar porque Gestor de Setor pode gerir seu próprio setor).
 export async function definirConsorcios(usuarioId: string, consorcios: string[]): Promise<ResultadoAcao> {
   const atual = await getUsuarioAtual();
-  if (!podeAdministrar(atual)) return { ok: false, erro: "Sem permissão." };
+  if (!podeGerirConsorcios(atual)) return { ok: false, erro: "Apenas Super Admin gerencia consórcios." };
   await prisma.usuario.update({
     where: { id: usuarioId },
     data: { consorcios: { set: consorcios.map((id) => ({ id })) } },
