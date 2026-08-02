@@ -8,6 +8,8 @@ import AudienciaSelector from "@/components/politica/AudienciaSelector";
 import { corClassificacao, rotuloClassificacao, ESTADOS_POLITICA, tipoDocumento } from "@/lib/constants";
 import { getUsuarioAtual, podeEditarConteudo, podePublicar, filtroVisibilidade } from "@/lib/auth/usuario";
 import { BUTTON_CLASSES } from "@/components/ui/Button";
+import VerVersaoAntiga from "@/components/politica/VerVersaoAntiga";
+import type { SecaoRenderizada } from "@/components/politica/DocumentoRenderizado";
 
 export const dynamic = "force-dynamic";
 
@@ -312,10 +314,23 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
                     {v.criadaEm.toLocaleDateString("pt-BR")}
                   </td>
                   <td className="px-4 py-2">
-                    {v.documento && (
-                      <a href={`/api/documentos/${v.documento.id}`} className={BUTTON_CLASSES}>
-                        Baixar
-                      </a>
+                    {v.documento?.oficial && v.estado === "substituida" ? (
+                      v.conteudoSnapshot ? (
+                        <VerVersaoAntiga
+                          secoes={v.conteudoSnapshot as unknown as SecaoRenderizada[]}
+                          tituloPolitica={politica.titulo}
+                          areaNome={politica.area.nome}
+                          codigo={politica.codigo}
+                          publicadaEm={v.criadaEm}
+                          revisao={v.revisaoNaEpoca ?? 0}
+                        />
+                      ) : null
+                    ) : (
+                      v.documento && (
+                        <a href={`/api/documentos/${v.documento.id}`} className={BUTTON_CLASSES}>
+                          Baixar
+                        </a>
+                      )
                     )}
                   </td>
                 </tr>
