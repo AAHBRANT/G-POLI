@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { publicarPolitica, revogarPolitica, reabrirPolitica } from "@/app/(shell)/catalogo/[id]/estado-actions";
+import { Button } from "@/components/ui/Button";
 
 type Acao = "publicar" | "revogar" | "reabrir";
 
@@ -91,12 +92,7 @@ export default function AcoesEstado({ id, estado }: { id: string; estado: string
               >
                 Cancelar
               </button>
-              <button
-                onClick={confirmar}
-                className="rounded-md bg-marsala px-3 py-1.5 text-xs font-medium text-white hover:bg-marsala-600"
-              >
-                Confirmar
-              </button>
+              <Button onClick={confirmar}>Confirmar</Button>
             </div>
           </div>
         </div>

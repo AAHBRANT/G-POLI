@@ -7,6 +7,7 @@ import CienciaLeitura from "@/components/politica/CienciaLeitura";
 import AudienciaSelector from "@/components/politica/AudienciaSelector";
 import { corClassificacao, rotuloClassificacao, ESTADOS_POLITICA, tipoDocumento } from "@/lib/constants";
 import { getUsuarioAtual, podeEditarConteudo, podePublicar, filtroVisibilidade } from "@/lib/auth/usuario";
+import { BUTTON_CLASSES } from "@/components/ui/Button";
 
 export const dynamic = "force-dynamic";
 
@@ -217,10 +218,7 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
             Conteúdo estruturado {politica.secoes.length > 0 && `(${politica.secoes.length} seções)`}
           </h3>
           {podeEditar && (
-            <Link
-              href={`/catalogo/${politica.id}/editar`}
-              className="rounded-md bg-marsala px-3 py-1.5 text-xs font-medium text-white transition hover:bg-marsala-600"
-            >
+            <Link href={`/catalogo/${politica.id}/editar`} className={BUTTON_CLASSES}>
               Editar conteúdo
             </Link>
           )}
@@ -311,10 +309,7 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
                   </td>
                   <td className="px-4 py-2">
                     {v.documento && (
-                      <a
-                        href={`/api/documentos/${v.documento.id}`}
-                        className="text-marsala hover:underline"
-                      >
+                      <a href={`/api/documentos/${v.documento.id}`} className={BUTTON_CLASSES}>
                         Baixar
                       </a>
                     )}

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { criarPolitica } from "@/app/(shell)/catalogo/actions";
 import { CLASSIFICACOES, tipoDocumento, artigoDocumento, type TipoDocumentoValor } from "@/lib/constants";
+import { Button } from "@/components/ui/Button";
 
 // Formulário genérico de criação — serve à Política (/catalogo) e aos outros 7
 // tipos de documento (/tipos/[tipo]). Só o rótulo, o placeholder e o campo
@@ -28,12 +29,9 @@ export default function NovaPoliticaForm({ tipo = "politica" }: { tipo?: TipoDoc
 
   if (!aberto) {
     return (
-      <button
-        onClick={() => setAberto(true)}
-        className="rounded-md bg-marsala px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-marsala-600"
-      >
+      <Button onClick={() => setAberto(true)}>
         + {novo} {info.rotulo.toLowerCase()}
-      </button>
+      </Button>
     );
   }
 
@@ -99,13 +97,9 @@ export default function NovaPoliticaForm({ tipo = "politica" }: { tipo?: TipoDoc
       )}
 
       <div className="mt-4 flex items-center gap-2">
-        <button
-          type="submit"
-          disabled={pendente}
-          className="rounded-md bg-marsala px-4 py-2 text-sm font-medium text-white transition hover:bg-marsala-600 disabled:opacity-60"
-        >
+        <Button type="submit" disabled={pendente}>
           {pendente ? "Salvando…" : `Salvar ${info.rotulo.toLowerCase()}`}
-        </button>
+        </Button>
         <button
           type="button"
           onClick={() => {

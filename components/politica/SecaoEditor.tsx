@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { salvarSecao, alternarAberturaArea } from "@/app/(shell)/catalogo/[id]/conteudo-actions";
+import { Button } from "@/components/ui/Button";
 
 type Props = {
   id: string;
@@ -172,13 +173,9 @@ export default function SecaoEditor(props: Props) {
         </p>
       ) : (
         <div className="mt-3 flex items-center gap-3">
-          <button
-            onClick={salvar}
-            disabled={pendente || !sujo}
-            className="rounded-md bg-marsala px-4 py-2 text-sm font-medium text-white transition hover:bg-marsala-600 disabled:opacity-50"
-          >
+          <Button onClick={salvar} disabled={pendente || !sujo}>
             {pendente ? "Salvando…" : "Salvar seção"}
-          </button>
+          </Button>
           {pendente ? (
             <span className="text-sm text-black/40">Salvando…</span>
           ) : sujo ? (

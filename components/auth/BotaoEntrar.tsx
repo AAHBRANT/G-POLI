@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/Button";
 
 // Botão de login que se comporta conforme o contexto.
 //
@@ -59,11 +60,11 @@ export default function BotaoEntrar() {
 
   return (
     <>
-      <button
+      <Button
         type="button"
         onClick={entrar}
         disabled={ocupado}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-marsala px-4 py-2.5 text-center text-sm font-medium text-white shadow-sm transition hover:bg-marsala-600 disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-2"
       >
         <svg width="16" height="16" viewBox="0 0 23 23" aria-hidden>
           <path fill="#fff" d="M1 1h10v10H1z" opacity=".9" />
@@ -72,7 +73,7 @@ export default function BotaoEntrar() {
           <path fill="#fff" d="M12 12h10v10H12z" opacity=".4" />
         </svg>
         {ocupado ? "Entrando…" : "Entrar com Microsoft"}
-      </button>
+      </Button>
     </>
   );
 }

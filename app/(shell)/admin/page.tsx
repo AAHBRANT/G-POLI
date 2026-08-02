@@ -5,6 +5,7 @@ import LinhaUsuario from "@/components/admin/LinhaUsuario";
 import ConvidarUsuarioForm from "@/components/admin/ConvidarUsuarioForm";
 import GerenciarSetores from "@/components/admin/GerenciarSetores";
 import { CARGOS } from "@/lib/auth/perfis";
+import { Button } from "@/components/ui/Button";
 
 export const dynamic = "force-dynamic";
 
@@ -106,7 +107,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Params
                 <option value="inativo">Inativo</option>
               </select>
             </div>
-            <button className="h-10 rounded-md bg-marsala px-4 text-sm font-medium text-white hover:bg-marsala-600">Filtrar</button>
+            <Button>Filtrar</Button>
             {filtroAtivo && (
               <Link
                 href="/admin"

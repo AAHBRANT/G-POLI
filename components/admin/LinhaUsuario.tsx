@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { definirPerfil, definirSetores, alternarAtivo, removerUsuario } from "@/app/(shell)/admin/actions";
 import { CARGOS, CARGOS_PRIVILEGIADOS, rotuloCargo } from "@/lib/auth/perfis";
+import { Button } from "@/components/ui/Button";
 
 type Setor = { id: string; nome: string };
 type U = {
@@ -122,7 +123,7 @@ export default function LinhaUsuario({
               ))}
             </div>
             <div className="flex gap-2">
-              <button onClick={salvarSetores} disabled={pend} className="rounded bg-marsala px-2 py-1 text-[11px] font-medium text-white disabled:opacity-60">Salvar</button>
+              <Button onClick={salvarSetores} disabled={pend}>Salvar</Button>
               <button onClick={() => setEditSet(false)} className="text-[11px] text-black/50">cancelar</button>
             </div>
           </div>
@@ -184,12 +185,7 @@ export default function LinhaUsuario({
                 >
                   Cancelar
                 </button>
-                <button
-                  onClick={confirmarPerfil}
-                  className="rounded-md bg-marsala px-3 py-1.5 text-xs font-medium text-white hover:bg-marsala-600"
-                >
-                  Confirmar
-                </button>
+                <Button onClick={confirmarPerfil}>Confirmar</Button>
               </div>
             </div>
           </div>
