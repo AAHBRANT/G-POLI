@@ -42,6 +42,16 @@ async function resolverAudiencia(politicaId: string): Promise<UsuarioAlvo[]> {
   });
   if (!politica) return [];
 
+  // Consórcio como destino substitui o público-alvo por setor/usuário — ver
+  // spec docs/superpowers/specs/2026-08-02-consorcios-design.md.
+  if (politica.consorcioId) {
+    const consorcio = await prisma.consorcio.findUnique({
+      where: { id: politica.consorcioId },
+      include: { membros: { where: { ativo: true } } },
+    });
+    return (consorcio?.membros ?? []).map(paraAlvo);
+  }
+
   const setorIds = politica.audienciaSetores.map((a) => a.id);
   const usuarioIds = politica.audienciaUsuarios.map((u) => u.id);
 

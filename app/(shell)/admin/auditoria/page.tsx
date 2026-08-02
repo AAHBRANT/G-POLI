@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getUsuarioAtual, podeAdministrar } from "@/lib/auth/usuario";
+import { getUsuarioAtual, podeAdministrar, filtroVisibilidade } from "@/lib/auth/usuario";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +20,10 @@ const ACAO_ROTULO: Record<string, string> = {
   "setor.criar": "Criou setor",
   "setor.renomear": "Renomeou setor",
   "setor.ativo": "Ativou/desativou setor",
+  "consorcio.criar": "Criou consórcio",
+  "consorcio.renomear": "Renomeou consórcio",
+  "consorcio.ativo": "Ativou/desativou consórcio",
+  "usuario.consorcios": "Alterou consórcios do usuário",
   "ciencia.dar": "Deu ciência",
   "ia.gerar": "Gerou rascunho com IA",
   "ia.aplicar": "Aplicou rascunho da IA",
@@ -35,10 +39,30 @@ export default async function AuditoriaPage() {
     );
   }
 
-  const registros = await prisma.auditoria.findMany({
+  // Gestor de Setor (perfil "area") não é Super Admin/Admin: não pode ver
+  // entradas de auditoria de políticas fora da sua visibilidade normal (ex.:
+  // título de documento de consórcio ao qual não está vinculado — a mesma
+  // regra de filtroVisibilidade usada em todo o resto do app). Super Admin e
+  // Admin continuam vendo tudo, sem filtro.
+  let idsPoliticasVisiveis: Set<string> | null = null;
+  if (atual?.perfil === "area") {
+    const politicasVisiveis = await prisma.politica.findMany({
+      where: filtroVisibilidade(atual),
+      select: { id: true },
+    });
+    idsPoliticasVisiveis = new Set(politicasVisiveis.map((p) => p.id));
+  }
+
+  const registrosBrutos = await prisma.auditoria.findMany({
     orderBy: { criadoEm: "desc" },
     take: 200,
   });
+
+  const registros = idsPoliticasVisiveis
+    ? registrosBrutos.filter(
+        (r) => !(r.entidade === "Politica" && !idsPoliticasVisiveis!.has(r.entidadeId)),
+      )
+    : registrosBrutos;
 
   return (
     <div className="space-y-5">

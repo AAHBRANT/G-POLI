@@ -21,6 +21,8 @@ export async function criarPolitica(formData: FormData): Promise<ResultadoAcao> 
   const titulo = String(formData.get("titulo") ?? "").trim();
   const area = String(formData.get("area") ?? "").trim();
   const classificacao = String(formData.get("classificacao") ?? "").trim();
+  const consorcioIdBruto = String(formData.get("consorcioId") ?? "").trim();
+  const consorcioId = consorcioIdBruto || undefined;
   // v3: sem campo "tipo" no form (ex.: o de /catalogo), assume Política — é o
   // comportamento de sempre, preservado.
   const tipoBruto = String(formData.get("tipo") ?? "politica").trim();
@@ -53,6 +55,7 @@ export async function criarPolitica(formData: FormData): Promise<ResultadoAcao> 
         codigo,
         tipo,
         areaId: areaRegistro.id,
+        consorcioId,
         classificacao: classificacao as never,
         secoes: {
           create: ESQUELETO_PADRAO.map((s) => ({

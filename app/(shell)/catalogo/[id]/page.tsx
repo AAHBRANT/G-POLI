@@ -38,6 +38,7 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
     where: { id: params.id, AND: [filtroVisibilidade(usuario)] },
     include: {
       area: true,
+      consorcio: true,
       versoes: { include: { documento: true }, orderBy: { numero: "desc" } },
       secoes: { orderBy: { ordem: "asc" } },
       ciencias: { orderBy: { criadoEm: "desc" } },
@@ -97,6 +98,9 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
           {podePub && <div className="ml-auto"><AcoesEstado id={politica.id} estado={politica.estado} /></div>}
         </div>
         <p className="mt-1 text-sm text-black/50">Área: {politica.area.nome}</p>
+        <p className="mt-1 text-sm text-black/50">
+          Destino: {politica.consorcio ? politica.consorcio.nome : "AAHBRANT (todos)"}
+        </p>
         {politica.estado !== "rascunho" && politica.publicadaEm && (
           <p className="mt-1 text-xs text-black/45">
             Publicada em {politica.publicadaEm.toLocaleDateString("pt-BR")}
@@ -199,7 +203,7 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
         </section>
       )}
 
-      {podeEditar && politica.estado === "rascunho" && (
+      {podeEditar && politica.estado === "rascunho" && !politica.consorcioId && (
         <section className="rounded-lg border border-black/10 bg-white p-4">
           <h3 className="mb-3 text-sm font-semibold text-black/80">Público-alvo da publicação</h3>
           <AudienciaSelector

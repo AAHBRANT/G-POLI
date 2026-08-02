@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getUsuarioAtual, podeAdministrar, podeGerirSetores, podeGerirAdmins } from "@/lib/auth/usuario";
+import { getUsuarioAtual, podeAdministrar, podeGerirSetores, podeGerirConsorcios, podeGerirAdmins } from "@/lib/auth/usuario";
 import LinhaUsuario from "@/components/admin/LinhaUsuario";
 import ConvidarUsuarioForm from "@/components/admin/ConvidarUsuarioForm";
 import GerenciarSetores from "@/components/admin/GerenciarSetores";
+import GerenciarConsorcios from "@/components/admin/GerenciarConsorcios";
 import { CARGOS } from "@/lib/auth/perfis";
 import { Button } from "@/components/ui/Button";
 
@@ -22,13 +23,17 @@ export default async function AdminPage({ searchParams }: { searchParams: Params
   }
 
   const gerirSetores = podeGerirSetores(atual);
+  const gerirConsorcios = podeGerirConsorcios(atual);
   const gerirAdmins = podeGerirAdmins(atual);
   const ehGestorTopo = atual!.perfil === "superadmin" || atual!.perfil === "admin";
 
   const q = (searchParams.q ?? "").trim();
   const cargo = searchParams.cargo ?? "";
   const status = searchParams.status ?? "";
-  const tab = searchParams.tab === "setores" && gerirSetores ? "setores" : "usuarios";
+  const tab =
+    searchParams.tab === "setores" && gerirSetores ? "setores" :
+    searchParams.tab === "consorcios" && gerirConsorcios ? "consorcios" :
+    "usuarios";
 
   const and: Record<string, unknown>[] = [];
   if (q) and.push({ OR: [{ nome: { contains: q, mode: "insensitive" } }, { email: { contains: q, mode: "insensitive" } }] });
@@ -38,16 +43,21 @@ export default async function AdminPage({ searchParams }: { searchParams: Params
   // Gestor de Setor: só enxerga usuários dos seus setores.
   if (!ehGestorTopo && atual!.setores.length) and.push({ setores: { some: { id: { in: atual!.setores } } } });
 
-  const [usuarios, setores] = await Promise.all([
+  const [usuarios, setores, consorcios] = await Promise.all([
     prisma.usuario.findMany({
       where: and.length ? { AND: and } : {},
-      include: { setores: { select: { id: true, nome: true } } },
+      include: {
+        setores: { select: { id: true, nome: true } },
+        consorcios: { select: { id: true, nome: true } },
+      },
       orderBy: { criadoEm: "asc" },
     }),
     prisma.area.findMany({ orderBy: { nome: "asc" } }),
+    prisma.consorcio.findMany({ orderBy: { nome: "asc" } }),
   ]);
 
   const setoresAtivos = setores.filter((s) => s.ativa).map((s) => ({ id: s.id, nome: s.nome }));
+  const consorciosAtivos = consorcios.filter((c) => c.ativo).map((c) => ({ id: c.id, nome: c.nome }));
   const filtroAtivo = Boolean(q || cargo || status);
 
   const abaClasse = (ativa: boolean) =>
@@ -76,6 +86,11 @@ export default async function AdminPage({ searchParams }: { searchParams: Params
             Setores ({setores.length})
           </Link>
         )}
+        {gerirConsorcios && (
+          <Link href="/admin?tab=consorcios" className={abaClasse(tab === "consorcios")}>
+            Consórcios ({consorcios.length})
+          </Link>
+        )}
         <Link href="/admin/auditoria" className={abaClasse(false)}>
           Auditoria
         </Link>
@@ -83,6 +98,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Params
 
       {tab === "setores" ? (
         <GerenciarSetores setores={setores.map((s) => ({ id: s.id, nome: s.nome, ativa: s.ativa }))} />
+      ) : tab === "consorcios" ? (
+        <GerenciarConsorcios consorcios={consorcios.map((c) => ({ id: c.id, nome: c.nome, ativo: c.ativo }))} />
       ) : (
         <>
           {/* Filtros */}
@@ -133,6 +150,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Params
                     <th className="px-4 py-2 font-medium">E-mail</th>
                     <th className="px-4 py-2 font-medium">Cargo</th>
                     <th className="px-4 py-2 font-medium">Setor</th>
+                    <th className="px-4 py-2 font-medium">Consórcio</th>
                     <th className="px-4 py-2 font-medium">Status</th>
                     <th className="px-4 py-2 font-medium">Cadastro</th>
                     <th className="px-4 py-2 font-medium">Ações</th>
@@ -140,7 +158,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Params
                 </thead>
                 <tbody className="divide-y divide-black/5">
                   {usuarios.length === 0 ? (
-                    <tr><td colSpan={7} className="p-6 text-center text-black/50">Nenhum usuário para os filtros.</td></tr>
+                    <tr><td colSpan={8} className="p-6 text-center text-black/50">Nenhum usuário para os filtros.</td></tr>
                   ) : (
                     usuarios.map((u) => (
                       <LinhaUsuario
@@ -154,9 +172,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Params
                           pendente: !u.oid,
                           dataCadastro: u.criadoEm.toLocaleDateString("pt-BR"),
                           setores: u.setores.map((s) => ({ id: s.id, nome: s.nome })),
+                          consorcios: u.consorcios.map((c) => ({ id: c.id, nome: c.nome })),
                         }}
                         setores={setoresAtivos}
+                        consorcios={consorciosAtivos}
                         podeAdmins={gerirAdmins}
+                        gerirConsorcios={gerirConsorcios}
                         ehVoceMesmo={atual!.id === u.id}
                       />
                     ))

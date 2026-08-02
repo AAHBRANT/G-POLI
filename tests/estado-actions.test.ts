@@ -7,6 +7,8 @@ vi.mock("@/lib/prisma", () => ({
     politica: { findUnique: vi.fn(), update: vi.fn() },
     pendencia: { createMany: vi.fn(), updateMany: vi.fn() },
     usuario: { findMany: vi.fn() },
+    consorcio: { findUnique: vi.fn() }, // NOVO (Task 8) — membros do consórcio quando politica.consorcioId
+    notificacao: { create: vi.fn() }, // NOVO (Task 8) — o teste novo asserta chamadas diretas a este mock
     $transaction: vi.fn(),
   },
 }));
@@ -70,6 +72,7 @@ function politicaBase() {
     secoes: [{ ordem: 1, codigo: "1", titulo: "Objetivo", tipo: "texto", corpo: "Texto.", colunas: null, linhas: null }],
     audienciaSetores: [],   // NOVO — vazio = "todos os colaboradores" (audienciaVazia)
     audienciaUsuarios: [],  // NOVO
+    consorcioId: null,      // NOVO (Task 8) — sem consórcio, cai na audiência por setor/usuário
   };
 }
 
@@ -162,6 +165,30 @@ describe("publicarPolitica — geração do documento oficial", () => {
     expect(versaoCreate).not.toHaveBeenCalled();
     expect(auditoriaRegistrar).not.toHaveBeenCalled();
     expect(revalidar).not.toHaveBeenCalled();
+  });
+
+  it("politica com consorcioId: notifica só os membros do consórcio, ignora audienciaSetores/Usuarios", async () => {
+    gerar.mockResolvedValue(Buffer.from("conteudo-fake"));
+    findUnique.mockResolvedValue({
+      ...politicaBase(),
+      consorcioId: "c1",
+      audienciaSetores: [{ id: "s1", membros: [{ id: "u-fora", oid: "o-fora", nome: "Fora", email: "fora@x.com", ativo: true }] }],
+      audienciaUsuarios: [],
+    });
+
+    const consorcioFindUnique = prisma.consorcio.findUnique as ReturnType<typeof vi.fn>;
+    consorcioFindUnique.mockResolvedValue({
+      membros: [{ id: "u-consorcio", oid: "o-consorcio", nome: "Do Consórcio", email: "consorcio@x.com", ativo: true }],
+    });
+
+    await publicarPolitica("p1");
+
+    expect(prisma.notificacao.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ usuarioEmail: "consorcio@x.com" }) }),
+    );
+    expect(prisma.notificacao.create).not.toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ usuarioEmail: "fora@x.com" }) }),
+    );
   });
 });
 
