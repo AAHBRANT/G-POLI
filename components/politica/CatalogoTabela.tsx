@@ -15,7 +15,16 @@ export type ItemCatalogo = {
   _count: { versoes: number };
 };
 
-export default function CatalogoTabela({ itens }: { itens: ItemCatalogo[] }) {
+export default function CatalogoTabela({
+  itens,
+  pendentesIds = new Set(),
+}: {
+  itens: ItemCatalogo[];
+  // ids de política com Pendencia "pendente" do usuário atual — destaca a
+  // linha (ainda não deu ciência) e é opcional pra não quebrar quem já
+  // chamava este componente sem essa prop.
+  pendentesIds?: Set<string>;
+}) {
   return (
     <div className="overflow-hidden rounded-lg border border-black/10 bg-white">
       <table className="w-full text-sm">
@@ -28,13 +37,15 @@ export default function CatalogoTabela({ itens }: { itens: ItemCatalogo[] }) {
             <th className="px-4 py-3 font-medium">Estado</th>
             <th className="px-4 py-3 font-medium">Versões</th>
             <th className="px-4 py-3 font-medium">Criada em</th>
+            <th className="px-4 py-3 font-medium">Ação</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-black/5">
           {itens.map((p) => {
             const estado = ESTADOS_POLITICA[p.estado] ?? { rotulo: p.estado, cor: "" };
+            const pendente = pendentesIds.has(p.id);
             return (
-              <tr key={p.id} className="hover:bg-black/[0.02]">
+              <tr key={p.id} className={pendente ? "bg-amber-50 hover:bg-amber-100" : "hover:bg-black/[0.02]"}>
                 <td className="whitespace-nowrap px-4 py-3">
                   <span className="rounded bg-marsala-50 px-2 py-0.5 font-mono text-[11px] font-medium text-marsala">
                     {p.codigo ?? "—"}
@@ -44,6 +55,11 @@ export default function CatalogoTabela({ itens }: { itens: ItemCatalogo[] }) {
                   <Link href={`/catalogo/${p.id}`} className="text-marsala hover:underline">
                     {p.titulo}
                   </Link>
+                  {pendente && (
+                    <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">
+                      não lida
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-black/70">{p.area.nome}</td>
                 <td className="px-4 py-3">
@@ -58,6 +74,14 @@ export default function CatalogoTabela({ itens }: { itens: ItemCatalogo[] }) {
                 </td>
                 <td className="px-4 py-3 text-black/60">{p._count.versoes}</td>
                 <td className="px-4 py-3 text-black/50">{p.criadaEm.toLocaleDateString("pt-BR")}</td>
+                <td className="px-4 py-3">
+                  <Link
+                    href={`/catalogo/${p.id}`}
+                    className="rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-800"
+                  >
+                    Ver
+                  </Link>
+                </td>
               </tr>
             );
           })}
