@@ -37,7 +37,6 @@ export default function CatalogoTabela({
             <th className="px-4 py-3 font-medium">Estado</th>
             <th className="px-4 py-3 font-medium">Versões</th>
             <th className="px-4 py-3 font-medium">Criada em</th>
-            <th className="px-4 py-3 font-medium">Ação</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-black/5">
@@ -52,7 +51,10 @@ export default function CatalogoTabela({
                   </span>
                 </td>
                 <td className="px-4 py-3 font-medium">
-                  <Link href={`/catalogo/${p.id}`} className="text-marsala hover:underline">
+                  <Link
+                    href={`/catalogo/${p.id}`}
+                    className="inline-block rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-800"
+                  >
                     {p.titulo}
                   </Link>
                   {pendente && (
@@ -74,14 +76,6 @@ export default function CatalogoTabela({
                 </td>
                 <td className="px-4 py-3 text-black/60">{p._count.versoes}</td>
                 <td className="px-4 py-3 text-black/50">{p.criadaEm.toLocaleDateString("pt-BR")}</td>
-                <td className="px-4 py-3">
-                  <Link
-                    href={`/catalogo/${p.id}`}
-                    className="rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-800"
-                  >
-                    Ver
-                  </Link>
-                </td>
               </tr>
             );
           })}
