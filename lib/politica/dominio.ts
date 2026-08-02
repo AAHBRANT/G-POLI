@@ -287,3 +287,24 @@ export function corpoParaTexto(secao: {
   for (const linha of linhas) partes.push(linha.join(" | "));
   return partes.join("\n");
 }
+
+// ---------------------------------------------------------------------------
+// Ação disponível por versão (v3: "Ver" em vez de "Baixar" pra oficial substituído)
+// ---------------------------------------------------------------------------
+export type AcaoVersao = "baixar" | "ver" | "nenhuma";
+
+// Regra (ver docs/superpowers/specs/2026-08-02-versao-substituida-ver-nao-baixar-design.md):
+// anexo manual sempre baixa, qualquer estado; oficial ativo sempre baixa; oficial
+// substituído só "ve" se tiver snapshot próprio (versões anteriores a esta feature
+// não têm, e não mostram nenhuma ação).
+export function acaoVersao(v: {
+  temDocumento: boolean;
+  oficial: boolean;
+  estado: string;
+  temSnapshot: boolean;
+}): AcaoVersao {
+  if (!v.temDocumento) return "nenhuma";
+  if (!v.oficial) return "baixar";
+  if (v.estado !== "substituida") return "baixar";
+  return v.temSnapshot ? "ver" : "nenhuma";
+}

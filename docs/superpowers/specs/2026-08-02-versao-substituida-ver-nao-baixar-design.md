@@ -75,8 +75,9 @@ de ciência/confirmação — puramente apresentacional).
 Novo componente `components/politica/VerVersaoAntiga.tsx`: botão "Ver" que abre um modal (mesmo padrão
 visual de `CienciaLeitura`: `fixed inset-0` + card centralizado) renderizando `DocumentoRenderizado`
 com os dados da versão (`v.conteudoSnapshot` como `secoes`, `v.revisaoNaEpoca` como `revisao`,
-`v.criadaEm` como `publicadaEm`), mais um aviso no topo do modal: "Versão substituída — somente
-leitura, download indisponível." Nenhum link de arquivo, nenhuma chamada a `/api/documentos/[id]`.
+`v.criadaEm` como `publicadaEm`), mais um aviso no rodapé do modal, ao lado do botão Fechar (mesmo
+padrão do `CienciaLeitura`): "Versão substituída — somente leitura, download indisponível." Nenhum
+link de arquivo, nenhuma chamada a `/api/documentos/[id]`.
 
 `CienciaLeitura.tsx` passa a usar `DocumentoRenderizado` internamente no lugar do bloco de renderização
 que já tem hoje — comportamento idêntico, só reorganizado (extração pura, sem mudança visual).

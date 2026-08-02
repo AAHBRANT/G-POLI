@@ -10,19 +10,9 @@ import { getUsuarioAtual, podeEditarConteudo, podePublicar, filtroVisibilidade }
 import { BUTTON_CLASSES } from "@/components/ui/Button";
 import VerVersaoAntiga from "@/components/politica/VerVersaoAntiga";
 import type { SecaoRenderizada } from "@/components/politica/DocumentoRenderizado";
+import { acaoVersao } from "@/lib/politica/dominio";
 
 export const dynamic = "force-dynamic";
-
-// Formato gravado por `montarSnapshot` (lib/politica/dominio.ts) em
-// Politica.conteudoPublicado no momento da publicação.
-type SecaoSnapshot = {
-  codigo: string;
-  titulo: string;
-  tipo: string;
-  corpo: string;
-  colunas: string[] | null;
-  linhas: string[][] | null;
-};
 
 function formatoTamanho(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -133,7 +123,7 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
               )}
               <CienciaLeitura
                 politicaId={politica.id}
-                secoes={(politica.conteudoPublicado as SecaoSnapshot[] | null) ?? []}
+                secoes={(politica.conteudoPublicado as SecaoRenderizada[] | null) ?? []}
                 jaCiente={!!minhaCiencia}
                 codigo={politica.codigo}
                 tituloPolitica={politica.titulo}
@@ -314,24 +304,34 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
                     {v.criadaEm.toLocaleDateString("pt-BR")}
                   </td>
                   <td className="px-4 py-2">
-                    {v.documento?.oficial && v.estado === "substituida" ? (
-                      v.conteudoSnapshot ? (
-                        <VerVersaoAntiga
-                          secoes={v.conteudoSnapshot as unknown as SecaoRenderizada[]}
-                          tituloPolitica={politica.titulo}
-                          areaNome={politica.area.nome}
-                          codigo={politica.codigo}
-                          publicadaEm={v.criadaEm}
-                          revisao={v.revisaoNaEpoca ?? 0}
-                        />
-                      ) : null
-                    ) : (
-                      v.documento && (
-                        <a href={`/api/documentos/${v.documento.id}`} className={BUTTON_CLASSES}>
-                          Baixar
-                        </a>
-                      )
-                    )}
+                    {(() => {
+                      const acao = acaoVersao({
+                        temDocumento: !!v.documento,
+                        oficial: !!v.documento?.oficial,
+                        estado: v.estado,
+                        temSnapshot: !!v.conteudoSnapshot,
+                      });
+                      if (acao === "ver") {
+                        return (
+                          <VerVersaoAntiga
+                            secoes={v.conteudoSnapshot as unknown as SecaoRenderizada[]}
+                            tituloPolitica={politica.titulo}
+                            areaNome={politica.area.nome}
+                            codigo={politica.codigo}
+                            publicadaEm={v.criadaEm}
+                            revisao={v.revisaoNaEpoca ?? 0}
+                          />
+                        );
+                      }
+                      if (acao === "baixar") {
+                        return (
+                          <a href={`/api/documentos/${v.documento!.id}`} className={BUTTON_CLASSES}>
+                            Baixar
+                          </a>
+                        );
+                      }
+                      return null;
+                    })()}
                   </td>
                 </tr>
               ))}
