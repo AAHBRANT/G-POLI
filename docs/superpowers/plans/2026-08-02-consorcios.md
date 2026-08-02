@@ -1013,23 +1013,32 @@ Dentro de `describe("publicarPolitica — geração do documento oficial", ...)`
 
 ```ts
 it("politica com consorcioId: notifica só os membros do consórcio, ignora audienciaSetores/Usuarios", async () => {
-  // reaproveita o setup do describe (mock de getUsuarioAtual, gerarDocumentoOficial, etc. —
-  // ver o topo do describe existente para os mocks compartilhados)
-  findUnique
-    .mockResolvedValueOnce({
-      ...politicaBase, // helper já usado nos outros testes deste describe
-      consorcioId: "c1",
-      audienciaSetores: [{ id: "s1", membros: [{ id: "u-fora", oid: "o-fora", nome: "Fora", email: "fora@x.com", ativo: true }] }],
-      audienciaUsuarios: [],
-    })
-    .mockResolvedValueOnce(null); // 2ª chamada é a de resolverAudiencia — ver Step 3
+  gerar.mockResolvedValue(Buffer.from("conteudo-fake"));
+  // As DUAS chamadas a prisma.politica.findUnique (a de publicarPolitica no topo
+  // da função e a interna de resolverAudiencia) precisam ver consorcioId:"c1" —
+  // resolverAudiencia decide pelo consórcio ANTES de olhar audienciaSetores/Usuarios,
+  // então esses campos aqui só documentam "existiam mas foram ignorados", nunca são
+  // lidos nesse ramo. NÃO usar mockResolvedValueOnce(null) na 2ª chamada — isso faz
+  // resolverAudiencia cair no `if (!politica) return [];` antes mesmo de checar
+  // consorcioId, e o teste falha pra qualquer implementação correta do Step 4.
+  findUnique.mockResolvedValue({
+    ...politicaBase(), // helper (função) já usado nos outros testes deste describe
+    consorcioId: "c1",
+    audienciaSetores: [{ id: "s1", membros: [{ id: "u-fora", oid: "o-fora", nome: "Fora", email: "fora@x.com", ativo: true }] }],
+    audienciaUsuarios: [],
+  });
 
-  // membros do consórcio: só quem está em Consorcio.membros
-  prisma.consorcio.findUnique = vi.fn().mockResolvedValue({
+  // membros do consórcio: só quem está em Consorcio.membros. O mock de
+  // prisma.consorcio.findUnique já existe no vi.mock("@/lib/prisma", ...) no topo
+  // do arquivo (mesmo padrão de prisma.politica.findUnique) — NÃO reatribuir
+  // `prisma.consorcio.findUnique = vi.fn()...` (sobrescreveria o mock do módulo);
+  // em vez disso, pegue a referência já tipada e chame `.mockResolvedValue` nela:
+  const consorcioFindUnique = prisma.consorcio.findUnique as ReturnType<typeof vi.fn>;
+  consorcioFindUnique.mockResolvedValue({
     membros: [{ id: "u-consorcio", oid: "o-consorcio", nome: "Do Consórcio", email: "consorcio@x.com", ativo: true }],
   });
 
-  await publicarPolitica("pol-1");
+  await publicarPolitica("p1");
 
   expect(prisma.notificacao.create).toHaveBeenCalledWith(
     expect.objectContaining({ data: expect.objectContaining({ usuarioEmail: "consorcio@x.com" }) }),
@@ -1040,10 +1049,10 @@ it("politica com consorcioId: notifica só os membros do consórcio, ignora audi
 });
 ```
 
-Adaptar o mock de `prisma.consorcio.findUnique` para o formato exato de mock já usado no
-arquivo (ver como `prisma.politica.findUnique`/`prisma.usuario.findMany` são mockados no topo
-do describe existente — provavelmente via `vi.mock("@/lib/prisma", ...)` no topo do arquivo;
-adicionar `consorcio: { findUnique: vi.fn() }` a esse mock).
+O mock de `prisma.consorcio.findUnique` e de `prisma.notificacao.create` precisam existir no
+`vi.mock("@/lib/prisma", ...)` no topo do arquivo (mesmo objeto onde já estão
+`politica`/`pendencia`/`usuario`) — adicionar `consorcio: { findUnique: vi.fn() }` e
+`notificacao: { create: vi.fn() }` a esse mock se ainda não existirem.
 
 - [ ] **Step 3: Rodar e confirmar que falha**
 
