@@ -69,14 +69,17 @@ export async function getUsuarioAtual(): Promise<UsuarioAtual | null> {
       const a = await prisma.area.findFirst({ orderBy: { criadoEm: "asc" } });
       if (a) setores = [a.id];
     }
-    return { id: "dev", oid: "dev", nome: "Dev", email: "dev@local", perfil, setores };
+    return { id: "dev", oid: "dev", nome: "Dev", email: "dev@local", perfil, setores, consorcios: [] };
   }
 
   const sessao = await lerSessao();
   if (!sessao) return null;
   const u = await prisma.usuario.findUnique({
     where: { oid: sessao.sub },
-    include: { setores: { select: { id: true } } },
+    include: {
+      setores: { select: { id: true } },
+      consorcios: { select: { id: true } },
+    },
   });
   if (!u || !u.ativo) return null;
   return {
@@ -86,5 +89,6 @@ export async function getUsuarioAtual(): Promise<UsuarioAtual | null> {
     email: u.email,
     perfil: u.perfil as Perfil,
     setores: u.setores.map((s) => s.id),
+    consorcios: u.consorcios.map((c) => c.id),
   };
 }
