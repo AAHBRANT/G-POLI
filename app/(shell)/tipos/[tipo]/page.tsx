@@ -3,6 +3,7 @@ import NovaPoliticaForm from "@/components/politica/NovaPoliticaForm";
 import PainelCatalogo from "@/components/politica/PainelCatalogo";
 import { getUsuarioAtual, podeCriarPolitica } from "@/lib/auth/usuario";
 import { tipoDocumentoValido, tipoDocumento, artigoDocumento } from "@/lib/constants";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,11 @@ export default async function TipoDocumentoPage({
   const q = (searchParams.q ?? "").trim();
   const areaId = searchParams.area ?? "";
   const estado = searchParams.estado ?? "";
+  const consorciosAtivos = await prisma.consorcio.findMany({
+    where: { ativo: true },
+    orderBy: { nome: "asc" },
+    select: { id: true, nome: true },
+  });
 
   return (
     <div className="space-y-6">
@@ -35,7 +41,7 @@ export default async function TipoDocumentoPage({
           <h2 className="text-lg font-semibold text-marsala">{info.rotuloPlural}</h2>
           <p className="text-sm text-black/50">{info.descricao}</p>
         </div>
-        {podeCriar && <NovaPoliticaForm tipo={info.valor} />}
+        {podeCriar && <NovaPoliticaForm tipo={info.valor} consorcios={consorciosAtivos} />}
       </div>
 
       <PainelCatalogo
