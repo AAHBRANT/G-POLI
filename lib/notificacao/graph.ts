@@ -49,7 +49,8 @@ async function enviarAtividade(params: {
   try {
     token = await obterTokenGraph();
   } catch (erro) {
-    return { ok: false, motivo: erro instanceof Error ? erro.message : String(erro) };
+    const msg = erro instanceof Error ? erro.message : String(erro);
+    return { ok: false, motivo: msg.startsWith("token_graph:") ? msg : `token_graph: ${msg}` };
   }
 
   try {

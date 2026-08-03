@@ -11,6 +11,7 @@ vi.mock("@/lib/auth/config", () => ({
   authConfig: { baseUrl: "https://ca-gpol-hml-aahbrant.whitesmoke-8dee35f8.brazilsouth.azurecontainerapps.io" },
 }));
 
+import { msalApp } from "@/lib/auth/msal";
 import { enviarNotificacaoPoliticaPublicada } from "@/lib/notificacao/graph";
 
 describe("enviarNotificacaoPoliticaPublicada", () => {
@@ -19,6 +20,22 @@ describe("enviarNotificacaoPoliticaPublicada", () => {
       "fetch",
       vi.fn(async () => new Response(null, { status: 204 })),
     );
+  });
+
+  it("prefixa 'token_graph: ' quando acquireTokenByClientCredential lança (não apenas quando volta vazio)", async () => {
+    (msalApp as ReturnType<typeof vi.fn>).mockReturnValueOnce({
+      acquireTokenByClientCredential: vi.fn(async () => {
+        throw new Error("timeout");
+      }),
+    });
+
+    const resultado = await enviarNotificacaoPoliticaPublicada({
+      oid: "oid-123",
+      tituloPolitica: "Política de Teste",
+      politicaId: "pol-abc",
+    });
+
+    expect(resultado).toEqual({ ok: false, motivo: "token_graph: timeout" });
   });
 
   it("monta topic.webUrl como deep link Teams l/entity, não URL comum do app", async () => {
