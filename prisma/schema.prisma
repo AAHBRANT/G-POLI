@@ -26,9 +26,11 @@ enum Classificacao {
 // próximo, Comunicado Interno/CI, usa formato de código incompatível).
 enum TipoDocumento {
   politica
+  norma
   procedimento
   instrucao_trabalho
   manual
+  codigo
   formulario
   comunicado_normativo
 }
