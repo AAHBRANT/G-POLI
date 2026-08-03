@@ -55,6 +55,43 @@ pós-merge sempre que o PR mexer em `teams/manifest.json`.
 
 ---
 
+## Lembretes de ciência pendente (Fase D): backfill obrigatório antes do 1º run do job
+
+O job agendado (`caj-gpol-hml-lembretes`) varre TODA `Pendencia` com
+`estado: "pendente"` e dispara os marcos de 3/7/15 dias que ainda não foram
+enviados. Sem backfill, toda `Pendencia` já existente (todas nascem com os 3
+campos `lembreteXEnviadoEm` em `null`) dispararia retroativamente no primeiro
+run — até 3 notificações Teams de uma vez por colaborador travado, mais um
+resumo cheio pro SGI logo no primeiro dia.
+
+**Decisão (2026-08-03):** rodar 1x, manualmente, ANTES de habilitar o
+agendamento do job pela primeira vez em produção — marca os marcos já
+vencidos como "já enviados" sem mandar nada, deixando só quem vencer 3/7/15
+dias **a partir de agora** disparar de verdade:
+
+```sql
+UPDATE "Pendencia"
+SET
+  "lembrete3EnviadoEm" = CASE
+    WHEN "criadaEm" <= now() - interval '3 days' AND "lembrete3EnviadoEm" IS NULL
+    THEN now() ELSE "lembrete3EnviadoEm" END,
+  "lembrete7EnviadoEm" = CASE
+    WHEN "criadaEm" <= now() - interval '7 days' AND "lembrete7EnviadoEm" IS NULL
+    THEN now() ELSE "lembrete7EnviadoEm" END,
+  "lembrete15EnviadoEm" = CASE
+    WHEN "criadaEm" <= now() - interval '15 days' AND "lembrete15EnviadoEm" IS NULL
+    THEN now() ELSE "lembrete15EnviadoEm" END
+WHERE estado = 'pendente';
+```
+
+Rodar direto no Postgres de produção (via `psql` ou Prisma Studio → SQL),
+uma única vez, depois da migration desta fase (`pendencia_lembretes`) já
+aplicada e antes do primeiro disparo agendado do job. Não é um script do
+repositório de propósito — é uma ação operacional de uma vez só, não um
+caminho de código recorrente.
+
+---
+
 ## Passo a passo — subir uma nova versão manualmente
 
 Sequência real usada em toda atualização do ambiente de homologação. `vN` é o
