@@ -120,5 +120,17 @@ steps:
         docker push acrgpolhml27207f.azurecr.io/gpoliticas:$(Build.BuildId)
         az containerapp update --name ca-gpol-hml-aahbrant --resource-group rg-gpoliticas `
           --image acrgpolhml27207f.azurecr.io/gpoliticas:$(Build.BuildId)
-        az containerapp job update --name caj-gpol-hml-lembretes --resource-group rg-gpoliticas `
-          --image acrgpolhml27207f.azurecr.io/gpoliticas:$(Build.BuildId)
+        # O Job (caj-gpol-hml-lembretes) so existe apos alguem rodar o deploy do
+        # Bicep (infra/bicep) manualmente pela 1a vez (ver docs/DEPLOY.md) - ate
+        # la, "az containerapp job update" falha com "does not exist" e, com
+        # ErrorActionPreference=Stop, derrubaria o deploy do app principal
+        # tambem. Checar existencia antes evita quebrar o deploy que ja
+        # funciona por causa de um recurso que ainda nao foi provisionado.
+        $jobExiste = az containerapp job show --name caj-gpol-hml-lembretes --resource-group rg-gpoliticas 2>$null
+        if ($LASTEXITCODE -eq 0) {
+          az containerapp job update --name caj-gpol-hml-lembretes --resource-group rg-gpoliticas `
+            --image acrgpolhml27207f.azurecr.io/gpoliticas:$(Build.BuildId)
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+        } else {
+          Write-Host "Container Apps Job 'caj-gpol-hml-lembretes' ainda nao provisionado - pulando update de imagem (ver docs/DEPLOY.md)."
+        }
