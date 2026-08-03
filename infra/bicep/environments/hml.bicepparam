@@ -15,6 +15,7 @@ param acrName = 'acrgpolhml27207f'
 param postgresName = 'gpoliticas-db-je6xi'
 param containerEnvName = 'cae-gpol-hml-brazilsouth'
 param containerAppName = 'ca-gpol-hml-aahbrant'
+param containerAppJobName = 'caj-gpol-hml-lembretes'
 param openAiName = 'oai-gpol-hml-27207f'
 param openAiCustomSubDomain = 'oai-gpol-hml-27207f'
 

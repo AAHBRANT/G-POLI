@@ -24,6 +24,7 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/templates ./templates
+COPY --from=builder /app/jobs ./jobs
 
 # Prisma: CLI + client + engines + migrations (para migrate deploy no start)
 COPY --from=builder /app/prisma ./prisma
