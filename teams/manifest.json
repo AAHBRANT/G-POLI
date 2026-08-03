@@ -38,6 +38,16 @@
         "type": "politicaPublicada",
         "description": "Norma publicada",
         "templateText": "Norma publicada: {politicaTitulo}"
+      },
+      {
+        "type": "pendenciaLembrete",
+        "description": "Lembrete de ciência pendente",
+        "templateText": "Lembrete: {politicaTitulo} aguardando sua ciência"
+      },
+      {
+        "type": "pendenciaResumoSgi",
+        "description": "Resumo de pendências vencidas",
+        "templateText": "{quantidade} pessoas passaram de 15 dias sem dar ciência"
       }
     ]
   },
