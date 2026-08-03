@@ -8,43 +8,50 @@
 // manifest do Teams e segue outro fluxo de consentimento) — concedida com
 // admin-consent no Entra para o app 1b98db67 em 2026-07-28.
 //
-// O `activityType` abaixo precisa constar em `teams/manifest.json` (bloco
-// `activities.activityTypes`), senão o Teams não sabe renderizar o texto.
+// Cada `activityType` usado abaixo precisa constar em `teams/manifest.json`
+// (bloco `activities.activityTypes`), senão o Teams não sabe renderizar o
+// texto.
 import { msalApp, SCOPES_GRAPH_APP } from "../auth/msal";
 import { authConfig } from "../auth/config";
+import type { MarcoLembrete } from "../politica/lembretesPendentes";
 
-const ACTIVITY_TYPE = "politicaPublicada";
-
-// Precisam bater com teams/manifest.json: "id" (raiz do manifest) e o
-// staticTabs[].entityId da aba que renderiza /catalogo/{politicaId}.
 const TEAMS_APP_ID = "698c2c83-b704-4e0f-b5e5-f3095b054e58";
 const TEAMS_TAB_ENTITY_ID = "gpol-painel";
 
 export type ResultadoNotificacao = { ok: true } | { ok: false; motivo: string };
 
-export async function enviarNotificacaoPoliticaPublicada(params: {
-  oid: string;
-  tituloPolitica: string;
-  politicaId: string;
-}): Promise<ResultadoNotificacao> {
-  let token: string | null = null;
-  try {
-    const resultado = await msalApp().acquireTokenByClientCredential({ scopes: SCOPES_GRAPH_APP });
-    token = resultado?.accessToken ?? null;
-  } catch (erro) {
-    return { ok: false, motivo: `token_graph: ${erro instanceof Error ? erro.message : String(erro)}` };
-  }
-  if (!token) return { ok: false, motivo: "token_graph: vazio" };
+async function obterTokenGraph(): Promise<string> {
+  const resultado = await msalApp().acquireTokenByClientCredential({ scopes: SCOPES_GRAPH_APP });
+  const token = resultado?.accessToken;
+  if (!token) throw new Error("token_graph: vazio");
+  return token;
+}
 
-  // Graph exige que topic.webUrl comece com domínio Teams + "/l/" — uma URL
-  // comum do app (ex.: https://.../catalogo/{id}) é rejeitada com 400
-  // "Invalid 'webUrl' specified". Precisa ser deep link "l/entity":
-  // https://teams.microsoft.com/l/entity/{appId}/{entityId}?webUrl=...&context=...
-  const urlPolitica = `${authConfig.baseUrl.replace(/\/$/, "")}/catalogo/${params.politicaId}`;
-  const contextoTeams = encodeURIComponent(JSON.stringify({ subEntityId: params.politicaId }));
-  const webUrlTeams =
-    `https://teams.microsoft.com/l/entity/${TEAMS_APP_ID}/${TEAMS_TAB_ENTITY_ID}` +
-    `?webUrl=${encodeURIComponent(urlPolitica)}&context=${contextoTeams}`;
+// Precisam bater com teams/manifest.json: "id" (raiz do manifest) e o
+// staticTabs[].entityId da aba que renderiza /catalogo/{politicaId}. Sem
+// subEntityId (resumo SGI, que não é sobre 1 política só), o context vem
+// vazio — Graph aceita normalmente.
+function montarWebUrlTeams(caminho: string, subEntityId?: string): string {
+  const urlApp = `${authConfig.baseUrl.replace(/\/$/, "")}${caminho}`;
+  const base = `https://teams.microsoft.com/l/entity/${TEAMS_APP_ID}/${TEAMS_TAB_ENTITY_ID}?webUrl=${encodeURIComponent(urlApp)}`;
+  if (!subEntityId) return base;
+  const contexto = encodeURIComponent(JSON.stringify({ subEntityId }));
+  return `${base}&context=${contexto}`;
+}
+
+async function enviarAtividade(params: {
+  oid: string;
+  activityType: string;
+  texto: string;
+  webUrl: string;
+}): Promise<ResultadoNotificacao> {
+  let token: string;
+  try {
+    token = await obterTokenGraph();
+  } catch (erro) {
+    const msg = erro instanceof Error ? erro.message : String(erro);
+    return { ok: false, motivo: msg.startsWith("token_graph:") ? msg : `token_graph: ${msg}` };
+  }
 
   try {
     const resp = await fetch(
@@ -53,13 +60,9 @@ export async function enviarNotificacaoPoliticaPublicada(params: {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          topic: {
-            source: "text",
-            value: `Norma publicada: ${params.tituloPolitica}`,
-            webUrl: webUrlTeams,
-          },
-          activityType: ACTIVITY_TYPE,
-          previewText: { content: `Norma publicada: ${params.tituloPolitica}` },
+          topic: { source: "text", value: params.texto, webUrl: params.webUrl },
+          activityType: params.activityType,
+          previewText: { content: params.texto },
           recipient: {
             "@odata.type": "microsoft.graph.aadUserNotificationRecipient",
             userId: params.oid,
@@ -77,4 +80,55 @@ export async function enviarNotificacaoPoliticaPublicada(params: {
   } catch (erro) {
     return { ok: false, motivo: erro instanceof Error ? erro.message : String(erro) };
   }
+}
+
+export async function enviarNotificacaoPoliticaPublicada(params: {
+  oid: string;
+  tituloPolitica: string;
+  politicaId: string;
+}): Promise<ResultadoNotificacao> {
+  const texto = `Norma publicada: ${params.tituloPolitica}`;
+  return enviarAtividade({
+    oid: params.oid,
+    activityType: "politicaPublicada",
+    texto,
+    webUrl: montarWebUrlTeams(`/catalogo/${params.politicaId}`, params.politicaId),
+  });
+}
+
+const TEXTO_MARCO: Record<MarcoLembrete, string> = {
+  3: "3 dias",
+  7: "7 dias",
+  15: "15 dias",
+};
+
+export async function enviarNotificacaoLembretePendencia(params: {
+  oid: string;
+  tituloPolitica: string;
+  politicaId: string;
+  diasPendente: MarcoLembrete;
+}): Promise<ResultadoNotificacao> {
+  const texto = `Lembrete: "${params.tituloPolitica}" aguardando sua ciência há ${TEXTO_MARCO[params.diasPendente]}`;
+  return enviarAtividade({
+    oid: params.oid,
+    activityType: "pendenciaLembrete",
+    texto,
+    webUrl: montarWebUrlTeams(`/catalogo/${params.politicaId}`, params.politicaId),
+  });
+}
+
+// 1 chamada por destinatário SGI (a API do Teams só aceita recipient
+// individual) — mas todos recebem o MESMO texto-resumo, nunca 1 notificação
+// por colaborador travado.
+export async function enviarResumoPendenciasSgi(params: {
+  oidsSgi: string[];
+  quantidade: number;
+}): Promise<ResultadoNotificacao[]> {
+  const texto = `${params.quantidade} ${params.quantidade === 1 ? "pessoa passou" : "pessoas passaram"} de 15 dias sem dar ciência`;
+  const webUrl = montarWebUrlTeams("/catalogo");
+  return Promise.all(
+    params.oidsSgi.map((oid) =>
+      enviarAtividade({ oid, activityType: "pendenciaResumoSgi", texto, webUrl }),
+    ),
+  );
 }

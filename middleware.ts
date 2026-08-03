@@ -37,7 +37,11 @@ export const config = {
   // /logo precisa ser público: é servido de public/logo (logomarca oficial) e
   // aparece na própria tela de login — sem essa exceção, next/image recebia a
   // página de login (HTML) no lugar do PNG ao tentar buscar o arquivo.
+  // /api/cron precisa ser público: é disparado pelo Container Apps Job (sem
+  // cookie de sessão) e já tem seu próprio gate fail-closed via CRON_SECRET
+  // dentro da rota — sem essa exceção, o middleware redirecionava para
+  // /login antes desse check rodar, tornando a rota inacessível em produção.
   matcher: [
-    "/((?!login|sem-acesso|privacidade|termos|entrar/teams-fim|api/auth|api/health|logo|_next/static|_next/image|favicon.ico).*)",
+    "/((?!login|sem-acesso|privacidade|termos|entrar/teams-fim|api/auth|api/health|api/cron|logo|_next/static|_next/image|favicon.ico).*)",
   ],
 };

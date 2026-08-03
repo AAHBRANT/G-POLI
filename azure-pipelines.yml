@@ -70,6 +70,7 @@ steps:
       GPOL_STORAGE_CONN: "dummy"
       GPOL_OPENAI_KEY: "dummy"
       GPOL_ACR_PASSWORD: "dummy"
+      GPOL_CRON_SECRET: "dummy"
 
   - script: npx prisma generate
     displayName: "Prisma generate"
@@ -118,4 +119,6 @@ steps:
         docker tag gpoliticas:$(Build.BuildId) acrgpolhml27207f.azurecr.io/gpoliticas:$(Build.BuildId)
         docker push acrgpolhml27207f.azurecr.io/gpoliticas:$(Build.BuildId)
         az containerapp update --name ca-gpol-hml-aahbrant --resource-group rg-gpoliticas `
+          --image acrgpolhml27207f.azurecr.io/gpoliticas:$(Build.BuildId)
+        az containerapp job update --name caj-gpol-hml-lembretes --resource-group rg-gpoliticas `
           --image acrgpolhml27207f.azurecr.io/gpoliticas:$(Build.BuildId)

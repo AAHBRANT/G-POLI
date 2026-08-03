@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getUsuarioAtual, podeCriarPolitica, filtroVisibilidade } from "@/lib/auth/usuario";
 import CriarDocumentoMenu from "@/components/politica/CriarDocumentoMenu";
+import { nivelUrgenciaPendencia, classesUrgenciaPendencia } from "@/lib/politica/lembretesPendentes";
 
 export const dynamic = "force-dynamic";
 
@@ -103,14 +104,21 @@ export default async function Home() {
             <p className="py-6 text-center text-sm text-black/40">Nenhuma pendência — você está em dia.</p>
           ) : (
             <ul className="divide-y divide-black/5">
-              {pendentesCiencia.map((p) => (
-                <li key={p.id} className="flex items-center justify-between py-2.5 text-sm">
-                  <Link href={`/catalogo/${p.politica.id}`} className="font-medium text-marsala hover:underline">{p.politica.titulo}</Link>
-                  <span className="text-xs text-black/40">
-                    publicada {tempoRelativo(p.politicaPublicadaEm)}
-                  </span>
-                </li>
-              ))}
+              {pendentesCiencia.map((p) => {
+                const nivel = nivelUrgenciaPendencia(p.criadaEm, new Date());
+                const classes = classesUrgenciaPendencia(nivel);
+                return (
+                  <li
+                    key={p.id}
+                    className={`flex items-center justify-between rounded-md border px-2 py-2.5 text-sm ${classes || "border-transparent"}`}
+                  >
+                    <Link href={`/catalogo/${p.politica.id}`} className="font-medium text-marsala hover:underline">{p.politica.titulo}</Link>
+                    <span className="text-xs text-black/40">
+                      publicada {tempoRelativo(p.politicaPublicadaEm)}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>

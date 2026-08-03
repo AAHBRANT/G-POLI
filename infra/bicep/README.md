@@ -17,6 +17,7 @@ Documento vivo: ao mudar a infra, atualize este README na mesma mudança.
 | PostgreSQL Flexible | `gpoliticas-db-je6xi` | B1ms/Burstable, v16, 32GB P4 | brazilsouth |
 | Container Apps Env | `cae-gpol-hml-brazilsouth` | Consumption, logs→LA | brazilsouth |
 | Container App | `ca-gpol-hml-aahbrant` | 0.5vCPU/1Gi, scale 1-1, :3000 | brazilsouth |
+| Container Apps Job | `caj-gpol-hml-lembretes` | 0.25vCPU/0.5Gi, cron `0 3 * * *` | brazilsouth |
 | Azure OpenAI | `oai-gpol-hml-27207f` | S0; `gpt5mini`=gpt-5.4-mini | eastus2 |
 
 Ordem de dependência: Log Analytics → Container Env; ACR → Container App;
@@ -65,7 +66,7 @@ Secrets **nunca** ficam no repo. Exporte as variáveis antes do deploy:
 export GPOL_PG_PASSWORD=...        GPOL_DB_URL=...
 export GPOL_AUTH_SECRET=...        GPOL_AAD_CLIENT_SECRET=...
 export GPOL_STORAGE_CONN=...       GPOL_OPENAI_KEY=...
-export GPOL_ACR_PASSWORD=...
+export GPOL_ACR_PASSWORD=...       GPOL_CRON_SECRET=...
 az deployment group create \
   --resource-group rg-gpoliticas \
   --parameters infra/bicep/environments/hml.bicepparam
@@ -92,6 +93,10 @@ Separado entre **consciente** (escolha deliberada, aceita por ora) e
 - **`autoGrow: Disabled`** no Postgres — risco de encher os 32GB. Monitorar.
 - **Agente de CI self-hosted** (fora deste Bicep) — ver
   [ADR-002](../../docs/adr/ADR-002-agente-selfhosted-ci.md).
+- **Container Apps Job dispara a rota via HTTP, não roda lógica própria** —
+  decisão deliberada (ver spec da Fase D): o output standalone do Next não
+  inclui scripts soltos, então a lógica mora numa rota de API já rastreada
+  pelo build; o Job só faz 1 fetch autenticado por secret.
 
 ### Desvios conscientes do baseline
 - **OpenAI em `eastus2`** (resto em `brazilsouth`): forçado pela

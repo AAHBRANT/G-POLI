@@ -71,6 +71,9 @@ param storageConnectionString string
 @secure()
 @description('AZURE_OPENAI_KEY')
 param openAiKey string
+@secure()
+@description('CRON_SECRET (autoriza o Container Apps Job a chamar /api/cron/*)')
+param cronSecret string
 
 // Nome do secret que guarda a senha do ACR (padrão gerado pelo Azure ao criar
 // via CLI). Mantido igual ao baseline para fidelidade.
@@ -112,6 +115,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
         { name: 'clientsecret', value: aadClientSecret }
         { name: 'stgconn', value: storageConnectionString }
         { name: 'openaikey', value: openAiKey }
+        { name: 'cronsecret', value: cronSecret }
       ]
     }
     template: {
@@ -140,6 +144,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'AZURE_OPENAI_API_VERSION', value: openAiApiVersion }
             { name: 'ACESSO_ABERTO', value: acessoAberto }
             { name: 'DOMINIOS_ORG', value: dominiosOrg }
+            { name: 'CRON_SECRET', secretRef: 'cronsecret' }
           ]
           // Probes de saúde (ver docs/DEPLOY.md). Batem em /api/health (público).
           // - Startup: dá tempo de migrate+boot antes de liveness valer

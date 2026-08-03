@@ -28,6 +28,70 @@ Relacionado: [`ADR-002`](adr/ADR-002-agente-selfhosted-ci.md) (agente de CI),
 
 ---
 
+## Teams: republicar o app package após mudar `teams/manifest.json` (manual, obrigatório)
+
+Sempre que `teams/manifest.json` ganhar um `activityTypes` novo (ou qualquer
+outra mudança que exija um `"version"` maior — regra do próprio Teams para
+aceitar reupload de um app custom), o deploy do container **não é
+suficiente**: o pacote instalado no Teams admin center continua sendo o
+antigo até alguém republicar manualmente.
+
+Se o Teams receber uma chamada Graph com um `activityType` que não existe no
+pacote **atualmente instalado**, a chamada falha — mesmo que o código e o
+`manifest.json` no repositório já estejam corretos.
+
+Passo a passo manual (Teams admin center → Gerenciar apps, ou Central de
+administração do Teams):
+1. Gerar o `.zip` do app package (`teams/manifest.json` + `color.png` +
+   `outline.png`).
+2. Fazer upload/atualização do app existente (o `"version"` já incrementado
+   no manifest é o que autoriza o Teams a aceitar o reupload).
+3. Confirmar no admin center que a versão publicada bate com a do
+   `teams/manifest.json` do commit que subiu.
+
+Este passo **não pode ser automatizado a partir deste repositório** (é ação
+no admin center, fora do escopo do pipeline). Trate como item obrigatório de
+pós-merge sempre que o PR mexer em `teams/manifest.json`.
+
+---
+
+## Lembretes de ciência pendente (Fase D): backfill obrigatório antes do 1º run do job
+
+O job agendado (`caj-gpol-hml-lembretes`) varre TODA `Pendencia` com
+`estado: "pendente"` e dispara os marcos de 3/7/15 dias que ainda não foram
+enviados. Sem backfill, toda `Pendencia` já existente (todas nascem com os 3
+campos `lembreteXEnviadoEm` em `null`) dispararia retroativamente no primeiro
+run — até 3 notificações Teams de uma vez por colaborador travado, mais um
+resumo cheio pro SGI logo no primeiro dia.
+
+**Decisão (2026-08-03):** rodar 1x, manualmente, ANTES de habilitar o
+agendamento do job pela primeira vez em produção — marca os marcos já
+vencidos como "já enviados" sem mandar nada, deixando só quem vencer 3/7/15
+dias **a partir de agora** disparar de verdade:
+
+```sql
+UPDATE "Pendencia"
+SET
+  "lembrete3EnviadoEm" = CASE
+    WHEN "criadaEm" <= now() - interval '3 days' AND "lembrete3EnviadoEm" IS NULL
+    THEN now() ELSE "lembrete3EnviadoEm" END,
+  "lembrete7EnviadoEm" = CASE
+    WHEN "criadaEm" <= now() - interval '7 days' AND "lembrete7EnviadoEm" IS NULL
+    THEN now() ELSE "lembrete7EnviadoEm" END,
+  "lembrete15EnviadoEm" = CASE
+    WHEN "criadaEm" <= now() - interval '15 days' AND "lembrete15EnviadoEm" IS NULL
+    THEN now() ELSE "lembrete15EnviadoEm" END
+WHERE estado = 'pendente';
+```
+
+Rodar direto no Postgres de produção (via `psql` ou Prisma Studio → SQL),
+uma única vez, depois da migration desta fase (`pendencia_lembretes`) já
+aplicada e antes do primeiro disparo agendado do job. Não é um script do
+repositório de propósito — é uma ação operacional de uma vez só, não um
+caminho de código recorrente.
+
+---
+
 ## Passo a passo — subir uma nova versão manualmente
 
 Sequência real usada em toda atualização do ambiente de homologação. `vN` é o
