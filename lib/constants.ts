@@ -1,13 +1,14 @@
-// v3: categorias de documento do PRODUTO (menu lateral). O `prefixo` agora É
-// a sigla oficial de Tipo de Documento (TD) do SGI — tabela "Tipos de
-// Documento" da planilha Codificação de Documentos (Tabelas de Apoio),
-// conferida em 2026-07-30. "Norma" e "Código" foram removidos: não existe
-// TD oficial correspondente (a tabela do SGI não tem essas siglas) —
-// mantê-los geraria um código fora do padrão. `comunicado_normativo` fica
-// como está (prefixo interno "CN") — o TD oficial mais próximo é o
-// Comunicado Interno (CI), mas ele usa um formato de código totalmente
-// diferente (UNIDADE | CI-NNN | ANO, não ORG-TD-AR-SEQ) que decidimos não
-// implementar por ora.
+// v3: categorias de documento do PRODUTO (menu lateral). O `prefixo` é a
+// sigla oficial de Tipo de Documento (TD) do SGI onde existe — tabela "Tipos
+// de Documento" da planilha Codificação de Documentos (Tabelas de Apoio).
+// "Norma" (NOR) e "Código" (COD) foram removidos em 2026-07-30 por não terem
+// TD oficial correspondente na tabela do SGI, e restaurados em 2026-08-03 a
+// pedido do usuário — aceitando conscientemente que esses 2 códigos ficam
+// fora do padrão oficial ORG-TD-AR-SEQ-REV até o SGI confirmar uma sigla.
+// `comunicado_normativo` fica como está (prefixo interno "CN") — o TD oficial
+// mais próximo é o Comunicado Interno (CI), mas ele usa um formato de código
+// totalmente diferente (UNIDADE | CI-NNN | ANO, não ORG-TD-AR-SEQ) que
+// decidimos não implementar por ora.
 export const TIPOS_DOCUMENTO = [
   {
     valor: "politica",
@@ -17,6 +18,15 @@ export const TIPOS_DOCUMENTO = [
     descricao: "Define diretrizes gerais.",
     exemplo: "Política de Segurança da Informação",
     prefixo: "POL",
+  },
+  {
+    valor: "norma",
+    rotulo: "Norma",
+    rotuloPlural: "Normas",
+    genero: "f",
+    descricao: "Define regra obrigatória mais específica.",
+    exemplo: "Norma de Uso de E-mail Corporativo",
+    prefixo: "NOR",
   },
   {
     valor: "procedimento",
@@ -44,6 +54,15 @@ export const TIPOS_DOCUMENTO = [
     descricao: "Reúne orientações amplas.",
     exemplo: "Manual do Colaborador",
     prefixo: "MAN",
+  },
+  {
+    valor: "codigo",
+    rotulo: "Código",
+    rotuloPlural: "Códigos",
+    genero: "m",
+    descricao: "Define princípios e condutas.",
+    exemplo: "Código de Ética e Conduta",
+    prefixo: "COD",
   },
   {
     valor: "formulario",
