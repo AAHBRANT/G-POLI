@@ -32,10 +32,24 @@ para o perfil **SGI/Qualidade**, não para gestor de área.
 
 ## Arquitetura
 
-Um **Azure Container Apps Job** com gatilho agendado (cron), rodando 1x/dia,
-reaproveita a mesma imagem Docker e o mesmo Resource Group (`rg-gpoliticas`)
-já usados pelo deploy contínuo do app (`azure-pipelines.yml`). O job roda um
-script novo (`scripts/lembretes-pendencia.ts`) que:
+**Correção pós-aprovação (achada ao investigar o Dockerfile antes de planejar):**
+o runtime do app usa o **output standalone do Next.js** (`COPY .next/standalone`)
+— não inclui `node_modules` completos, TypeScript, nem qualquer arquivo em
+`scripts/` que não seja importado por uma rota/página do Next. Um "script novo
+rodando na mesma imagem" não existe de fato nessa imagem. Correção: a lógica
+mora numa **rota de API protegida por secret** (que O Next.js SEMPRE inclui no
+build), e o Container Apps Job só *dispara* essa rota via HTTP.
+
+Um **Azure Container Apps Job** com gatilho agendado (cron), rodando 1x/dia, no
+mesmo Resource Group (`rg-gpoliticas`) e mesma imagem Docker do app. O
+container do job sobrescreve o `command` pra rodar um arquivo JS **puro** (sem
+TypeScript, sem build) copiado explicitamente no Dockerfile —
+`node jobs/lembretes-pendencia.js` — que só faz 1 `fetch` autenticado em
+`POST /api/cron/lembretes-pendencia` (rota nova, protegida por um secret
+compartilhado `CRON_SECRET`, comparado via header `Authorization: Bearer`).
+
+Essa rota, rodando dentro do app Next.js normal (mesmo ambiente de toda API
+route hoje):
 
 1. Busca todas as `Pendencia` com `estado: "pendente"`.
 2. Para cada uma, aplica a função pura `lembretesPendentes` pra decidir se
@@ -45,7 +59,10 @@ script novo (`scripts/lembretes-pendencia.ts`) que:
    ou se falhar no meio e for reexecutado, ninguém recebe o mesmo marco 2x).
 4. Acumula quem passou de 15 dias pela primeira vez hoje numa lista; ao final,
    se a lista não estiver vazia, manda **1 notificação-resumo** pro perfil
-   SGI/Qualidade (nunca 1 por pessoa).
+   SGI/Qualidade (nunca 1 por pessoa — se houver mais de 1 usuário SGI, cada um
+   recebe sua própria cópia do MESMO resumo, já que a API do Teams só aceita
+   destinatário individual; "1 resumo" descreve o conteúdo, não uma
+   transmissão em grupo).
 
 Erro ao notificar 1 usuário (ex.: Graph API fora do ar pra aquele ID) não
 aborta o lote inteiro — mesmo padrão *best-effort* já usado na criação de
@@ -110,15 +127,19 @@ dispara 3 e 7 juntos, nunca pula o 3).
 
 ## Envio Teams (Graph API)
 
-`lib/teams/notificarAtividade.ts` — wrapper único ao redor de
-`POST /users/{oid}/teamwork/sendActivityNotification` via Graph, usando
-client credentials (app-only token), já que quem chama é um job em
-background, não uma sessão de usuário. `oid` é o `Usuario.oid` (object id do
-Entra, já gravado no login via SSO) — usuário que nunca logou tem `oid: null`
-e é pulado (logado, best-effort, sem travar o lote: não há como notificar
-via Teams quem o sistema nunca viu entrar).
+**Correção pós-aprovação:** essa integração **já existe** —
+`lib/notificacao/graph.ts` (`enviarNotificacaoPoliticaPublicada`) já usa
+exatamente `POST /users/{oid}/teamwork/sendActivityNotification` via Graph com
+client credentials, e a permissão de aplicativo `TeamsActivity.Send` **já foi
+concedida com admin-consent em 2026-07-28** (comentário no próprio arquivo).
+Não existe pré-requisito manual novo — é só estender esse módulo com 2 funções
+novas, reaproveitando o mesmo `msalApp()`/`SCOPES_GRAPH_APP` já usados.
 
-Dois tipos de notificação:
+`oid` é o `Usuario.oid` (object id do Entra, já gravado no login via SSO) —
+usuário que nunca logou tem `oid: null` e é pulado (best-effort, sem travar o
+lote: não há como notificar via Teams quem o sistema nunca viu entrar).
+
+Dois tipos de notificação novos, no mesmo arquivo:
 - **Individual** (marcos 3/7/15): `topic` aponta pra `/catalogo/{politicaId}`,
   texto varia por marco ("Você tem uma política pendente de ciência há 3
   dias" / 7 / 15).
@@ -127,17 +148,10 @@ Dois tipos de notificação:
   ciência", `topic` aponta pra `/catalogo` (lista geral — sem página de
   conformidade dedicada nesta fase, isso é Fase C).
 
-### Pré-requisito manual (fora do que o Claude pode fazer sozinho)
-
-A chamada Graph exige a permissão de aplicativo `TeamsActivity.Send` no App
-Registration do G-Políticas, com consentimento de administrador. É uma
-concessão de permissão/acesso — mesma categoria da service connection do
-deploy (`azure-pipelines.yml` já documenta isso: "o agente Claude não pode
-criar isso: classificador da ferramenta bloqueia criação de service
-principal/concessão de acesso"). Precisa ser feito manualmente no portal
-Entra ID antes do job funcionar de ponta a ponta; sem a permissão, o job
-loga o erro e não derruba nada (mesmo tratamento best-effort do item
-anterior), mas nenhum lembrete Teams sai até isso ser concedido.
+Precisam de 2 `activityTypes` novos em `teams/manifest.json` (registro
+obrigatório do Teams, mesmo já usando `topic.value` totalmente renderizado em
+vez de placeholder de template — mesma convenção do tipo existente
+`politicaPublicada`).
 
 ## In-app: destaque por idade
 
@@ -159,19 +173,20 @@ Cálculo simples de dias corridos, sem estado novo — puramente derivado do
   transitório, nunca duplica um que já confirmou).
 - Erro em 1 usuário (Graph API, usuário desativado no AAD, etc.) é logado e
   não interrompe o restante do lote — mesmo padrão da Fase A.
-- Erro na permissão `TeamsActivity.Send` ausente: todo envio falha da mesma
-  forma (best-effort), o job termina sem travar, e o destaque in-app continua
-  funcionando normalmente (não depende do Teams).
+- A rota `/api/cron/lembretes-pendencia` só executa com o header
+  `Authorization: Bearer <CRON_SECRET>` correto — sem isso, 401 e nada roda.
+  Falha de token/Graph continua best-effort (loga e segue), independente
+  disso; o destaque in-app não depende do Teams em nenhum caso.
 
 ## Testes
 
 - `lembretesPendentes`: testes unitários puros — 0 dias (nenhum marco), 3/7/15
   exatos, marco já enviado (não repete), múltiplos marcos vencidos de uma vez
   (job atrasado), fronteira de virada de dia.
-- `scripts/lembretes-pendencia.ts`: teste de integração com Prisma de teste,
-  mock do wrapper Graph — confirma que só chama Graph pra quem tem marco
-  pendente, grava `lembreteXEnviadoEm` só em sucesso, e que o resumo SGI só
-  dispara quando a lista de 15+ dias não está vazia.
+- `POST /api/cron/lembretes-pendencia`: teste de integração com Prisma de
+  teste, mock do módulo Graph — confirma 401 sem o secret certo, que só chama
+  Graph pra quem tem marco pendente, grava `lembreteXEnviadoEm` só em sucesso,
+  e que o resumo SGI só dispara quando a lista de 15+ dias não está vazia.
 - Verificação manual pós-implementação: rodar o Container Apps Job uma vez
   manualmente (`az containerapp job start`) contra uma `Pendencia` de teste
   com `criadaEm` forçado no passado, confirmar notificação Teams recebida e
