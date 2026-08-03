@@ -28,6 +28,33 @@ Relacionado: [`ADR-002`](adr/ADR-002-agente-selfhosted-ci.md) (agente de CI),
 
 ---
 
+## Teams: republicar o app package após mudar `teams/manifest.json` (manual, obrigatório)
+
+Sempre que `teams/manifest.json` ganhar um `activityTypes` novo (ou qualquer
+outra mudança que exija um `"version"` maior — regra do próprio Teams para
+aceitar reupload de um app custom), o deploy do container **não é
+suficiente**: o pacote instalado no Teams admin center continua sendo o
+antigo até alguém republicar manualmente.
+
+Se o Teams receber uma chamada Graph com um `activityType` que não existe no
+pacote **atualmente instalado**, a chamada falha — mesmo que o código e o
+`manifest.json` no repositório já estejam corretos.
+
+Passo a passo manual (Teams admin center → Gerenciar apps, ou Central de
+administração do Teams):
+1. Gerar o `.zip` do app package (`teams/manifest.json` + `color.png` +
+   `outline.png`).
+2. Fazer upload/atualização do app existente (o `"version"` já incrementado
+   no manifest é o que autoriza o Teams a aceitar o reupload).
+3. Confirmar no admin center que a versão publicada bate com a do
+   `teams/manifest.json` do commit que subiu.
+
+Este passo **não pode ser automatizado a partir deste repositório** (é ação
+no admin center, fora do escopo do pipeline). Trate como item obrigatório de
+pós-merge sempre que o PR mexer em `teams/manifest.json`.
+
+---
+
 ## Passo a passo — subir uma nova versão manualmente
 
 Sequência real usada em toda atualização do ambiente de homologação. `vN` é o

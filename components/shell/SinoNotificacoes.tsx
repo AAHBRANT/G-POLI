@@ -80,7 +80,7 @@ export default function SinoNotificacoes() {
                 const nivel = nivelUrgenciaPendencia(new Date(it.criadaEm), new Date());
                 const classes = classesUrgenciaPendencia(nivel);
                 return (
-                  <li key={it.id} className={`border-t border-black/5 first:border-t-0 ${classes}`}>
+                  <li key={it.id} className={`border border-t border-black/5 first:border-t-0 ${classes}`}>
                     <Link href={`/catalogo/${it.politicaId}`} className="block px-3 py-2 hover:bg-black/5">
                       <div className="text-sm text-black/80">{it.titulo}</div>
                       <div className="mt-0.5 text-[11px] text-black/40">{tipoDocumento(it.tipo).rotulo}</div>

@@ -69,8 +69,7 @@ export GPOL_STORAGE_CONN=...       GPOL_OPENAI_KEY=...
 export GPOL_ACR_PASSWORD=...       GPOL_CRON_SECRET=...
 az deployment group create \
   --resource-group rg-gpoliticas \
-  --parameters infra/bicep/environments/hml.bicepparam \
-  --parameters cronSecret=$GPOL_CRON_SECRET
+  --parameters infra/bicep/environments/hml.bicepparam
 ```
 
 ## Known Technical Debt

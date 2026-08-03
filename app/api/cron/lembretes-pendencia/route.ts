@@ -52,6 +52,7 @@ export async function POST(request: Request) {
   }
 
   let resumoSgi = 0;
+  let resumoSgiFalhas = 0;
   if (cruzaramQuinzeDias.length > 0) {
     const sgi = await prisma.usuario.findMany({
       where: { perfil: "sgi", ativo: true, oid: { not: null } },
@@ -59,10 +60,18 @@ export async function POST(request: Request) {
     });
     const oidsSgi = sgi.map((u) => u.oid).filter((oid): oid is string => Boolean(oid));
     if (oidsSgi.length > 0) {
-      await enviarResumoPendenciasSgi({ oidsSgi, quantidade: cruzaramQuinzeDias.length });
+      const resultadosSgi = await enviarResumoPendenciasSgi({ oidsSgi, quantidade: cruzaramQuinzeDias.length });
       resumoSgi = cruzaramQuinzeDias.length;
+      for (const resultado of resultadosSgi) {
+        if (!resultado.ok) {
+          resumoSgiFalhas++;
+          console.error("Falha ao enviar resumo SGI:", resultado.motivo);
+        }
+      }
+    } else {
+      console.error("Resumo SGI não enviado: nenhum usuário SGI ativo com oid encontrado.");
     }
   }
 
-  return NextResponse.json({ ok: true, enviados, falhas, resumoSgi });
+  return NextResponse.json({ ok: true, enviados, falhas, resumoSgi, resumoSgiFalhas });
 }

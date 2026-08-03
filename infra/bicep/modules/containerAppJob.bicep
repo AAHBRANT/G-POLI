@@ -52,7 +52,15 @@ resource job 'Microsoft.App/jobs@2024-03-01' = {
         replicaCompletionCount: 1
       }
       replicaTimeout: 300
-      replicaRetryLimit: 1
+      // 0, não 1: o guard de idempotência da rota é "ler estado, decidir,
+      // gravar estado" — não é uma atualização condicional atômica. Um retry
+      // disparado enquanto a 1ª réplica ainda está no meio do loop pode
+      // reenviar lembretes para pendências ainda não gravadas. A rota já
+      // trata os próprios erros internamente (best-effort, nunca lança), então
+      // um retry não recupera nada de real — só abre uma janela de duplicidade.
+      // Uma falha de HTTP do script de disparo deve aparecer como run falho no
+      // Azure, não virar reenvio automático.
+      replicaRetryLimit: 0
       registries: [
         { server: acrLoginServer, username: acrUsername, passwordSecretRef: acrPasswordSecretName }
       ]

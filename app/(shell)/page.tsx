@@ -110,7 +110,7 @@ export default async function Home() {
                 return (
                   <li
                     key={p.id}
-                    className={`flex items-center justify-between rounded-md px-2 py-2.5 text-sm ${classes || "border-transparent"}`}
+                    className={`flex items-center justify-between rounded-md border px-2 py-2.5 text-sm ${classes || "border-transparent"}`}
                   >
                     <Link href={`/catalogo/${p.politica.id}`} className="font-medium text-marsala hover:underline">{p.politica.titulo}</Link>
                     <span className="text-xs text-black/40">

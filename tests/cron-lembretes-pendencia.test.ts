@@ -132,11 +132,77 @@ describe("POST /api/cron/lembretes-pendencia", () => {
 
     expect(resp.status).toBe(200);
     expect(corpo.resumoSgi).toBe(1);
+    expect(corpo.resumoSgiFalhas).toBe(0);
     expect(usuarioFindMany).toHaveBeenCalledWith({
       where: { perfil: "sgi", ativo: true, oid: { not: null } },
       select: { oid: true },
     });
     expect(enviarResumoPendenciasSgi).toHaveBeenCalledWith({ oidsSgi: ["oid-sgi-1"], quantidade: 1 });
+  });
+
+  it("conta e loga falhas do resumo SGI sem quebrar a resposta", async () => {
+    const criadaEm = new Date();
+    criadaEm.setDate(criadaEm.getDate() - 15);
+    pendenciaFindMany.mockResolvedValue([
+      {
+        id: "p1",
+        politicaId: "pol1",
+        criadaEm,
+        lembrete3EnviadoEm: new Date(),
+        lembrete7EnviadoEm: new Date(),
+        lembrete15EnviadoEm: null,
+        politica: { titulo: "Pol 1" },
+        usuario: { oid: "oid-1" },
+      },
+    ]);
+    usuarioFindMany.mockResolvedValue([{ oid: "oid-sgi-1" }, { oid: "oid-sgi-2" }]);
+    enviarResumoPendenciasSgi.mockResolvedValue([
+      { ok: false, motivo: "graph_500: erro" },
+      { ok: true },
+    ]);
+    const erroSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const resp = await POST(req("Bearer segredo-teste"));
+    const corpo = await resp.json();
+
+    expect(resp.status).toBe(200);
+    expect(corpo.resumoSgi).toBe(1);
+    expect(corpo.resumoSgiFalhas).toBe(1);
+    expect(erroSpy).toHaveBeenCalledWith("Falha ao enviar resumo SGI:", "graph_500: erro");
+
+    erroSpy.mockRestore();
+  });
+
+  it("loga quando cruza 15 dias mas nao ha usuario SGI ativo com oid", async () => {
+    const criadaEm = new Date();
+    criadaEm.setDate(criadaEm.getDate() - 15);
+    pendenciaFindMany.mockResolvedValue([
+      {
+        id: "p1",
+        politicaId: "pol1",
+        criadaEm,
+        lembrete3EnviadoEm: new Date(),
+        lembrete7EnviadoEm: new Date(),
+        lembrete15EnviadoEm: null,
+        politica: { titulo: "Pol 1" },
+        usuario: { oid: "oid-1" },
+      },
+    ]);
+    usuarioFindMany.mockResolvedValue([]);
+    const erroSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const resp = await POST(req("Bearer segredo-teste"));
+    const corpo = await resp.json();
+
+    expect(resp.status).toBe(200);
+    expect(corpo.resumoSgi).toBe(0);
+    expect(corpo.resumoSgiFalhas).toBe(0);
+    expect(enviarResumoPendenciasSgi).not.toHaveBeenCalled();
+    expect(erroSpy).toHaveBeenCalledWith(
+      "Resumo SGI não enviado: nenhum usuário SGI ativo com oid encontrado.",
+    );
+
+    erroSpy.mockRestore();
   });
 
   it("falha ao enviar 1 lembrete nao aborta o lote (best-effort)", async () => {
