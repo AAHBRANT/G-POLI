@@ -220,6 +220,9 @@ model Pendencia {
   criadaEm            DateTime        @default(now())
   resolvidaEm         DateTime?
   notificadaEm        DateTime? // null = toast da Fase B ainda não mostrado
+  lembrete3EnviadoEm  DateTime? // null = marco de 3 dias ainda não enviado
+  lembrete7EnviadoEm  DateTime? // null = marco de 7 dias ainda não enviado
+  lembrete15EnviadoEm DateTime? // null = marco de 15 dias ainda não enviado
 
   @@unique([politicaId, usuarioId, politicaPublicadaEm])
   @@index([usuarioId, estado])
