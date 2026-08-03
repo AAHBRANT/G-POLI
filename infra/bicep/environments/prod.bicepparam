@@ -15,6 +15,7 @@ param acrName = 'acrgpolprodXXXXX'
 param postgresName = 'gpoliticas-db-prod'
 param containerEnvName = 'cae-gpol-prod-brazilsouth'
 param containerAppName = 'ca-gpol-prod-aahbrant'
+param containerAppJobName = 'caj-gpol-prod-lembretes'
 param openAiName = 'oai-gpol-prod-XXXXX'
 param openAiCustomSubDomain = 'oai-gpol-prod-XXXXX'
 
@@ -39,3 +40,4 @@ param aadClientSecret = readEnvironmentVariable('GPOL_AAD_CLIENT_SECRET')
 param storageConnectionString = readEnvironmentVariable('GPOL_STORAGE_CONN')
 param openAiKey = readEnvironmentVariable('GPOL_OPENAI_KEY')
 param acrPassword = readEnvironmentVariable('GPOL_ACR_PASSWORD')
+param cronSecret = readEnvironmentVariable('GPOL_CRON_SECRET')

@@ -508,7 +508,7 @@ describe("enviarResumoPendenciasSgi", () => {
 - [ ] **Step 6: Rodar os testes novos e confirmar que passam**
 
 Run: `npx vitest run tests/notificacao-graph.test.ts`
-Expected: PASS (6 testes no total: 2 antigos + 4 novos).
+Expected: PASS (5 testes no total: 2 antigos + 3 novos).
 
 - [ ] **Step 7: Commit**
 

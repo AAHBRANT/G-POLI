@@ -21,6 +21,7 @@ param acrName string
 param postgresName string
 param containerEnvName string
 param containerAppName string
+param containerAppJobName string
 param openAiName string
 param openAiCustomSubDomain string
 
@@ -37,6 +38,7 @@ param openAiDeployment string
 param openAiApiVersion string
 param acessoAberto string = '1'
 param dominiosOrg string = 'aahbrant.com'
+param cronExpression string = '0 3 * * *'
 
 // ---- Secrets (passados em deploy; nunca versionados) ----
 @secure()
@@ -51,6 +53,8 @@ param aadClientSecret string
 param storageConnectionString string
 @secure()
 param openAiKey string
+@secure()
+param cronSecret string
 @secure()
 param acrPassword string
 @description('Usuário admin do ACR (default = nome do ACR, padrão do Azure).')
@@ -139,6 +143,23 @@ module containerApp 'modules/containerApp.bicep' = {
     aadClientSecret: aadClientSecret
     storageConnectionString: storageConnectionString
     openAiKey: openAiKey
+    cronSecret: cronSecret
+  }
+}
+
+module lembretesJob 'modules/containerAppJob.bicep' = {
+  name: 'lembretesJob'
+  params: {
+    name: containerAppJobName
+    location: location
+    environmentId: containerEnv.outputs.id
+    acrLoginServer: acr.outputs.loginServer
+    acrUsername: acrUsername
+    acrPassword: acrPassword
+    image: image
+    appBaseUrl: appBaseUrl
+    cronSecret: cronSecret
+    cronExpression: cronExpression
   }
 }
 
