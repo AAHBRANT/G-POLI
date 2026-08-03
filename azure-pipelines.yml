@@ -122,12 +122,16 @@ steps:
           --image acrgpolhml27207f.azurecr.io/gpoliticas:$(Build.BuildId)
         # O Job (caj-gpol-hml-lembretes) so existe apos alguem rodar o deploy do
         # Bicep (infra/bicep) manualmente pela 1a vez (ver docs/DEPLOY.md) - ate
-        # la, "az containerapp job update" falha com "does not exist" e, com
-        # ErrorActionPreference=Stop, derrubaria o deploy do app principal
-        # tambem. Checar existencia antes evita quebrar o deploy que ja
-        # funciona por causa de um recurso que ainda nao foi provisionado.
-        $jobExiste = az containerapp job show --name caj-gpol-hml-lembretes --resource-group rg-gpoliticas 2>$null
-        if ($LASTEXITCODE -eq 0) {
+        # la, checar com "az containerapp job show" responde com erro no
+        # stderr, e com ErrorActionPreference=Stop QUALQUER saida de erro de
+        # um comando nativo vira NativeCommandError terminador em PS 5.1 -
+        # mesmo redirecionada (ja documentado em docs/learnings.md com o
+        # mesmo problema em "docker rm -f"). "list" com filtro NUNCA erra por
+        # "nao encontrado" - so devolve lista vazia - evita a classe toda do
+        # problema. @(...) forca array mesmo com 0 ou 1 resultado - sem isso,
+        # ConvertFrom-Json de 1 item vira objeto solto sem .Count.
+        $jobs = @(az containerapp job list --resource-group rg-gpoliticas --query "[?name=='caj-gpol-hml-lembretes']" -o json | ConvertFrom-Json)
+        if ($jobs.Count -gt 0) {
           az containerapp job update --name caj-gpol-hml-lembretes --resource-group rg-gpoliticas `
             --image acrgpolhml27207f.azurecr.io/gpoliticas:$(Build.BuildId)
           if ($LASTEXITCODE -ne 0) { exit 1 }
