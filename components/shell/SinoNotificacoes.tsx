@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePendencias } from "@/lib/hooks/usePendencias";
 import { tipoDocumento } from "@/lib/constants";
 import type { ItemPendencia } from "@/app/api/pendencias/lista/route";
+import { nivelUrgenciaPendencia, classesUrgenciaPendencia } from "@/lib/politica/lembretesPendentes";
 
 export default function SinoNotificacoes() {
   const { total, carregando } = usePendencias();
@@ -75,14 +76,18 @@ export default function SinoNotificacoes() {
             <p className="px-3 py-4 text-center text-sm text-black/40">Nenhuma pendência.</p>
           ) : (
             <ul className="max-h-80 overflow-y-auto">
-              {itens.map((it) => (
-                <li key={it.id} className="border-t border-black/5 first:border-t-0">
-                  <Link href={`/catalogo/${it.politicaId}`} className="block px-3 py-2 hover:bg-black/5">
-                    <div className="text-sm text-black/80">{it.titulo}</div>
-                    <div className="mt-0.5 text-[11px] text-black/40">{tipoDocumento(it.tipo).rotulo}</div>
-                  </Link>
-                </li>
-              ))}
+              {itens.map((it) => {
+                const nivel = nivelUrgenciaPendencia(new Date(it.criadaEm), new Date());
+                const classes = classesUrgenciaPendencia(nivel);
+                return (
+                  <li key={it.id} className={`border-t border-black/5 first:border-t-0 ${classes}`}>
+                    <Link href={`/catalogo/${it.politicaId}`} className="block px-3 py-2 hover:bg-black/5">
+                      <div className="text-sm text-black/80">{it.titulo}</div>
+                      <div className="mt-0.5 text-[11px] text-black/40">{tipoDocumento(it.tipo).rotulo}</div>
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
