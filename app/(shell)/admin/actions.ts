@@ -5,8 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getUsuarioAtual, podeAdministrar, podeGerirAdmins, podeGerirConsorcios } from "@/lib/auth/usuario";
 import { registrar } from "@/lib/auditoria";
 import { CARGOS_PRIVILEGIADOS } from "@/lib/auth/perfis";
-import type { Prisma } from "@prisma/client";
-import { dadosPendencia, politicasParaNovoUsuario, type PoliticaAlvoReconciliacao } from "@/lib/politica/pendencia";
+import { reconciliarPendenciasNovoUsuario } from "@/lib/politica/reconciliarPendencias";
 
 export type ResultadoAcao = { ok: boolean; erro?: string };
 
@@ -58,35 +57,12 @@ export async function convidarUsuario(
     },
   });
 
-  // Best-effort (mesma filosofia de criarPendencias/notificarAudiencia em
-  // estado-actions.ts): o convite já está commitado acima — falha aqui nunca
-  // pode desfazê-lo ou impedi-lo. Cria a Pendencia retroativa que faltaria se
-  // o novo usuário só passasse a contar na PRÓXIMA publicação.
-  try {
-    const publicadas = await prisma.politica.findMany({
-      where: { estado: "publicada", consorcioId: null },
-      include: { audienciaSetores: { select: { id: true } } },
-    });
-    const alvo: PoliticaAlvoReconciliacao[] = publicadas
-      .filter((p) => p.publicadaEm)
-      .map((p) => ({
-        id: p.id,
-        tipo: p.tipo,
-        publicadaEm: p.publicadaEm as Date,
-        setorIds: p.audienciaSetores.map((s) => s.id),
-      }));
-    const relevantes = politicasParaNovoUsuario(alvo, setores);
-    for (const p of relevantes) {
-      await prisma.pendencia.createMany({
-        data: dadosPendencia(p.id, p.tipo, p.publicadaEm, [
-          { id: criado.id, oid: criado.oid, nome: criado.nome, email: criado.email },
-        ]) as Prisma.PendenciaCreateManyInput[],
-        skipDuplicates: true,
-      });
-    }
-  } catch (erro) {
-    console.error("Falha ao reconciliar pendencias do novo usuário (convite já confirmado):", erro);
-  }
+  // Cria a Pendencia retroativa que faltaria se o novo usuário só passasse a
+  // contar na PRÓXIMA publicação. Best-effort — ver reconciliarPendencias.ts.
+  await reconciliarPendenciasNovoUsuario(
+    { id: criado.id, oid: criado.oid, nome: criado.nome, email: criado.email },
+    setores,
+  );
 
   await registrar("usuario.convidar", "Usuario", criado.id, `${emailT} como ${perfil}`);
   revalidatePath("/admin");

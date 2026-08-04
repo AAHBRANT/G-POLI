@@ -21,9 +21,9 @@ describe("dadosPendencia", () => {
 });
 
 describe("politicasParaNovoUsuario", () => {
-  const politicaAberta = { id: "p-aberta", tipo: "politica", publicadaEm: new Date("2026-08-01"), setorIds: [] };
-  const politicaSetorTI = { id: "p-ti", tipo: "norma", publicadaEm: new Date("2026-08-02"), setorIds: ["setor-ti"] };
-  const politicaSetorRH = { id: "p-rh", tipo: "manual", publicadaEm: new Date("2026-08-03"), setorIds: ["setor-rh"] };
+  const politicaAberta = { id: "p-aberta", tipo: "politica", publicadaEm: new Date("2026-08-01"), setorIds: [], usuarioIds: [] };
+  const politicaSetorTI = { id: "p-ti", tipo: "norma", publicadaEm: new Date("2026-08-02"), setorIds: ["setor-ti"], usuarioIds: [] };
+  const politicaSetorRH = { id: "p-rh", tipo: "manual", publicadaEm: new Date("2026-08-03"), setorIds: ["setor-rh"], usuarioIds: [] };
 
   it("inclui política de audiência aberta (setorIds vazio) mesmo se o usuário não tem setor", () => {
     const r = politicasParaNovoUsuario([politicaAberta], []);
@@ -52,5 +52,11 @@ describe("politicasParaNovoUsuario", () => {
 
   it("lista de políticas vazia retorna lista vazia", () => {
     expect(politicasParaNovoUsuario([], ["setor-ti"])).toEqual([]);
+  });
+
+  it("política restrita só a usuários específicos (audienciaSetores vazio) NÃO conta como aberta a todos", () => {
+    const politicaSoUsuarios = { id: "p-users", tipo: "politica", publicadaEm: new Date("2026-08-01"), setorIds: [], usuarioIds: ["outro-usuario"] };
+    const r = politicasParaNovoUsuario([politicaSoUsuarios], []);
+    expect(r).toEqual([]);
   });
 });

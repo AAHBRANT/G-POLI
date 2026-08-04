@@ -1,4 +1,4 @@
-import type { UsuarioAlvo } from "@/lib/politica/dominio";
+import { audienciaVazia, type UsuarioAlvo } from "@/lib/politica/dominio";
 
 export type DadoPendencia = {
   politicaId: string;
@@ -31,20 +31,24 @@ export type PoliticaAlvoReconciliacao = {
   tipo: string;
   publicadaEm: Date;
   setorIds: string[]; // ids de audienciaSetores desta política
+  usuarioIds: string[]; // ids de audienciaUsuarios — audiência "aberta a todos" exige setor E usuário vazios
 };
 
 // Filtra, entre políticas publicadas SEM consórcio, quais valem pro usuário
-// recém-criado: audiência vazia (aberta a todos) OU algum setor do convite
-// bate com audienciaSetores da política. Espelha audienciaVazia/unirAudiencia
+// recém-criado: audiência vazia (aberta a todos, via audienciaVazia — mesma
+// regra usada no resto do sistema) OU algum setor do convite bate com
+// audienciaSetores da política. Espelha audienciaVazia/unirAudiencia
 // (lib/politica/dominio.ts), só que na direção inversa (usuário → políticas,
-// não política → usuários) — usada por convidarUsuario em
-// app/(shell)/admin/actions.ts pra criar a Pendencia retroativa que falta
-// quando o convite acontece depois da política já publicada.
+// não política → usuários) — usada pela reconciliação de pendência retroativa
+// (lib/politica/reconciliarPendencias.ts) quando um usuário nasce depois da
+// política já publicada.
 export function politicasParaNovoUsuario(
   politicas: PoliticaAlvoReconciliacao[],
   setorIdsUsuario: string[],
 ): PoliticaAlvoReconciliacao[] {
   return politicas.filter(
-    (p) => p.setorIds.length === 0 || p.setorIds.some((id) => setorIdsUsuario.includes(id)),
+    (p) =>
+      audienciaVazia(p.setorIds, p.usuarioIds) ||
+      p.setorIds.some((id) => setorIdsUsuario.includes(id)),
   );
 }
