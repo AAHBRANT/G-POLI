@@ -12,6 +12,8 @@ vi.mock("@/lib/prisma", () => ({
       update: vi.fn(),
       delete: vi.fn(),
     },
+    politica: { findMany: vi.fn() },
+    pendencia: { createMany: vi.fn() },
   },
 }));
 
@@ -46,6 +48,8 @@ const findUnique = prisma.usuario.findUnique as ReturnType<typeof vi.fn>;
 const create = prisma.usuario.create as ReturnType<typeof vi.fn>;
 const update = prisma.usuario.update as ReturnType<typeof vi.fn>;
 const del = prisma.usuario.delete as ReturnType<typeof vi.fn>;
+const politicaFindMany = prisma.politica.findMany as ReturnType<typeof vi.fn>;
+const pendenciaCreateMany = prisma.pendencia.createMany as ReturnType<typeof vi.fn>;
 
 const admin = (over: Partial<Record<string, unknown>> = {}) => ({
   id: "admin-1",
@@ -117,6 +121,7 @@ describe("convidarUsuario", () => {
     usuarioAtual.mockResolvedValue(admin());
     findUnique.mockResolvedValue(null);
     create.mockResolvedValue({ id: "novo-1" });
+    politicaFindMany.mockResolvedValue([]);
 
     const r = await convidarUsuario(" Fulano ", " Fulano@Empresa.com ", "colaborador", ["setor-1"]);
 
@@ -132,6 +137,79 @@ describe("convidarUsuario", () => {
       },
     });
     expect(registrar).toHaveBeenCalledWith("usuario.convidar", "Usuario", "novo-1", "fulano@empresa.com como colaborador");
+  });
+});
+
+describe("convidarUsuario — reconciliação de pendência", () => {
+  beforeEach(() => {
+    usuarioAtual.mockResolvedValue(admin());
+    findUnique.mockResolvedValue(null);
+    create.mockResolvedValue({ id: "novo-1", oid: null, nome: "Fulano", email: "fulano@empresa.com" });
+  });
+
+  it("cria Pendencia pra política publicada de audiência aberta", async () => {
+    politicaFindMany.mockResolvedValue([
+      { id: "pol-1", tipo: "politica", publicadaEm: new Date("2026-08-01"), audienciaSetores: [] },
+    ]);
+    pendenciaCreateMany.mockResolvedValue({ count: 1 });
+
+    const r = await convidarUsuario("Fulano", "fulano@empresa.com", "colaborador", []);
+
+    expect(r).toEqual({ ok: true });
+    expect(politicaFindMany).toHaveBeenCalledWith({
+      where: { estado: "publicada", consorcioId: null },
+      include: { audienciaSetores: { select: { id: true } } },
+    });
+    expect(pendenciaCreateMany).toHaveBeenCalledWith({
+      data: [
+        {
+          politicaId: "pol-1",
+          usuarioId: "novo-1",
+          politicaPublicadaEm: new Date("2026-08-01"),
+          tipo: "politica",
+          estado: "pendente",
+        },
+      ],
+      skipDuplicates: true,
+    });
+  });
+
+  it("cria Pendencia pra política restrita ao setor do convite", async () => {
+    politicaFindMany.mockResolvedValue([
+      { id: "pol-2", tipo: "norma", publicadaEm: new Date("2026-08-02"), audienciaSetores: [{ id: "setor-ti" }] },
+    ]);
+    pendenciaCreateMany.mockResolvedValue({ count: 1 });
+
+    await convidarUsuario("Fulano", "fulano@empresa.com", "colaborador", ["setor-ti"]);
+
+    expect(pendenciaCreateMany).toHaveBeenCalledTimes(1);
+  });
+
+  it("NÃO cria Pendencia pra política restrita a outro setor", async () => {
+    politicaFindMany.mockResolvedValue([
+      { id: "pol-3", tipo: "manual", publicadaEm: new Date("2026-08-03"), audienciaSetores: [{ id: "setor-rh" }] },
+    ]);
+
+    await convidarUsuario("Fulano", "fulano@empresa.com", "colaborador", ["setor-ti"]);
+
+    expect(pendenciaCreateMany).not.toHaveBeenCalled();
+  });
+
+  it("sem política publicada nenhuma, não chama createMany e ainda retorna ok", async () => {
+    politicaFindMany.mockResolvedValue([]);
+
+    const r = await convidarUsuario("Fulano", "fulano@empresa.com", "colaborador", []);
+
+    expect(r).toEqual({ ok: true });
+    expect(pendenciaCreateMany).not.toHaveBeenCalled();
+  });
+
+  it("falha ao buscar políticas não impede o convite (best-effort)", async () => {
+    politicaFindMany.mockRejectedValue(new Error("db fora do ar"));
+
+    const r = await convidarUsuario("Fulano", "fulano@empresa.com", "colaborador", []);
+
+    expect(r).toEqual({ ok: true });
   });
 });
 
