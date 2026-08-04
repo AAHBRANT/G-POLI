@@ -92,6 +92,33 @@ caminho de código recorrente.
 
 ---
 
+## Pendência não criada pra usuário novo/reativado (backfill pontual, 2026-08-04)
+
+**Bug:** `Pendencia` só é criada no momento do publish (`criarPendencias` em
+`estado-actions.ts`), pra quem estava ativo e na audiência NAQUELE momento.
+Usuário criado, reativado, ou adicionado a um setor/consórcio DEPOIS de uma
+política já publicada nunca ganha a `Pendencia` correspondente — o painel
+mostra "em dia" mesmo sem ciência de fato dada. Achado num teste manual da
+conta DEV: 2 políticas publicadas, 0 pendências no painel.
+
+**Correção estrutural (reconciliação automática ao criar/ativar/vincular
+usuário) ainda não implementada** — ver spec a ser gerada via brainstorming.
+Isso aqui é só o backfill pontual do estado atual:
+
+```bash
+node scripts/backfill-pendencias.js
+```
+
+Roda contra a `DATABASE_URL` do `.env` carregado na sessão (aponte pro
+ambiente-alvo — hml ou prod). Só ADICIONA `Pendencia` faltante via
+`createMany` + `skipDuplicates` na constraint única
+`politicaId+usuarioId+politicaPublicadaEm` — nunca cancela, atualiza ou
+apaga nada existente. Loga os ids criados no final; pra reverter, `DELETE
+FROM "Pendencia" WHERE id IN (...)` com essa lista. Seguro rodar mais de uma
+vez (idempotente — `skipDuplicates` não duplica nada na segunda execução).
+
+---
+
 ## Passo a passo — subir uma nova versão manualmente
 
 Sequência real usada em toda atualização do ambiente de homologação. `vN` é o
