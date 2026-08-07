@@ -90,3 +90,52 @@ export async function gerarRascunhoNorma(dados: {
     return { ok: false, erro: e instanceof Error ? e.message : "Erro inesperado na IA." };
   }
 }
+
+export type SecaoSnapshot = { codigo: string; titulo: string; corpo?: string; linhas?: string[][] };
+
+// Resumo de 1 frase do que mudou entre duas versões da política, pra
+// alimentar a linha nova da tabela de Controle de Revisões (Manual, cap.
+// 19). Best-effort: qualquer falha (IA indisponível, chamada falha,
+// resposta vazia) retorna null — quem chama decide o texto de fallback,
+// porque esta função não sabe o número da revisão em questão.
+export async function gerarDescricaoRevisao(
+  secoesAnteriores: SecaoSnapshot[],
+  secoesAtuais: SecaoSnapshot[],
+): Promise<string | null> {
+  if (!iaDisponivel()) return null;
+
+  const formatar = (secoes: SecaoSnapshot[]) =>
+    secoes
+      .map((s) => `${s.codigo} ${s.titulo}: ${s.corpo ?? (s.linhas ?? []).map((l) => l.join(" | ")).join("; ")}`)
+      .join("\n");
+
+  const system = [
+    "Você é redator normativo sênior da AAHBRANT Engenharia & Construções.",
+    "Compare a versão ANTERIOR e a versão ATUAL de uma norma interna e descreva, em UMA frase curta e objetiva, o que mudou.",
+    "Estilo dos exemplos do Manual de Padronização Documental: 'Inclusão do item 4.2', 'Revisão da seção de Responsabilidades'.",
+    "Responda SOMENTE com a frase — sem aspas, sem pontuação final além de ponto, sem preâmbulo.",
+  ].join("\n");
+
+  const user = ["VERSÃO ANTERIOR:", formatar(secoesAnteriores), "", "VERSÃO ATUAL:", formatar(secoesAtuais)].join("\n");
+
+  try {
+    const url = `${ENDPOINT}/openai/deployments/${DEPLOYMENT}/chat/completions?api-version=${API_VERSION}`;
+    const r = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "api-key": KEY },
+      body: JSON.stringify({
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+        max_completion_tokens: 100,
+      }),
+    });
+    if (!r.ok) return null;
+    const data = await r.json();
+    const texto = (data?.choices?.[0]?.message?.content ?? "").trim();
+    return texto.length > 0 ? texto : null;
+  } catch {
+    return null;
+  }
+}
