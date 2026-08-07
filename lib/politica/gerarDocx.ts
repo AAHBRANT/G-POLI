@@ -12,12 +12,23 @@ export type SecaoDocx = {
   corpo: string; // já achatado por corpoParaTexto (lib/politica/dominio.ts)
 };
 
+// Uma linha da tabela "Controle de Revisões" (primeiro elemento do corpo do
+// documento oficial — Manual do SGI, cap. 19). Todos os campos já vêm
+// formatados como texto (data em pt-BR, revisão com dois dígitos).
+export type LinhaControleRevisoes = {
+  revisao: string;
+  data: string;
+  descricao: string;
+  responsavel: string;
+};
+
 export type DadosDocumentoOficial = {
   titulo: string;
   codigo: string | null;
   publicadaEm: Date;
   areaNome: string;
   revisao: number;
+  controleRevisoes: LinhaControleRevisoes[];
   secoes: SecaoDocx[];
 };
 
@@ -46,6 +57,7 @@ export async function gerarDocumentoOficial(dados: DadosDocumentoOficial): Promi
       unidade: "",
       areaResponsavel: dados.areaNome,
       revisao: String(dados.revisao).padStart(2, "0"),
+      controleRevisoes: dados.controleRevisoes,
       secoes: dados.secoes,
     },
   });
