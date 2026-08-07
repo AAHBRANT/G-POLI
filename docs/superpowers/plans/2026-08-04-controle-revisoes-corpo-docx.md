@@ -374,28 +374,44 @@ Abra `$WORKDIR/modelo-unpack/word/document.xml` e localize a string literal
   <w:tblGrid>
     <w:gridCol w:w="1500"/><w:gridCol w:w="1800"/><w:gridCol w:w="4500"/><w:gridCol w:w="2200"/>
   </w:tblGrid>
+  <!-- Cabeçalho: negrito + Arial + marsala institucional #670000.
+       Ordem canônica dentro de <w:rPr>: rFonts -> b -> color. -->
   <w:tr>
-    <w:tc><w:tcPr><w:tcW w:w="1500" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>Revisão</w:t></w:r></w:p></w:tc>
-    <w:tc><w:tcPr><w:tcW w:w="1800" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>Data</w:t></w:r></w:p></w:tc>
-    <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>Descrição da Alteração</w:t></w:r></w:p></w:tc>
-    <w:tc><w:tcPr><w:tcW w:w="2200" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>Responsável</w:t></w:r></w:p></w:tc>
+    <w:tc><w:tcPr><w:tcW w:w="1500" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:b/><w:color w:val="670000"/></w:rPr><w:t>Revisão</w:t></w:r></w:p></w:tc>
+    <w:tc><w:tcPr><w:tcW w:w="1800" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:b/><w:color w:val="670000"/></w:rPr><w:t>Data</w:t></w:r></w:p></w:tc>
+    <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:b/><w:color w:val="670000"/></w:rPr><w:t>Descrição da Alteração</w:t></w:r></w:p></w:tc>
+    <w:tc><w:tcPr><w:tcW w:w="2200" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:b/><w:color w:val="670000"/></w:rPr><w:t>Responsável</w:t></w:r></w:p></w:tc>
   </w:tr>
+  <!-- Linha só com o {FOR} — consumida na renderização. -->
   <w:tr>
-    <w:tc><w:tcPr><w:tcW w:w="1500" w:type="dxa"/></w:tcPr>
-      <w:p><w:r><w:t xml:space="preserve">{FOR rev IN controleRevisoes}</w:t></w:r></w:p>
-      <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:t>{$rev.revisao}</w:t></w:r></w:p>
-    </w:tc>
+    <w:tc><w:tcPr><w:tcW w:w="1500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">{FOR rev IN controleRevisoes}</w:t></w:r></w:p></w:tc>
+    <w:tc><w:tcPr><w:tcW w:w="1800" w:type="dxa"/></w:tcPr><w:p/></w:tc>
+    <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p/></w:tc>
+    <w:tc><w:tcPr><w:tcW w:w="2200" w:type="dxa"/></w:tcPr><w:p/></w:tc>
+  </w:tr>
+  <!-- Linha de dados — esta é a que se repete, uma vez por item. -->
+  <w:tr>
+    <w:tc><w:tcPr><w:tcW w:w="1500" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:t>{$rev.revisao}</w:t></w:r></w:p></w:tc>
     <w:tc><w:tcPr><w:tcW w:w="1800" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:t>{$rev.data}</w:t></w:r></w:p></w:tc>
     <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:t>{$rev.descricao}</w:t></w:r></w:p></w:tc>
-    <w:tc><w:tcPr><w:tcW w:w="2200" w:type="dxa"/></w:tcPr>
-      <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:t>{$rev.responsavel}</w:t></w:r></w:p>
-      <w:p><w:r><w:t xml:space="preserve">{END-FOR rev}</w:t></w:r></w:p>
-    </w:tc>
+    <w:tc><w:tcPr><w:tcW w:w="2200" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:t>{$rev.responsavel}</w:t></w:r></w:p></w:tc>
+  </w:tr>
+  <!-- Linha só com o {END-FOR} — consumida na renderização. -->
+  <w:tr>
+    <w:tc><w:tcPr><w:tcW w:w="1500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">{END-FOR rev}</w:t></w:r></w:p></w:tc>
+    <w:tc><w:tcPr><w:tcW w:w="1800" w:type="dxa"/></w:tcPr><w:p/></w:tc>
+    <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr><w:p/></w:tc>
+    <w:tc><w:tcPr><w:tcW w:w="2200" w:type="dxa"/></w:tcPr><w:p/></w:tc>
   </w:tr>
 </w:tbl>
 ```
 
-Note o padrão exatamente igual ao de `secoes`: `{FOR rev IN controleRevisoes}` sozinho no seu próprio parágrafo (aqui, na 1ª célula), os placeholders de dado usam `{$rev.campo}` (com `$`, não `{rev.campo}` sem `$` — confirme comparando com `{$secao.codigo}` já usado no arquivo), e `{END-FOR rev}` sozinho no seu próprio parágrafo (na última célula). O `docx-templates` repete a `<w:tr>` inteira (menor elemento comum entre o FOR e o END-FOR) uma vez por item de `controleRevisoes`.
+Pontos de atenção:
+
+- **`{FOR rev IN controleRevisoes}` e `{END-FOR rev}` ficam em LINHAS PRÓPRIAS da tabela**, com a linha de dados entre elas. É esse o padrão que faz o `docx-templates` repetir a `<w:tr>` de dados. As linhas de comando são consumidas e removidas na renderização.
+- **NÃO coloque `{FOR}` e `{END-FOR}` na MESMA linha.** Isso é um padrão diferente e documentado: gera **COLUNAS**, não linhas — o `docx-templates` repete os nós entre os dois comandos dentro do ancestral comum (as `<w:tc>`), produzindo uma única linha com N×4 células e XML inválido (`<w:tcPr>` duplicado dentro do mesmo `<w:tc>`). Ver README do `docx-templates`, seção "`FOR` and `END-FOR`": o exemplo "`FOR` loops also work over table rows" usa linhas separadas; o exemplo seguinte, de gerar colunas dinamicamente, é o que usa a mesma linha. Erro confirmado empiricamente por render real na Task 3.
+- Os placeholders de dado usam `{$rev.campo}` (com `$`, não `{rev.campo}` sem `$` — confirme comparando com `{$secao.codigo}` já usado no arquivo).
+- Um teste que só verifica TEXTO (`toContain`) **passa mesmo com o layout quebrado** — as duas variantes contêm as mesmas strings. Por isso o teste inclui asserções estruturais sobre o número de `<w:tr>`/`<w:tc>` da tabela renderizada.
 
 Rezipar:
 

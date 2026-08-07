@@ -68,13 +68,35 @@ quem fez CADA revisão, não a republicação mais recente.
 
 O modelo (`templates/politica-modelo.docx`) já usa o padrão
 `{FOR secao IN secoes}...{END-FOR secao}` do `docx-templates` (confirmado
-por inspeção do XML). A tabela nova replica o mesmo mecanismo: uma tabela
-real do Word, inserida como primeiro elemento do corpo (antes do título
-"1 Objetivo"), com uma linha de cabeçalho fixa (`Revisão | Data | Descrição
-da Alteração | Responsável`, negrito, cor institucional — conforme padrão
-de tabelas do Manual, cap. 9) e uma linha de dados contendo
-`{FOR rev IN controleRevisoes}` numa célula e `{END-FOR rev}` na última
-célula da mesma linha, repetindo a linha por item da lista.
+por inspeção do XML). A tabela nova é uma tabela real do Word, inserida
+como primeiro elemento do corpo (antes do título "1 Objetivo"), com uma
+linha de cabeçalho fixa (`Revisão | Data | Descrição da Alteração |
+Responsável`, negrito, Arial e cor institucional marsala `#670000` —
+conforme padrão de tabelas do Manual, cap. 9).
+
+Para repetir a linha de dados por item da lista, o `FOR`/`END-FOR` precisa
+ficar em **linhas próprias da tabela** — três linhas ao todo abaixo do
+cabeçalho:
+
+1. linha contendo só `{FOR rev IN controleRevisoes}` (1ª célula; as demais
+   com parágrafo vazio);
+2. linha de dados: `{$rev.revisao} | {$rev.data} | {$rev.descricao} |
+   {$rev.responsavel}` — é esta que se repete;
+3. linha contendo só `{END-FOR rev}` (1ª célula).
+
+As linhas 1 e 3 são consumidas e removidas pelo `docx-templates` na
+renderização; não sobra linha vazia.
+
+> **Atenção — erro fácil de cometer.** Se `{FOR}` e `{END-FOR}` ficarem na
+> **MESMA** linha da tabela, o `docx-templates` gera **COLUNAS**, não
+> linhas: ele repete os nós entre os dois comandos dentro do ancestral
+> comum (as `<w:tc>`), produzindo uma única linha com N×4 células e XML
+> inválido (`<w:tcPr>` duplicado dentro do mesmo `<w:tc>`). São dois
+> padrões distintos e documentados — ver o README do `docx-templates`,
+> seção "`FOR` and `END-FOR`" (`FOR loops also work over table rows` para
+> repetir linhas; o exemplo seguinte, "dynamically generate columns", é o
+> que usa `FOR`/`END-FOR` na mesma linha). Verificado empiricamente por
+> render real durante a implementação da Task 3.
 
 `gerarDocx.ts` ganha um campo novo em `DadosDocumentoOficial`:
 
