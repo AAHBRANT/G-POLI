@@ -76,14 +76,14 @@ enum Perfil {
 
 // Setor (RH, TI, Financeiro, Operações…). Antiga "Area" — é o dono da política e agrupa usuários.
 model Area {
-  id        String     @id @default(cuid())
-  nome      String     @unique
-  ativa     Boolean    @default(true)
-  politicas Politica[]
-  usuarios  Usuario[]  @relation("SetorPrincipal") // legado (setor principal / dono da política)
-  membros   Usuario[]  @relation("UsuarioSetores") // N:N — usuários vinculados ao setor
+  id                 String     @id @default(cuid())
+  nome               String     @unique
+  ativa              Boolean    @default(true)
+  politicas          Politica[]
+  usuarios           Usuario[]  @relation("SetorPrincipal") // legado (setor principal / dono da política)
+  membros            Usuario[]  @relation("UsuarioSetores") // N:N — usuários vinculados ao setor
   politicasAudiencia Politica[] @relation("PoliticaAudienciaSetores") // v3: setor no público-alvo de quais políticas
-  criadoEm  DateTime   @default(now())
+  criadoEm           DateTime   @default(now())
 }
 
 // Empresa/consórcio externo (obra em parceria) — dimensão de destino de
@@ -100,55 +100,55 @@ model Consorcio {
 }
 
 model Usuario {
-  id        String   @id @default(cuid())
-  oid       String?  @unique // object id do Entra; null enquanto convidado (ainda não logou)
-  email     String   @unique // normalizado em minúsculas; base da allowlist de acesso
-  nome      String   @default("")
-  perfil    Perfil   @default(colaborador)
-  area      Area?    @relation("SetorPrincipal", fields: [areaId], references: [id]) // legado
-  areaId    String?
-  setores   Area[]   @relation("UsuarioSetores") // N:N — setores do usuário
-  consorcios Consorcio[] @relation("UsuarioConsorcios") // N:N — consórcios externos do usuário
-  ativo     Boolean  @default(true)
-  convidadoPor String? // e-mail de quem convidou (auditoria leve)
-  criadoEm  DateTime @default(now())
-  atualizadoEm DateTime @default(now()) @updatedAt
-  politicasAudiencia Politica[] @relation("PoliticaAudienciaUsuarios") // v3: individual no público-alvo de quais políticas
-  pendencias Pendencia[]
+  id                 String      @id @default(cuid())
+  oid                String?     @unique // object id do Entra; null enquanto convidado (ainda não logou)
+  email              String      @unique // normalizado em minúsculas; base da allowlist de acesso
+  nome               String      @default("")
+  perfil             Perfil      @default(colaborador)
+  area               Area?       @relation("SetorPrincipal", fields: [areaId], references: [id]) // legado
+  areaId             String?
+  setores            Area[]      @relation("UsuarioSetores") // N:N — setores do usuário
+  consorcios         Consorcio[] @relation("UsuarioConsorcios") // N:N — consórcios externos do usuário
+  ativo              Boolean     @default(true)
+  convidadoPor       String? // e-mail de quem convidou (auditoria leve)
+  criadoEm           DateTime    @default(now())
+  atualizadoEm       DateTime    @default(now()) @updatedAt
+  politicasAudiencia Politica[]  @relation("PoliticaAudienciaUsuarios") // v3: individual no público-alvo de quais políticas
+  pendencias         Pendencia[]
 }
 
 model Politica {
-  id            String         @id @default(cuid())
-  codigo        String?        @unique // código normativo, ex.: POL-RH-001
-  titulo        String
-  tipo          TipoDocumento  @default(politica) // v3: seção do menu a que pertence
-  area          Area           @relation(fields: [areaId], references: [id])
-  areaId        String
+  id                String         @id @default(cuid())
+  codigo            String?        @unique // código normativo, ex.: POL-RH-001
+  titulo            String
+  tipo              TipoDocumento  @default(politica) // v3: seção do menu a que pertence
+  area              Area           @relation(fields: [areaId], references: [id])
+  areaId            String
   // null = AAHBRANT (todos); preenchido = só quem está vinculado a este consórcio (ver spec
   // docs/superpowers/specs/2026-08-02-consorcios-design.md).
-  consorcio     Consorcio?     @relation(fields: [consorcioId], references: [id], onDelete: Restrict)
-  consorcioId   String?
-  classificacao Classificacao
-  estado        EstadoPolitica @default(rascunho)
-  versoes       Versao[]
-  secoes        Secao[]
-  criadaEm      DateTime       @default(now())
-  publicadaEm   DateTime?
+  consorcio         Consorcio?     @relation(fields: [consorcioId], references: [id], onDelete: Restrict)
+  consorcioId       String?
+  classificacao     Classificacao
+  estado            EstadoPolitica @default(rascunho)
+  versoes           Versao[]
+  secoes            Secao[]
+  criadaEm          DateTime       @default(now())
+  publicadaEm       DateTime?
   publicadaPorNome  String?
   publicadaPorEmail String?
   conteudoPublicado Json? // v2: snapshot das seções no momento da publicação (texto oficial congelado)
   // v3: número de revisão do cabeçalho institucional (Manual SGI cap. 11).
   // 0 na primeira publicação; incrementa a cada republicação (reabrir →
   // editar → publicar de novo) — nunca na primeira vez.
-  revisao       Int            @default(0)
-  revogadaEm    DateTime?
-  ciencias      Ciencia[]
-  pendencias    Pendencia[]
+  revisao           Int            @default(0)
+  revogadaEm        DateTime?
+  ciencias          Ciencia[]
+  pendencias        Pendencia[]
   // Público-alvo da notificação de publicação (v3). Os dois vazios = "todos os
   // colaboradores ativos" (comportamento anterior a esta feature, preservado).
-  audienciaSetores  Area[]      @relation("PoliticaAudienciaSetores")
-  audienciaUsuarios Usuario[]   @relation("PoliticaAudienciaUsuarios")
-  notificacoes  Notificacao[]
+  audienciaSetores  Area[]         @relation("PoliticaAudienciaSetores")
+  audienciaUsuarios Usuario[]      @relation("PoliticaAudienciaUsuarios")
+  notificacoes      Notificacao[]
 
   // v3: tipo entra na chave — uma Norma e uma Política podem ter o mesmo
   // título na mesma área (são documentos diferentes); só colide dentro do
@@ -174,18 +174,18 @@ model Notificacao {
 // Conteúdo estruturado da política (esqueleto normativo padrão AAHBRANT: seções 1–8).
 // v2: ciência de leitura — colaborador confirma que leu a norma publicada.
 model Ciencia {
-  id           String   @id @default(cuid())
-  politica     Politica @relation(fields: [politicaId], references: [id], onDelete: Cascade)
-  politicaId   String
-  usuarioOid   String
-  usuarioNome  String   @default("")
-  usuarioEmail String
-  criadoEm     DateTime @default(now())
+  id                  String    @id @default(cuid())
+  politica            Politica  @relation(fields: [politicaId], references: [id], onDelete: Cascade)
+  politicaId          String
+  usuarioOid          String
+  usuarioNome         String    @default("")
+  usuarioEmail        String
+  criadoEm            DateTime  @default(now())
   // v3: trilha de auditoria do aceite (Termo de Ciência) — quem, quando, de que
   // IP e para qual versão publicada (comparar com Politica.publicadaEm mostra
   // se a ciência ficou desatualizada após uma republicação).
-  ip                   String    @default("")
-  politicaPublicadaEm  DateTime?
+  ip                  String    @default("")
+  politicaPublicadaEm DateTime?
 
   @@unique([politicaId, usuarioOid])
   @@index([politicaId])
@@ -232,40 +232,46 @@ model Pendencia {
 
 // abertaAArea: quando true, o perfil "area" da área dona pode editar esta seção (#3b).
 model Secao {
-  id          String    @id @default(cuid())
-  politica    Politica  @relation(fields: [politicaId], references: [id], onDelete: Cascade)
-  politicaId  String
-  ordem       Int
-  codigo      String // "1".."8"
-  titulo      String
-  tipo        TipoSecao @default(texto)
-  corpo       String    @default("") // usado quando tipo = texto
-  colunas     Json? // rótulos das colunas quando tipo = tabela
-  linhas      Json? // array de linhas (array de células) quando tipo = tabela
-  abertaAArea Boolean  @default(false) // #3b: libera edição para o perfil "area"
-  atualizadaEm DateTime @default(now()) @updatedAt
+  id           String    @id @default(cuid())
+  politica     Politica  @relation(fields: [politicaId], references: [id], onDelete: Cascade)
+  politicaId   String
+  ordem        Int
+  codigo       String // "1".."8"
+  titulo       String
+  tipo         TipoSecao @default(texto)
+  corpo        String    @default("") // usado quando tipo = texto
+  colunas      Json? // rótulos das colunas quando tipo = tabela
+  linhas       Json? // array de linhas (array de células) quando tipo = tabela
+  abertaAArea  Boolean   @default(false) // #3b: libera edição para o perfil "area"
+  atualizadaEm DateTime  @default(now()) @updatedAt
 
   @@unique([politicaId, codigo])
 }
 
 model Versao {
-  id         String       @id @default(cuid())
-  politica   Politica     @relation(fields: [politicaId], references: [id])
-  politicaId String
-  numero     Int
-  estado     EstadoVersao @default(ativa)
-  documento  Documento?
+  id                 String       @id @default(cuid())
+  politica           Politica     @relation(fields: [politicaId], references: [id])
+  politicaId         String
+  numero             Int
+  estado             EstadoVersao @default(ativa)
+  documento          Documento?
   // Snapshot do conteúdo (mesmo formato de Politica.conteudoPublicado) no
   // momento em que ESTA versão foi criada — nunca mais sobrescrito depois,
   // diferente do campo em Politica. Null em versões anteriores a esta
   // feature (não há como recuperar o histórico exato sem abrir o .docx
   // antigo — ver docs/superpowers/specs/2026-08-02-versao-substituida-ver-nao-baixar-design.md).
-  conteudoSnapshot Json?
+  conteudoSnapshot   Json?
   // Politica.revisao válido no momento em que esta versão foi criada — usado
   // no cabeçalho institucional ao "Ver" uma versão antiga (o número de
   // revisão atual da política pode já ter mudado).
-  revisaoNaEpoca   Int?
-  criadaEm   DateTime     @default(now())
+  revisaoNaEpoca     Int?
+  // Tabela de Controle de Revisões (Manual, cap. 19) — imutáveis uma vez
+  // criados, uma linha por versão. Null em versões anteriores a esta
+  // feature (mesmo padrão de conteudoSnapshot/revisaoNaEpoca) — a
+  // renderização mostra "—" nessas linhas em vez de inventar dado.
+  descricaoAlteracao String?
+  responsavelNome    String?
+  criadaEm           DateTime     @default(now())
 
   @@unique([politicaId, numero])
 }
