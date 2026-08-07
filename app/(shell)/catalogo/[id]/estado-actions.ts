@@ -154,17 +154,35 @@ export async function publicarPolitica(id: string): Promise<ResultadoAcao> {
   // ANTES de gerar o .docx, pra montar a lista completa (antigas + a nova)
   // e imprimir tudo de uma vez — nunca depois, senão o documento gerado
   // divergiria do que fica persistido.
+  // documento: { oficial: true } — mesmo predicado do updateMany abaixo (linha
+  // ~221): anexo manual (adicionarVersao, Task 5) cria Versao com
+  // documento.oficial: false e NUNCA deve entrar no Controle de Revisões.
   const versoesAnteriores = await prisma.versao.findMany({
-    where: { politicaId: id },
+    where: { politicaId: id, documento: { oficial: true } },
     orderBy: { numero: "asc" },
     select: { revisaoNaEpoca: true, criadaEm: true, descricaoAlteracao: true, responsavelNome: true },
   });
-  const linhasAnteriores = versoesAnteriores.map((v) => ({
-    revisao: v.revisaoNaEpoca != null ? String(v.revisaoNaEpoca).padStart(2, "0") : "—",
-    data: v.criadaEm.toLocaleDateString("pt-BR"),
-    descricao: v.descricaoAlteracao ?? "—",
-    responsavel: v.responsavelNome ?? "—",
-  }));
+  // Dado legado: política publicada antes desta funcionalidade existir tem
+  // publicadaEm preenchido mas NENHUMA Versao — sintetiza a linha "00" a
+  // partir do que Politica ainda guarda, mesmo princípio já usado acima pra
+  // Versao antiga sem os campos novos (nunca inventar dado, "—" pro que não
+  // se sabe). Sem isso a tabela de uma republicação começaria em "01".
+  const linhasAnteriores =
+    versoesAnteriores.length === 0 && politica.publicadaEm
+      ? [
+          {
+            revisao: "—",
+            data: politica.publicadaEm.toLocaleDateString("pt-BR"),
+            descricao: "—",
+            responsavel: politica.publicadaPorNome ?? "—",
+          },
+        ]
+      : versoesAnteriores.map((v) => ({
+          revisao: v.revisaoNaEpoca != null ? String(v.revisaoNaEpoca).padStart(2, "0") : "—",
+          data: v.criadaEm.toLocaleDateString("pt-BR"),
+          descricao: v.descricaoAlteracao ?? "—",
+          responsavel: v.responsavelNome ?? "—",
+        }));
 
   let descricaoNovaVersao: string;
   if (!politica.publicadaEm) {

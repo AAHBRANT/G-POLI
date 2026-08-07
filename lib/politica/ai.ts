@@ -106,7 +106,10 @@ export async function gerarDescricaoRevisao(
 
   const formatar = (secoes: SecaoSnapshot[]) =>
     secoes
-      .map((s) => `${s.codigo} ${s.titulo}: ${s.corpo ?? (s.linhas ?? []).map((l) => l.join(" | ")).join("; ")}`)
+      // Secao.corpo é `String @default("")` — nunca null/undefined, mesmo em
+      // seção tipo tabela. Usa `||` (não `??`) pra cair no fallback de
+      // `linhas` quando corpo vem como string vazia.
+      .map((s) => `${s.codigo} ${s.titulo}: ${s.corpo || (s.linhas ?? []).map((l) => l.join(" | ")).join("; ")}`)
       .join("\n");
 
   const system = [

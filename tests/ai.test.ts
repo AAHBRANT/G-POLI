@@ -77,4 +77,27 @@ describe("gerarDescricaoRevisao", () => {
 
     expect(resultado).toBeNull();
   });
+
+  // Finding 2 (revisão final): Secao.corpo é `String @default("")` — nunca
+  // null/undefined mesmo em seção tipo tabela. Com `??` isso não caía no
+  // fallback de `linhas`, e a IA via a seção como vazia.
+  it("seção tipo tabela (corpo vazio, linhas preenchidas): envia as linhas formatadas à IA, não texto vazio", async () => {
+    vi.stubEnv("AZURE_OPENAI_ENDPOINT", "https://fake.openai.azure.com");
+    vi.stubEnv("AZURE_OPENAI_KEY", "fake-key");
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: "Atualização da tabela." } }] }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { gerarDescricaoRevisao } = await import("@/lib/politica/ai");
+
+    const secaoTabela = [{ codigo: "19", titulo: "Controle de Revisões", corpo: "", linhas: [["a", "b"]] }];
+    const resultado = await gerarDescricaoRevisao(secaoTabela, secaoTabela);
+
+    expect(resultado).toBe("Atualização da tabela.");
+    const corpoRequisicao = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const mensagemUsuario = corpoRequisicao.messages.find((m: { role: string }) => m.role === "user").content;
+    expect(mensagemUsuario).toContain("a | b");
+    expect(mensagemUsuario).not.toMatch(/Controle de Revisões:\s*(\n|$)/);
+  });
 });

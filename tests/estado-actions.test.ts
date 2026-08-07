@@ -296,7 +296,9 @@ describe("publicarPolitica — Controle de Revisões", () => {
 
     expect(resultado.ok).toBe(true);
     const dadosDocx = gerar.mock.calls[0][0];
-    expect(dadosDocx.controleRevisoes[0].descricao).toBe("Republicação — revisão 05");
+    // versaoFindMany() vazio + publicadaEm preenchido = dado legado (Finding 3):
+    // a linha "—" sintética some antes da linha nova — a nova NÃO é [0].
+    expect(dadosDocx.controleRevisoes[1].descricao).toBe("Republicação — revisão 05");
   });
 
   it("versão anterior sem descricaoAlteracao/responsavelNome (dado antigo, pré-feature): mostra '—'", async () => {
@@ -318,6 +320,51 @@ describe("publicarPolitica — Controle de Revisões", () => {
     expect(resultado.ok).toBe(true);
     const dadosDocx = gerar.mock.calls[0][0];
     expect(dadosDocx.controleRevisoes[0]).toEqual({ revisao: "00", data: "01/01/2026", descricao: "—", responsavel: "—" });
+  });
+
+  // Finding 1 (revisão final): anexo manual (Versao com documento.oficial:
+  // false, criado via adicionarVersao) não pode poluir o Controle de
+  // Revisões com uma linha fantasma. O filtro é responsabilidade do
+  // Postgres/Prisma — aqui só confirmamos que a query pede o predicado certo.
+  it("busca versões anteriores filtrando só documento oficial (anexo manual não entra na tabela)", async () => {
+    findUnique.mockResolvedValue(politicaBase());
+    versaoFindMany.mockResolvedValue([]);
+
+    const resultado = await publicarPolitica("p1");
+
+    expect(resultado.ok).toBe(true);
+    expect(versaoFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { politicaId: "p1", documento: { oficial: true } } }),
+    );
+  });
+
+  // Finding 3 (revisão final): política publicada antes desta feature
+  // existir tem publicadaEm preenchido mas NENHUMA Versao (dado legado) —
+  // sem sintetizar a linha "00", uma republicação sairia com a tabela
+  // começando direto em "01".
+  it("republicação de política legada sem nenhuma Versao: sintetiza a linha '00' a partir de Politica", async () => {
+    findUnique.mockResolvedValue({
+      ...politicaBase(),
+      estado: "rascunho",
+      // Meio-dia UTC — evita que o fuso local (ex.: America/Sao_Paulo,
+      // UTC-3) empurre a data pro dia civil anterior ao formatar em pt-BR;
+      // ver learnings.md e os outros usos do mesmo padrão neste arquivo.
+      publicadaEm: new Date("2026-01-01T12:00:00.000Z"),
+      publicadaPorNome: "Fulano Legado",
+      revisao: 0,
+      conteudoPublicado: [],
+    });
+    versaoFindMany.mockResolvedValue([]);
+    descricaoIA.mockResolvedValue("Inclusão do item 4.2");
+
+    const resultado = await publicarPolitica("p1");
+
+    expect(resultado.ok).toBe(true);
+    const dadosDocx = gerar.mock.calls[0][0];
+    expect(dadosDocx.controleRevisoes).toEqual([
+      { revisao: "—", data: "01/01/2026", descricao: "—", responsavel: "Fulano Legado" },
+      { revisao: "01", data: expect.any(String), descricao: "Inclusão do item 4.2", responsavel: "Fulano de Tal" },
+    ]);
   });
 });
 
