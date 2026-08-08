@@ -1,4 +1,5 @@
 import NovaPoliticaForm from "@/components/politica/NovaPoliticaForm";
+import ImportarDocumentoForm from "@/components/politica/ImportarDocumentoForm";
 import PainelCatalogo from "@/components/politica/PainelCatalogo";
 import { getUsuarioAtual, podeCriarPolitica } from "@/lib/auth/usuario";
 import { prisma } from "@/lib/prisma";
@@ -25,7 +26,12 @@ export default async function CatalogoPage({ searchParams }: { searchParams: Par
         <div>
           <h2 className="text-lg font-semibold text-marsala">Catálogo de Políticas</h2>
         </div>
-        {podeCriar && <NovaPoliticaForm tipo="politica" consorcios={consorciosAtivos} />}
+        {podeCriar && (
+          <div className="flex items-center gap-2">
+            <NovaPoliticaForm tipo="politica" consorcios={consorciosAtivos} />
+            <ImportarDocumentoForm tipo="politica" />
+          </div>
+        )}
       </div>
 
       <PainelCatalogo
