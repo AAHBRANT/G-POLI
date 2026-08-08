@@ -113,7 +113,12 @@ export default function SecaoEditor(props: Props) {
           rows={6}
           disabled={ro}
           placeholder="Escreva o conteúdo desta seção…"
-          className="w-full rounded-md border border-black/15 p-3 text-sm outline-none focus:border-marsala disabled:bg-black/[0.03] disabled:text-black/50"
+          // Formatação automática (Sprint 2): fonte, justificado e espaçamento
+          // aqui espelham o que sai no .docx oficial (templates/politica-modelo.docx
+          // — Arial, corpo justificado, spacing before/after 120 twips ≈ leading 1.15).
+          // O usuário não escolhe formatação — o padrão institucional é aplicado sozinho.
+          style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
+          className="w-full rounded-md border border-black/15 p-3 text-sm leading-[1.15] text-justify outline-none focus:border-marsala disabled:bg-black/[0.03] disabled:text-black/50"
         />
       ) : (
         <div className="overflow-x-auto">
@@ -137,7 +142,9 @@ export default function SecaoEditor(props: Props) {
                         onBlur={autosave}
                         rows={2}
                         disabled={ro}
-                        className="w-full rounded border border-black/15 p-2 text-sm outline-none focus:border-marsala disabled:bg-black/[0.03] disabled:text-black/50"
+                        // Mesma formatação automática do corpo de texto (ver comentário acima).
+                        style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
+                        className="w-full rounded border border-black/15 p-2 text-sm leading-[1.15] text-justify outline-none focus:border-marsala disabled:bg-black/[0.03] disabled:text-black/50"
                       />
                     </td>
                   ))}
