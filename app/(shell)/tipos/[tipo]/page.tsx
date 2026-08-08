@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import NovaPoliticaForm from "@/components/politica/NovaPoliticaForm";
+import ImportarDocumentoForm from "@/components/politica/ImportarDocumentoForm";
 import PainelCatalogo from "@/components/politica/PainelCatalogo";
 import { getUsuarioAtual, podeCriarPolitica } from "@/lib/auth/usuario";
 import { tipoDocumentoValido, tipoDocumento, artigoDocumento } from "@/lib/constants";
@@ -41,7 +42,12 @@ export default async function TipoDocumentoPage({
           <h2 className="text-lg font-semibold text-marsala">{info.rotuloPlural}</h2>
           <p className="text-sm text-black/50">{info.descricao}</p>
         </div>
-        {podeCriar && <NovaPoliticaForm tipo={info.valor} consorcios={consorciosAtivos} />}
+        {podeCriar && (
+          <div className="flex items-center gap-2">
+            <NovaPoliticaForm tipo={info.valor} consorcios={consorciosAtivos} />
+            <ImportarDocumentoForm tipo={info.valor} />
+          </div>
+        )}
       </div>
 
       <PainelCatalogo
