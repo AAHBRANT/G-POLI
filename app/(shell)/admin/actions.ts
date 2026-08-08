@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getUsuarioAtual, podeAdministrar, podeGerirAdmins, podeGerirConsorcios } from "@/lib/auth/usuario";
 import { registrar } from "@/lib/auditoria";
 import { CARGOS_PRIVILEGIADOS } from "@/lib/auth/perfis";
+import { reconciliarPendenciasNovoUsuario } from "@/lib/politica/reconciliarPendencias";
 
 export type ResultadoAcao = { ok: boolean; erro?: string };
 
@@ -55,6 +56,14 @@ export async function convidarUsuario(
       setores: setores.length ? { connect: setores.map((id) => ({ id })) } : undefined,
     },
   });
+
+  // Cria a Pendencia retroativa que faltaria se o novo usuário só passasse a
+  // contar na PRÓXIMA publicação. Best-effort — ver reconciliarPendencias.ts.
+  await reconciliarPendenciasNovoUsuario(
+    { id: criado.id, oid: criado.oid, nome: criado.nome, email: criado.email },
+    setores,
+  );
+
   await registrar("usuario.convidar", "Usuario", criado.id, `${emailT} como ${perfil}`);
   revalidatePath("/admin");
   return { ok: true };

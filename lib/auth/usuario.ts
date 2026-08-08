@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { lerSessao } from "./session";
 import { authEnabled, adminEmails, acessoAberto, ehDominioOrg, dominiosOrg } from "./config";
 import { type Perfil, type UsuarioAtual, regraAcesso } from "./rbac";
+import { reconciliarPendenciasNovoUsuario } from "@/lib/politica/reconciliarPendencias";
 
 // Reexporta tipos + regras puras (compat: outros módulos importam daqui).
 export * from "./rbac";
@@ -49,14 +50,24 @@ export async function provisionarUsuario(dados: {
     return;
   }
   // Novo: bootstrap → superadmin; modo aberto + domínio da org → colaborador.
+  // Em ambos, reconcilia a Pendencia retroativa (usuário nunca tem setor
+  // nesse momento — setorIds sempre vazio).
   if (ehBootstrap) {
-    await prisma.usuario.create({
+    const criado = await prisma.usuario.create({
       data: { oid: dados.oid, email, nome: dados.nome, perfil: "superadmin", ativo: true },
     });
+    await reconciliarPendenciasNovoUsuario(
+      { id: criado.id, oid: criado.oid, nome: criado.nome, email: criado.email },
+      [],
+    );
   } else if (acessoAberto && ehDominioOrg(email)) {
-    await prisma.usuario.create({
+    const criado = await prisma.usuario.create({
       data: { oid: dados.oid, email, nome: dados.nome, perfil: "colaborador", ativo: true },
     });
+    await reconciliarPendenciasNovoUsuario(
+      { id: criado.id, oid: criado.oid, nome: criado.nome, email: criado.email },
+      [],
+    );
   }
 }
 

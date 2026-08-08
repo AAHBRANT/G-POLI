@@ -26,9 +26,14 @@ vi.mock("@/lib/auditoria", () => ({
   registrar: vi.fn(),
 }));
 
+vi.mock("@/lib/politica/reconciliarPendencias", () => ({
+  reconciliarPendenciasNovoUsuario: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { prisma } from "@/lib/prisma";
 import { getUsuarioAtual, podeAdministrar, podeGerirAdmins, podeGerirConsorcios } from "@/lib/auth/usuario";
 import { registrar } from "@/lib/auditoria";
+import { reconciliarPendenciasNovoUsuario } from "@/lib/politica/reconciliarPendencias";
 import {
   convidarUsuario,
   definirPerfil,
@@ -46,6 +51,7 @@ const findUnique = prisma.usuario.findUnique as ReturnType<typeof vi.fn>;
 const create = prisma.usuario.create as ReturnType<typeof vi.fn>;
 const update = prisma.usuario.update as ReturnType<typeof vi.fn>;
 const del = prisma.usuario.delete as ReturnType<typeof vi.fn>;
+const reconciliar = reconciliarPendenciasNovoUsuario as ReturnType<typeof vi.fn>;
 
 const admin = (over: Partial<Record<string, unknown>> = {}) => ({
   id: "admin-1",
@@ -132,6 +138,24 @@ describe("convidarUsuario", () => {
       },
     });
     expect(registrar).toHaveBeenCalledWith("usuario.convidar", "Usuario", "novo-1", "fulano@empresa.com como colaborador");
+  });
+});
+
+describe("convidarUsuario — reconciliação de pendência", () => {
+  beforeEach(() => {
+    usuarioAtual.mockResolvedValue(admin());
+    findUnique.mockResolvedValue(null);
+    create.mockResolvedValue({ id: "novo-1", oid: null, nome: "Fulano", email: "fulano@empresa.com" });
+  });
+
+  it("chama reconciliarPendenciasNovoUsuario com o usuário criado e os setores do convite", async () => {
+    const r = await convidarUsuario("Fulano", "fulano@empresa.com", "colaborador", ["setor-ti"]);
+
+    expect(r).toEqual({ ok: true });
+    expect(reconciliar).toHaveBeenCalledWith(
+      { id: "novo-1", oid: null, nome: "Fulano", email: "fulano@empresa.com" },
+      ["setor-ti"],
+    );
   });
 });
 
