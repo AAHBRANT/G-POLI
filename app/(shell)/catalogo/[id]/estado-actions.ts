@@ -19,6 +19,7 @@ import { enviarNotificacaoPoliticaPublicada } from "@/lib/notificacao/graph";
 import { salvarArquivo } from "@/lib/storage";
 import { gerarDocumentoOficial } from "@/lib/politica/gerarDocx";
 import { dadosPendencia } from "@/lib/politica/pendencia";
+import { gerarDescricaoRevisao } from "@/lib/politica/ai";
 import type { Prisma } from "@prisma/client";
 
 export type ResultadoAcao = { ok: boolean; erro?: string };
@@ -149,6 +150,62 @@ export async function publicarPolitica(id: string): Promise<ResultadoAcao> {
   const novaRevisao = politica.publicadaEm ? politica.revisao + 1 : politica.revisao;
   const agora = new Date();
 
+  // Controle de Revisões (Manual, cap. 19): busca as versões anteriores
+  // ANTES de gerar o .docx, pra montar a lista completa (antigas + a nova)
+  // e imprimir tudo de uma vez — nunca depois, senão o documento gerado
+  // divergiria do que fica persistido.
+  // documento: { oficial: true } — mesmo predicado do updateMany abaixo (linha
+  // ~221): anexo manual (adicionarVersao, Task 5) cria Versao com
+  // documento.oficial: false e NUNCA deve entrar no Controle de Revisões.
+  const versoesAnteriores = await prisma.versao.findMany({
+    where: { politicaId: id, documento: { oficial: true } },
+    orderBy: { numero: "asc" },
+    select: { revisaoNaEpoca: true, criadaEm: true, descricaoAlteracao: true, responsavelNome: true },
+  });
+  // Dado legado: política publicada antes desta funcionalidade existir tem
+  // publicadaEm preenchido mas NENHUMA Versao — sintetiza a linha "00" a
+  // partir do que Politica ainda guarda, mesmo princípio já usado acima pra
+  // Versao antiga sem os campos novos (nunca inventar dado, "—" pro que não
+  // se sabe). Sem isso a tabela de uma republicação começaria em "01".
+  const linhasAnteriores =
+    versoesAnteriores.length === 0 && politica.publicadaEm
+      ? [
+          {
+            revisao: "—",
+            data: politica.publicadaEm.toLocaleDateString("pt-BR"),
+            descricao: "—",
+            responsavel: politica.publicadaPorNome ?? "—",
+          },
+        ]
+      : versoesAnteriores.map((v) => ({
+          revisao: v.revisaoNaEpoca != null ? String(v.revisaoNaEpoca).padStart(2, "0") : "—",
+          data: v.criadaEm.toLocaleDateString("pt-BR"),
+          descricao: v.descricaoAlteracao ?? "—",
+          responsavel: v.responsavelNome ?? "—",
+        }));
+
+  let descricaoNovaVersao: string;
+  if (!politica.publicadaEm) {
+    descricaoNovaVersao = "Emissão inicial do documento";
+  } else {
+    const secoesAtuais = snapshot.map((s) => ({ codigo: s.codigo, titulo: s.titulo, corpo: corpoParaTexto(s) }));
+    const secoesAnteriores = Array.isArray(politica.conteudoPublicado)
+      ? (politica.conteudoPublicado as Array<{ codigo: string; titulo: string; corpo?: string; linhas?: string[][] }>)
+      : [];
+    const descricaoIA = await gerarDescricaoRevisao(secoesAnteriores, secoesAtuais);
+    descricaoNovaVersao = descricaoIA ?? `Republicação — revisão ${String(novaRevisao).padStart(2, "0")}`;
+  }
+
+  const controleRevisoes = [
+    ...linhasAnteriores,
+    {
+      revisao: String(novaRevisao).padStart(2, "0"),
+      data: agora.toLocaleDateString("pt-BR"),
+      descricao: descricaoNovaVersao,
+      responsavel: usuario!.nome,
+    },
+  ];
+
   // Fail-closed (ver docs/DEPLOY.md e a spec desta feature): sem o
   // documento oficial gerado, a política NÃO fica publicada.
   let docxBuffer: Buffer;
@@ -159,6 +216,7 @@ export async function publicarPolitica(id: string): Promise<ResultadoAcao> {
       publicadaEm: agora,
       areaNome: politica.area.nome,
       revisao: novaRevisao,
+      controleRevisoes,
       secoes: snapshot.map((s) => ({ codigo: s.codigo, titulo: s.titulo, corpo: corpoParaTexto(s) })),
     });
   } catch (erro) {
@@ -189,6 +247,8 @@ export async function publicarPolitica(id: string): Promise<ResultadoAcao> {
           estado: "ativa",
           conteudoSnapshot: snapshot as never,
           revisaoNaEpoca: novaRevisao,
+          descricaoAlteracao: descricaoNovaVersao,
+          responsavelNome: usuario!.nome,
           documento: {
             create: {
               nome: nomeArquivo,

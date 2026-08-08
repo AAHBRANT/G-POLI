@@ -9,6 +9,7 @@ vi.mock("@/lib/prisma", () => ({
     usuario: { findMany: vi.fn() },
     consorcio: { findUnique: vi.fn() }, // NOVO (Task 8) — membros do consórcio quando politica.consorcioId
     notificacao: { create: vi.fn() }, // NOVO (Task 8) — o teste novo asserta chamadas diretas a este mock
+    versao: { findMany: vi.fn() }, // NOVO — busca de Versao anteriores pro Controle de Revisões
     $transaction: vi.fn(),
   },
 }));
@@ -30,6 +31,8 @@ vi.mock("@/lib/politica/gerarDocx", () => ({ gerarDocumentoOficial: vi.fn() }));
 
 vi.mock("@/lib/politica/pendencia", () => ({ dadosPendencia: vi.fn() }));
 
+vi.mock("@/lib/politica/ai", () => ({ gerarDescricaoRevisao: vi.fn() }));
+
 import { prisma } from "@/lib/prisma";
 import { getUsuarioAtual, podePublicar } from "@/lib/auth/usuario";
 import { registrar } from "@/lib/auditoria";
@@ -38,6 +41,7 @@ import { enviarNotificacaoPoliticaPublicada } from "@/lib/notificacao/graph";
 import { salvarArquivo } from "@/lib/storage";
 import { gerarDocumentoOficial } from "@/lib/politica/gerarDocx";
 import { dadosPendencia } from "@/lib/politica/pendencia";
+import { gerarDescricaoRevisao } from "@/lib/politica/ai";
 import { publicarPolitica, revogarPolitica } from "@/app/(shell)/catalogo/[id]/estado-actions";
 
 const usuarioAtual = getUsuarioAtual as ReturnType<typeof vi.fn>;
@@ -54,6 +58,8 @@ const dadosPendenciaMock = dadosPendencia as ReturnType<typeof vi.fn>;
 const pendenciaCreateMany = prisma.pendencia.createMany as ReturnType<typeof vi.fn>;
 const pendenciaUpdateMany = prisma.pendencia.updateMany as ReturnType<typeof vi.fn>;
 const usuarioFindMany = prisma.usuario.findMany as ReturnType<typeof vi.fn>;
+const versaoFindMany = prisma.versao.findMany as ReturnType<typeof vi.fn>;
+const descricaoIA = gerarDescricaoRevisao as ReturnType<typeof vi.fn>;
 
 const versaoCreate = vi.fn();
 const versaoUpdateMany = vi.fn();
@@ -84,6 +90,7 @@ describe("publicarPolitica — geração do documento oficial", () => {
     notificar.mockResolvedValue({ ok: true });
     salvar.mockResolvedValue({ hash: "abc123", tamanho: 100, caminhoRelativo: "x" });
     versaoCount.mockResolvedValue(0);
+    versaoFindMany.mockResolvedValue([]); // NOVO — sem versões anteriores por padrão
     // NOVO — resolverAudiencia (extraída neste task) agora roda incondicionalmente
     // em publicarPolitica, fora do try/catch best-effort; sem este default, o
     // findMany() sem mock retorna undefined e resolverAudiencia lança ao tentar
@@ -208,6 +215,156 @@ describe("publicarPolitica — geração do documento oficial", () => {
     expect(prisma.notificacao.create).not.toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ usuarioEmail: "fora@x.com" }) }),
     );
+  });
+});
+
+describe("publicarPolitica — Controle de Revisões", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    usuarioAtual.mockResolvedValue({ id: "u1", nome: "Fulano de Tal", email: "fulano@aahbrant.com" });
+    publicarPermitido.mockReturnValue(true);
+    notificar.mockResolvedValue({ ok: true });
+    salvar.mockResolvedValue({ hash: "abc123", tamanho: 100, caminhoRelativo: "x" });
+    versaoCount.mockResolvedValue(0);
+    usuarioFindMany.mockResolvedValue([]);
+    gerar.mockResolvedValue(Buffer.from("conteudo-fake"));
+    transacao.mockImplementation(async (arg: unknown) => {
+      if (Array.isArray(arg)) return Promise.all(arg);
+      return (arg as (tx: unknown) => Promise<void>)({
+        versao: { create: versaoCreate, updateMany: versaoUpdateMany, count: versaoCount },
+        politica: { update: politicaUpdate },
+      });
+    });
+  });
+
+  it("primeira publicação: 1 linha fixa 'Emissão inicial do documento', sem chamar a IA", async () => {
+    findUnique.mockResolvedValue(politicaBase());
+    versaoFindMany.mockResolvedValue([]);
+
+    const resultado = await publicarPolitica("p1");
+
+    expect(resultado.ok).toBe(true);
+    expect(descricaoIA).not.toHaveBeenCalled();
+    const dadosDocx = gerar.mock.calls[0][0];
+    expect(dadosDocx.controleRevisoes).toEqual([
+      { revisao: "00", data: expect.any(String), descricao: "Emissão inicial do documento", responsavel: "Fulano de Tal" },
+    ]);
+    expect(versaoCreate.mock.calls[0][0].data.descricaoAlteracao).toBe("Emissão inicial do documento");
+    expect(versaoCreate.mock.calls[0][0].data.responsavelNome).toBe("Fulano de Tal");
+  });
+
+  it("republicação: usa a descrição da IA e preserva as linhas anteriores", async () => {
+    findUnique.mockResolvedValue({
+      ...politicaBase(),
+      estado: "rascunho",
+      publicadaEm: new Date("2026-01-01T00:00:00.000Z"),
+      revisao: 0,
+      conteudoPublicado: [{ codigo: "1", titulo: "Objetivo", corpo: "Texto antigo." }],
+    });
+    versaoFindMany.mockResolvedValue([
+      // Meio-dia UTC (não meia-noite) — evita que o fuso local (ex.:
+      // America/Sao_Paulo, UTC-3) empurre a data pro dia civil anterior ao
+      // formatar em pt-BR; ver learnings.md.
+      { revisaoNaEpoca: 0, criadaEm: new Date("2026-01-01T12:00:00.000Z"), descricaoAlteracao: "Emissão inicial do documento", responsavelNome: "Ciclano" },
+    ]);
+    descricaoIA.mockResolvedValue("Inclusão do item 4.2");
+
+    const resultado = await publicarPolitica("p1");
+
+    expect(resultado.ok).toBe(true);
+    expect(descricaoIA).toHaveBeenCalledTimes(1);
+    const dadosDocx = gerar.mock.calls[0][0];
+    expect(dadosDocx.controleRevisoes).toEqual([
+      { revisao: "00", data: "01/01/2026", descricao: "Emissão inicial do documento", responsavel: "Ciclano" },
+      { revisao: "01", data: expect.any(String), descricao: "Inclusão do item 4.2", responsavel: "Fulano de Tal" },
+    ]);
+    expect(versaoCreate.mock.calls[0][0].data.descricaoAlteracao).toBe("Inclusão do item 4.2");
+  });
+
+  it("republicação com IA indisponível/falha: usa o fallback genérico, não bloqueia a publicação", async () => {
+    findUnique.mockResolvedValue({
+      ...politicaBase(),
+      estado: "rascunho",
+      publicadaEm: new Date("2026-01-01T00:00:00.000Z"),
+      revisao: 4,
+      conteudoPublicado: [],
+    });
+    versaoFindMany.mockResolvedValue([]);
+    descricaoIA.mockResolvedValue(null);
+
+    const resultado = await publicarPolitica("p1");
+
+    expect(resultado.ok).toBe(true);
+    const dadosDocx = gerar.mock.calls[0][0];
+    // versaoFindMany() vazio + publicadaEm preenchido = dado legado (Finding 3):
+    // a linha "—" sintética some antes da linha nova — a nova NÃO é [0].
+    expect(dadosDocx.controleRevisoes[1].descricao).toBe("Republicação — revisão 05");
+  });
+
+  it("versão anterior sem descricaoAlteracao/responsavelNome (dado antigo, pré-feature): mostra '—'", async () => {
+    findUnique.mockResolvedValue({
+      ...politicaBase(),
+      estado: "rascunho",
+      publicadaEm: new Date("2026-01-01T00:00:00.000Z"),
+      revisao: 0,
+      conteudoPublicado: [],
+    });
+    versaoFindMany.mockResolvedValue([
+      // Meio-dia UTC — mesmo motivo do teste acima (evita virada de dia por fuso local).
+      { revisaoNaEpoca: 0, criadaEm: new Date("2026-01-01T12:00:00.000Z"), descricaoAlteracao: null, responsavelNome: null },
+    ]);
+    descricaoIA.mockResolvedValue("Inclusão do item 4.2");
+
+    const resultado = await publicarPolitica("p1");
+
+    expect(resultado.ok).toBe(true);
+    const dadosDocx = gerar.mock.calls[0][0];
+    expect(dadosDocx.controleRevisoes[0]).toEqual({ revisao: "00", data: "01/01/2026", descricao: "—", responsavel: "—" });
+  });
+
+  // Finding 1 (revisão final): anexo manual (Versao com documento.oficial:
+  // false, criado via adicionarVersao) não pode poluir o Controle de
+  // Revisões com uma linha fantasma. O filtro é responsabilidade do
+  // Postgres/Prisma — aqui só confirmamos que a query pede o predicado certo.
+  it("busca versões anteriores filtrando só documento oficial (anexo manual não entra na tabela)", async () => {
+    findUnique.mockResolvedValue(politicaBase());
+    versaoFindMany.mockResolvedValue([]);
+
+    const resultado = await publicarPolitica("p1");
+
+    expect(resultado.ok).toBe(true);
+    expect(versaoFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { politicaId: "p1", documento: { oficial: true } } }),
+    );
+  });
+
+  // Finding 3 (revisão final): política publicada antes desta feature
+  // existir tem publicadaEm preenchido mas NENHUMA Versao (dado legado) —
+  // sem sintetizar a linha "00", uma republicação sairia com a tabela
+  // começando direto em "01".
+  it("republicação de política legada sem nenhuma Versao: sintetiza a linha '00' a partir de Politica", async () => {
+    findUnique.mockResolvedValue({
+      ...politicaBase(),
+      estado: "rascunho",
+      // Meio-dia UTC — evita que o fuso local (ex.: America/Sao_Paulo,
+      // UTC-3) empurre a data pro dia civil anterior ao formatar em pt-BR;
+      // ver learnings.md e os outros usos do mesmo padrão neste arquivo.
+      publicadaEm: new Date("2026-01-01T12:00:00.000Z"),
+      publicadaPorNome: "Fulano Legado",
+      revisao: 0,
+      conteudoPublicado: [],
+    });
+    versaoFindMany.mockResolvedValue([]);
+    descricaoIA.mockResolvedValue("Inclusão do item 4.2");
+
+    const resultado = await publicarPolitica("p1");
+
+    expect(resultado.ok).toBe(true);
+    const dadosDocx = gerar.mock.calls[0][0];
+    expect(dadosDocx.controleRevisoes).toEqual([
+      { revisao: "—", data: "01/01/2026", descricao: "—", responsavel: "Fulano Legado" },
+      { revisao: "01", data: expect.any(String), descricao: "Inclusão do item 4.2", responsavel: "Fulano de Tal" },
+    ]);
   });
 });
 

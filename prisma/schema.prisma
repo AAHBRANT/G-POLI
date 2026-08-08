@@ -265,6 +265,12 @@ model Versao {
   // no cabeçalho institucional ao "Ver" uma versão antiga (o número de
   // revisão atual da política pode já ter mudado).
   revisaoNaEpoca   Int?
+  // Tabela de Controle de Revisões (Manual, cap. 19) — imutáveis uma vez
+  // criados, uma linha por versão. Null em versões anteriores a esta
+  // feature (mesmo padrão de conteudoSnapshot/revisaoNaEpoca) — a
+  // renderização mostra "—" nessas linhas em vez de inventar dado.
+  descricaoAlteracao String?
+  responsavelNome    String?
   criadaEm   DateTime     @default(now())
 
   @@unique([politicaId, numero])
