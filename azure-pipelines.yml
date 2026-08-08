@@ -128,10 +128,15 @@ steps:
         # mesmo redirecionada (ja documentado em docs/learnings.md com o
         # mesmo problema em "docker rm -f"). "list" com filtro NUNCA erra por
         # "nao encontrado" - so devolve lista vazia - evita a classe toda do
-        # problema. @(...) forca array mesmo com 0 ou 1 resultado - sem isso,
-        # ConvertFrom-Json de 1 item vira objeto solto sem .Count.
-        $jobs = @(az containerapp job list --resource-group rg-gpoliticas --query "[?name=='caj-gpol-hml-lembretes']" -o json | ConvertFrom-Json)
-        if ($jobs.Count -gt 0) {
+        # problema.
+        # 2a pegadinha (achada so agora, ao reproduzir com a lista de verdade
+        # vazia): ConvertFrom-Json de "[]" devolve $null, nao um array vazio -
+        # e @($null) tem .Count = 1 (embrulha o null, nao produz array vazio).
+        # Isso fazia "0 jobs" ser lido como "1 job", tentando dar update num
+        # job que nao existe. Fix: checar $null ANTES de embrulhar em @(...).
+        $jobsRaw = az containerapp job list --resource-group rg-gpoliticas --query "[?name=='caj-gpol-hml-lembretes']" -o json | ConvertFrom-Json
+        $jobCount = if ($null -eq $jobsRaw) { 0 } else { @($jobsRaw).Count }
+        if ($jobCount -gt 0) {
           az containerapp job update --name caj-gpol-hml-lembretes --resource-group rg-gpoliticas `
             --image acrgpolhml27207f.azurecr.io/gpoliticas:$(Build.BuildId)
           if ($LASTEXITCODE -ne 0) { exit 1 }

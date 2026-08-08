@@ -39,6 +39,10 @@
 - **Não versionar artefato de build.** `*.tsbuildinfo`, `coverage/`, `.next/`
   ficam no `.gitignore`.
 - **Merge só pela UI, com policy verde.** Nunca CLI, nunca bypass.
+- **`ConvertFrom-Json` de lista vazia devolve `$null`, não array vazio (PS 5.1).**
+  `@($null)` embrulha o `$null` num array de 1 elemento — `.Count` vira 1, não 0.
+  Checar `$null -eq $x` **antes** de embrulhar em `@(...)`, nunca confiar em
+  `@(cmd | ConvertFrom-Json).Count` sozinho quando `cmd` pode devolver `"[]"`.
 
 ## Log de incidentes (episódico)
 
@@ -151,6 +155,26 @@
   manda no formato, não a configuração local da máquina).
 - Escopo: `.gitattributes`. Reversível: PR #22.
 - Status: promovido.
+
+### [2026-08-08] Deploy de `main` travado 5 dias: `@($null).Count` mentia "1 job"
+- Sintoma: PRs #68-71 completaram (build de PR verde), mas nenhum build de
+  `refs/heads/main` rodou desde 03/08 — os 3 builds anteriores de `main`
+  (03/08) falharam todos no mesmo passo, "Push para ACR + deploy no Container
+  App", e ninguém disparou um novo até agora.
+- Causa: 2 hotfixes anteriores (`az containerapp job show`, depois `list` +
+  `@(...).Count`) já tinham corrigido classes de erro diferentes, mas
+  `@(az containerapp job list ... | ConvertFrom-Json).Count` ainda mentia:
+  lista vazia (`"[]"`) → `ConvertFrom-Json` devolve `$null` → `@($null)` é um
+  array de 1 elemento (contendo `$null`), não um array vazio. `.Count` saía 1
+  mesmo com 0 jobs reais — confirmado rodando `az containerapp job list` direto
+  contra `rg-gpoliticas`: 0 jobs. O script então tentava dar `update` num job
+  inexistente e falhava.
+- Correção: capturar o resultado do `ConvertFrom-Json` numa variável **antes**
+  de embrulhar em `@(...)`, checar `$null` explicitamente, só then contar.
+- Escopo: `azure-pipelines.yml`. Reversível: reverter o commit.
+- Regra: promovida (ver "Regras ativas").
+- Status: promovido (3ª ocorrência da mesma família de bug — `az ... | ConvertFrom-Json`
+  não é confiável sem tratar `$null` primeiro).
 
 ## Consolidação (rodar periodicamente)
 - Recorrência provada (2–3x) → promover regra para CLAUDE.md e aposentar a
