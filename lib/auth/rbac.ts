@@ -90,10 +90,48 @@ export function podeGerirAberturaArea(u: UsuarioAtual | null): boolean {
   return !!u && (u.perfil === "sgi" || ehAdminOuSuper(u));
 }
 
-// Publicar: Diretoria, admin ou super.
+// Sprint 4/5/6: enviar para aprovação — mesma alçada de quem edita o
+// conteúdo (quem monta o rascunho é quem decide que já está pronto).
+export function podeEnviarParaAprovacao(
+  u: UsuarioAtual | null,
+  politica: { areaId: string; estado: string },
+): boolean {
+  return podeEditarConteudo(u, politica);
+}
+
+// Aprovar/rejeitar na etapa do Gestor: perfil "area" (Gestor de Setor) do
+// setor DONO da política, ou admin/super (override administrativo). SGI e
+// Diretoria não são "o Gestor" — não entram aqui.
+export function podeAprovarGestor(
+  u: UsuarioAtual | null,
+  politica: { areaId: string },
+): boolean {
+  if (!u) return false;
+  if (ehAdminOuSuper(u)) return true;
+  return u.perfil === "area" && noSetor(u, politica.areaId);
+}
+
+// Retirar da aprovação (o próprio autor "puxa de volta" pra ajustar antes de
+// seguir): mesma alçada de quem editaria o conteúdo, MAS sem a exigência de
+// estado === rascunho (óbvio — a política está numa das etapas de aprovação,
+// não em rascunho, nesse momento).
+export function podeRetirarDaAprovacao(
+  u: UsuarioAtual | null,
+  politica: { areaId: string },
+): boolean {
+  if (!u) return false;
+  if (u.perfil === "sgi" || ehAdminOuSuper(u)) return true;
+  if (u.perfil === "area") return noSetor(u, politica.areaId);
+  return false;
+}
+
+// Publicar (= aprovar na etapa da Diretoria): Diretoria, admin ou super.
 export function podePublicar(u: UsuarioAtual | null): boolean {
   return !!u && (u.perfil === "diretoria" || ehAdminOuSuper(u));
 }
+
+// Aprovar/rejeitar na etapa da Diretoria: mesma alçada de publicar.
+export const podeAprovarDiretoria = podePublicar;
 
 // Revogar: mesma alçada de publicar (Diretoria, admin ou super).
 export function podeRevogar(u: UsuarioAtual | null): boolean {

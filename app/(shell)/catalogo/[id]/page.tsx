@@ -6,7 +6,15 @@ import AcoesEstado from "@/components/politica/AcoesEstado";
 import CienciaLeitura from "@/components/politica/CienciaLeitura";
 import AudienciaSelector from "@/components/politica/AudienciaSelector";
 import { corClassificacao, rotuloClassificacao, ESTADOS_POLITICA, tipoDocumento } from "@/lib/constants";
-import { getUsuarioAtual, podeEditarConteudo, podePublicar, filtroVisibilidade } from "@/lib/auth/usuario";
+import {
+  getUsuarioAtual,
+  podeEditarConteudo,
+  podePublicar,
+  podeEnviarParaAprovacao,
+  podeAprovarGestor,
+  podeRetirarDaAprovacao,
+  filtroVisibilidade,
+} from "@/lib/auth/usuario";
 import { BUTTON_CLASSES } from "@/components/ui/Button";
 import VerVersaoAntiga from "@/components/politica/VerVersaoAntiga";
 import type { SecaoRenderizada } from "@/components/politica/DocumentoRenderizado";
@@ -43,6 +51,13 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
   if (!politica) notFound();
   const podeEditar = podeEditarConteudo(usuario, politica);
   const podePub = podePublicar(usuario);
+  // Sprint 4/5/6: alçadas do fluxo de aprovação — cada uma calculada aqui
+  // (server) e só repassada como prop pro AcoesEstado decidir QUAL botão
+  // mostrar; a permissão de verdade nunca é decidida no client.
+  const podeEnviarAprovacao = podeEnviarParaAprovacao(usuario, politica);
+  const podeGestorAprovar = podeAprovarGestor(usuario, politica);
+  const podeRetirarAprovacao = podeRetirarDaAprovacao(usuario, politica);
+  const mostrarAcoesEstado = podePub || podeEnviarAprovacao || podeGestorAprovar || podeRetirarAprovacao;
   const minhaCiencia = usuario
     ? politica.ciencias.find(
         (c) => c.usuarioOid === usuario.oid && c.politicaPublicadaEm?.getTime() === politica.publicadaEm?.getTime(),
@@ -87,7 +102,18 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
           <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${estado.cor}`}>
             {estado.rotulo}
           </span>
-          {podePub && <div className="ml-auto"><AcoesEstado id={politica.id} estado={politica.estado} /></div>}
+          {mostrarAcoesEstado && (
+            <div className="ml-auto">
+              <AcoesEstado
+                id={politica.id}
+                estado={politica.estado}
+                podeEnviar={podeEnviarAprovacao}
+                podeGestor={podeGestorAprovar}
+                podeDiretoria={podePub}
+                podeRetirar={podeRetirarAprovacao}
+              />
+            </div>
+          )}
         </div>
         <p className="mt-1 text-sm text-black/50">Área: {politica.area.nome}</p>
         <p className="mt-1 text-sm text-black/50">
@@ -100,6 +126,25 @@ export default async function PoliticaDetalhe({ params }: { params: { id: string
             {politica.estado === "revogada" && politica.revogadaEm
               ? ` · revogada em ${politica.revogadaEm.toLocaleDateString("pt-BR")}`
               : ""}
+          </p>
+        )}
+        {/* Sprint 4/5/6: em andamento na aprovação — quem enviou e quando. */}
+        {(politica.estado === "em_aprovacao_gestor" || politica.estado === "em_aprovacao_diretoria") && (
+          <p className="mt-1 text-xs text-black/45">
+            Enviada para aprovação
+            {politica.enviadaAprovacaoPorNome ? ` por ${politica.enviadaAprovacaoPorNome}` : ""}
+            {politica.enviadaAprovacaoEm ? ` em ${politica.enviadaAprovacaoEm.toLocaleDateString("pt-BR")}` : ""}
+            {politica.estado === "em_aprovacao_diretoria" && politica.aprovadaGestorPorNome
+              ? ` · aprovada pelo Gestor (${politica.aprovadaGestorPorNome})`
+              : ""}
+          </p>
+        )}
+        {/* Voltou pra rascunho por rejeição — motivo sempre visível pra quem vai corrigir. */}
+        {politica.estado === "rascunho" && politica.rejeitadaEm && politica.motivoRejeicao && (
+          <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            Rejeitada {politica.rejeitadaNaEtapa === "diretoria" ? "pela Diretoria" : "pelo Gestor"}
+            {politica.rejeitadaPorNome ? ` (${politica.rejeitadaPorNome})` : ""}
+            {politica.rejeitadaEm ? ` em ${politica.rejeitadaEm.toLocaleDateString("pt-BR")}` : ""}: {politica.motivoRejeicao}
           </p>
         )}
       </div>

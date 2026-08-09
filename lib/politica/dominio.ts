@@ -112,23 +112,64 @@ export function formatarCodigoNormativo(sigla: string, sequencial: number, prefi
 // ---------------------------------------------------------------------------
 // Máquina de estados
 // ---------------------------------------------------------------------------
-export type Estado = "rascunho" | "publicada" | "revogada";
-export type AcaoEstado = "publicar" | "revogar" | "reabrir";
+// Sprint 4/5/6: fluxo de aprovação (modelo B). Rejeição em qualquer etapa
+// volta pra "rascunho" (não é estado próprio — ver Politica.motivoRejeicao
+// pro registro do porquê).
+export type Estado = "rascunho" | "em_aprovacao_gestor" | "em_aprovacao_diretoria" | "publicada" | "revogada";
+export type AcaoEstado =
+  | "enviar_aprovacao"
+  | "aprovar_gestor"
+  | "rejeitar_gestor"
+  | "publicar" // = "aprovar diretoria" quando atual é em_aprovacao_diretoria; mantém o nome por compat com o modelo A (Diretoria/admin ainda publicam direto de rascunho — ver podePublicar)
+  | "rejeitar_diretoria"
+  | "retirar_aprovacao"
+  | "revogar"
+  | "reabrir";
 export type ResultadoTransicao = { ok: true; estado: Estado } | { ok: false; erro: string };
 
-// Só rascunho é editável (congelamento após publicação/revogação).
+// Só rascunho é editável (congelamento durante aprovação, publicação ou revogação).
 export function editavel(estado: Estado): boolean {
   return estado === "rascunho";
+}
+
+// Comentável (Sprint 3 + 4/5/6): rascunho e as duas etapas de aprovação —
+// é justamente enquanto está em análise que o comentário faz mais sentido.
+// Publicada/revogada são definitivas, não recebem revisão.
+export function comentavel(estado: Estado): boolean {
+  return estado === "rascunho" || estado === "em_aprovacao_gestor" || estado === "em_aprovacao_diretoria";
 }
 
 // Transição da máquina de estados. Retorna o estado resultante ou o erro
 // (mensagens idênticas às das server actions originais).
 export function transicao(atual: Estado, acao: AcaoEstado): ResultadoTransicao {
   switch (acao) {
-    case "publicar":
+    case "enviar_aprovacao":
       return atual === "rascunho"
+        ? { ok: true, estado: "em_aprovacao_gestor" }
+        : { ok: false, erro: "Só é possível enviar para aprovação uma política em rascunho." };
+    case "aprovar_gestor":
+      return atual === "em_aprovacao_gestor"
+        ? { ok: true, estado: "em_aprovacao_diretoria" }
+        : { ok: false, erro: "Só é possível aprovar (Gestor) uma política em aprovação do Gestor." };
+    case "rejeitar_gestor":
+      return atual === "em_aprovacao_gestor"
+        ? { ok: true, estado: "rascunho" }
+        : { ok: false, erro: "Só é possível rejeitar (Gestor) uma política em aprovação do Gestor." };
+    case "publicar":
+      // rascunho: atalho legado (modelo A) — só Diretoria/admin/super o
+      // acionam (ver podePublicar); em_aprovacao_diretoria: fluxo novo
+      // (modelo B), depois de passar pelo Gestor.
+      return atual === "rascunho" || atual === "em_aprovacao_diretoria"
         ? { ok: true, estado: "publicada" }
-        : { ok: false, erro: "Só é possível publicar uma política em rascunho." };
+        : { ok: false, erro: "Só é possível publicar uma política em rascunho ou em aprovação da Diretoria." };
+    case "rejeitar_diretoria":
+      return atual === "em_aprovacao_diretoria"
+        ? { ok: true, estado: "rascunho" }
+        : { ok: false, erro: "Só é possível rejeitar (Diretoria) uma política em aprovação da Diretoria." };
+    case "retirar_aprovacao":
+      return atual === "em_aprovacao_gestor" || atual === "em_aprovacao_diretoria"
+        ? { ok: true, estado: "rascunho" }
+        : { ok: false, erro: "Só é possível retirar da aprovação uma política em análise." };
     case "revogar":
       return atual === "publicada"
         ? { ok: true, estado: "revogada" }

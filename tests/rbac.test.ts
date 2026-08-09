@@ -4,6 +4,10 @@ import {
   podeCriarPolitica,
   podeEditarConteudo,
   podeEditarSecao,
+  podeEnviarParaAprovacao,
+  podeAprovarGestor,
+  podeAprovarDiretoria,
+  podeRetirarDaAprovacao,
   podePublicar,
   podeRevogar,
   podeAdministrar,
@@ -77,6 +81,61 @@ describe("podeEditarSecao (P1) — abertaAArea", () => {
   });
   it("sgi edita mesmo seção não liberada", () => {
     expect(podeEditarSecao(u("sgi"), p, { abertaAArea: false })).toBe(true);
+  });
+});
+
+describe("podeEnviarParaAprovacao (Sprint 4/5/6)", () => {
+  it("é alias de podeEditarConteudo — mesma régua exata", () => {
+    const rascunhoS1 = { areaId: "s1", estado: "rascunho" };
+    expect(podeEnviarParaAprovacao(u("sgi"), rascunhoS1)).toBe(podeEditarConteudo(u("sgi"), rascunhoS1));
+    expect(podeEnviarParaAprovacao(u("area", ["s2"]), rascunhoS1)).toBe(false);
+    expect(podeEnviarParaAprovacao(u("area", ["s1"]), rascunhoS1)).toBe(true);
+  });
+});
+
+describe("podeAprovarGestor (Sprint 5)", () => {
+  const p = { areaId: "s1" };
+  it("gestor do setor dono aprova", () => {
+    expect(podeAprovarGestor(u("area", ["s1"]), p)).toBe(true);
+  });
+  it("gestor de outro setor não aprova", () => {
+    expect(podeAprovarGestor(u("area", ["s2"]), p)).toBe(false);
+  });
+  it("SGI e Diretoria não são 'o Gestor' — não aprovam nesta etapa", () => {
+    expect(podeAprovarGestor(u("sgi"), p)).toBe(false);
+    expect(podeAprovarGestor(u("diretoria"), p)).toBe(false);
+  });
+  it("admin/super sempre aprovam (override administrativo)", () => {
+    expect(podeAprovarGestor(u("admin"), p)).toBe(true);
+    expect(podeAprovarGestor(u("superadmin"), p)).toBe(true);
+  });
+});
+
+describe("podeAprovarDiretoria (Sprint 6) — alias de podePublicar", () => {
+  it("mesma régua exata de podePublicar", () => {
+    for (const perfil of ["diretoria", "admin", "superadmin", "sgi", "area", "colaborador"] as Perfil[]) {
+      expect(podeAprovarDiretoria(u(perfil))).toBe(podePublicar(u(perfil)));
+    }
+  });
+});
+
+describe("podeRetirarDaAprovacao (Sprint 4/5/6)", () => {
+  const p = { areaId: "s1" };
+  it("SGI/admin/super retiram qualquer setor", () => {
+    for (const perfil of ["sgi", "admin", "superadmin"] as Perfil[]) {
+      expect(podeRetirarDaAprovacao(u(perfil), p)).toBe(true);
+    }
+  });
+  it("área retira só o próprio setor", () => {
+    expect(podeRetirarDaAprovacao(u("area", ["s1"]), p)).toBe(true);
+    expect(podeRetirarDaAprovacao(u("area", ["s2"]), p)).toBe(false);
+  });
+  it("diretoria e colaborador não retiram (não são donos do conteúdo)", () => {
+    expect(podeRetirarDaAprovacao(u("diretoria"), p)).toBe(false);
+    expect(podeRetirarDaAprovacao(u("colaborador"), p)).toBe(false);
+  });
+  it("sem usuário, nunca retira", () => {
+    expect(podeRetirarDaAprovacao(null, p)).toBe(false);
   });
 });
 

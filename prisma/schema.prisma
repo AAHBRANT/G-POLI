@@ -35,8 +35,16 @@ enum TipoDocumento {
   comunicado_normativo
 }
 
+// Sprint 4/5/6: fluxo de aprovação (modelo B) — substitui o "Diretoria publica
+// direto" (modelo A, ver app/(shell)/publicacao/page.tsx) por uma cadeia
+// rascunho → em_aprovacao_gestor → em_aprovacao_diretoria → publicada.
+// Rejeição em qualquer etapa NÃO é um estado novo — volta pra rascunho (ver
+// Politica.rejeitadaEm/motivoRejeicao); estado extra pra isso seria
+// equivalente funcional a rascunho, só duplicando lógica de edição/comentário.
 enum EstadoPolitica {
   rascunho
+  em_aprovacao_gestor
+  em_aprovacao_diretoria
   publicada
   revogada
 }
@@ -142,6 +150,21 @@ model Politica {
   // editar → publicar de novo) — nunca na primeira vez.
   revisao       Int            @default(0)
   revogadaEm    DateTime?
+  // Sprint 4/5/6: campos "do ciclo atual" do fluxo de aprovação — mostram só o
+  // estado mais recente (limpos a cada novo "enviar para aprovação"), igual
+  // revogadaEm já é limpo a cada republicação. O histórico completo e
+  // permanente de cada etapa fica na Auditoria (nunca aqui).
+  enviadaAprovacaoEm      DateTime?
+  enviadaAprovacaoPorNome  String?
+  enviadaAprovacaoPorEmail String?
+  aprovadaGestorEm        DateTime?
+  aprovadaGestorPorNome   String?
+  aprovadaGestorPorEmail  String?
+  rejeitadaEm      DateTime?
+  rejeitadaPorNome String?
+  rejeitadaPorEmail String?
+  rejeitadaNaEtapa String? // "gestor" | "diretoria" — em qual etapa a última rejeição aconteceu
+  motivoRejeicao   String?
   ciencias      Ciencia[]
   pendencias    Pendencia[]
   // Público-alvo da notificação de publicação (v3). Os dois vazios = "todos os
