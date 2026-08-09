@@ -14,7 +14,11 @@ import {
 const BOTAO_MINI =
   "shrink-0 rounded-md bg-marsala px-2.5 py-1 text-[11px] font-medium text-white transition hover:bg-marsala-600 disabled:opacity-60";
 
-type Comentario = {
+// Só 2 níveis (thread raiz + respostas diretas — responderComentario sempre
+// aninha na raiz, nunca resposta-de-resposta). "respostas" usa um tipo à
+// parte sem o próprio campo "respostas" em vez de Comentario[] recursivo,
+// pra bater com o dado real (a consulta só inclui 1 nível de respostas).
+type ComentarioResposta = {
   id: string;
   texto: string;
   autorNome: string;
@@ -22,8 +26,11 @@ type Comentario = {
   resolvido: boolean;
   resolvidoPorNome: string | null;
   criadoEm: string | Date;
-  trechoAncora: string; // snapshot do parágrafo no momento em que ESTE comentário foi criado
-  respostas: Comentario[];
+  trechoAncora: string;
+};
+
+type Comentario = ComentarioResposta & {
+  respostas: ComentarioResposta[];
 };
 
 type Props = {

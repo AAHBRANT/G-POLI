@@ -5,7 +5,13 @@ import { salvarSecao, alternarAberturaArea } from "@/app/(shell)/catalogo/[id]/c
 import { Button } from "@/components/ui/Button";
 import ThreadComentario from "@/components/politica/ThreadComentario";
 
-type ComentarioThread = {
+// Comentários têm no máximo 2 níveis: thread raiz + respostas diretas
+// (responderComentario sempre aninha na raiz, nunca resposta-de-resposta —
+// ver comentario-actions.ts). Por isso "respostas" usa um tipo à parte sem
+// o próprio campo "respostas", em vez de ComentarioThread[] recursivo: a
+// consulta em editar/page.tsx só inclui 1 nível (`include: { respostas: ... }`),
+// então o dado real nunca teria esse campo dentro de cada resposta.
+type ComentarioResposta = {
   id: string;
   texto: string;
   autorNome: string;
@@ -15,7 +21,10 @@ type ComentarioThread = {
   criadoEm: string | Date;
   paragrafoIndex: number;
   trechoAncora: string;
-  respostas: ComentarioThread[];
+};
+
+type ComentarioThread = ComentarioResposta & {
+  respostas: ComentarioResposta[];
 };
 
 type Props = {
