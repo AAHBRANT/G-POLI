@@ -4,6 +4,8 @@ import {
   podeCriarPolitica,
   podeEditarConteudo,
   podeEditarSecao,
+  podeComentarSecao,
+  podeResolverComentario,
   podePublicar,
   podeRevogar,
   podeAdministrar,
@@ -77,6 +79,52 @@ describe("podeEditarSecao (P1) — abertaAArea", () => {
   });
   it("sgi edita mesmo seção não liberada", () => {
     expect(podeEditarSecao(u("sgi"), p, { abertaAArea: false })).toBe(true);
+  });
+});
+
+describe("podeComentarSecao (Sprint 3)", () => {
+  const rascunhoS1 = { areaId: "s1", estado: "rascunho" };
+  it("publicada trava comentário (só rascunho pode ser revisado)", () => {
+    expect(podeComentarSecao(u("sgi"), { areaId: "s1", estado: "publicada" })).toBe(false);
+  });
+  it("sgi/diretoria/admin/super comentam qualquer setor em rascunho", () => {
+    for (const perfil of ["sgi", "diretoria", "admin", "superadmin"] as Perfil[]) {
+      expect(podeComentarSecao(u(perfil), rascunhoS1)).toBe(true);
+    }
+  });
+  it("área comenta o próprio setor, mesmo sem a seção liberada pra edição", () => {
+    expect(podeComentarSecao(u("area", ["s1"]), rascunhoS1)).toBe(true);
+    expect(podeComentarSecao(u("area", ["s2"]), rascunhoS1)).toBe(false);
+  });
+  it("colaborador nunca comenta", () => {
+    expect(podeComentarSecao(u("colaborador"), rascunhoS1)).toBe(false);
+  });
+  it("sem usuário, nunca comenta", () => {
+    expect(podeComentarSecao(null, rascunhoS1)).toBe(false);
+  });
+});
+
+describe("podeResolverComentario (Sprint 3)", () => {
+  const rascunhoS1 = { areaId: "s1", estado: "rascunho" };
+  it("autor do comentário resolve o próprio, mesmo sem poder editar", () => {
+    const autor = u("area", ["s2"]); // fora do setor s1, não edita conteúdo
+    expect(podeResolverComentario(autor, rascunhoS1, { autorEmail: autor.email })).toBe(true);
+  });
+  it("comparação de e-mail do autor é case-insensitive", () => {
+    const autor = u("area", ["s2"]);
+    expect(podeResolverComentario(autor, rascunhoS1, { autorEmail: autor.email.toUpperCase() })).toBe(true);
+  });
+  it("quem edita o conteúdo resolve comentário de outra pessoa", () => {
+    expect(podeResolverComentario(u("sgi"), rascunhoS1, { autorEmail: "outra@aahbrant.com" })).toBe(true);
+  });
+  it("diretoria não resolve comentário de outra pessoa (não edita conteúdo)", () => {
+    expect(podeResolverComentario(u("diretoria"), rascunhoS1, { autorEmail: "outra@aahbrant.com" })).toBe(false);
+  });
+  it("área fora do setor não resolve comentário de outra pessoa", () => {
+    expect(podeResolverComentario(u("area", ["s2"]), rascunhoS1, { autorEmail: "outra@aahbrant.com" })).toBe(false);
+  });
+  it("sem usuário, nunca resolve", () => {
+    expect(podeResolverComentario(null, rascunhoS1, { autorEmail: "outra@aahbrant.com" })).toBe(false);
   });
 });
 

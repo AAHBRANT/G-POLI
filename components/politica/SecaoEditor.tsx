@@ -3,6 +3,29 @@
 import { useEffect, useState, useTransition } from "react";
 import { salvarSecao, alternarAberturaArea } from "@/app/(shell)/catalogo/[id]/conteudo-actions";
 import { Button } from "@/components/ui/Button";
+import ThreadComentario from "@/components/politica/ThreadComentario";
+
+// Comentários têm no máximo 2 níveis: thread raiz + respostas diretas
+// (responderComentario sempre aninha na raiz, nunca resposta-de-resposta —
+// ver comentario-actions.ts). Por isso "respostas" usa um tipo à parte sem
+// o próprio campo "respostas", em vez de ComentarioThread[] recursivo: a
+// consulta em editar/page.tsx só inclui 1 nível (`include: { respostas: ... }`),
+// então o dado real nunca teria esse campo dentro de cada resposta.
+type ComentarioResposta = {
+  id: string;
+  texto: string;
+  autorNome: string;
+  autorEmail: string;
+  resolvido: boolean;
+  resolvidoPorNome: string | null;
+  criadoEm: string | Date;
+  paragrafoIndex: number;
+  trechoAncora: string;
+};
+
+type ComentarioThread = ComentarioResposta & {
+  respostas: ComentarioResposta[];
+};
 
 type Props = {
   id: string;
@@ -16,6 +39,10 @@ type Props = {
   podeEditar: boolean; // este usuário pode editar esta seção
   abertaAArea: boolean; // liberada ao perfil área
   mostrarToggle: boolean; // SGI/admin: mostra o controle de liberação
+  // Sprint 3: comentários de revisão por parágrafo. podeComentar é
+  // independente de podeEditar (revisor pode comentar sem poder editar).
+  comentarios?: ComentarioThread[];
+  podeComentar?: boolean;
 };
 
 export default function SecaoEditor(props: Props) {
@@ -106,15 +133,44 @@ export default function SecaoEditor(props: Props) {
       )}
 
       {props.tipo === "texto" ? (
-        <textarea
-          value={corpo}
-          onChange={(e) => { setCorpo(e.target.value); setSujo(true); }}
-          onBlur={autosave}
-          rows={6}
-          disabled={ro}
-          placeholder="Escreva o conteúdo desta seção…"
-          className="w-full rounded-md border border-black/15 p-3 text-sm outline-none focus:border-marsala disabled:bg-black/[0.03] disabled:text-black/50"
-        />
+        <>
+          <textarea
+            value={corpo}
+            onChange={(e) => { setCorpo(e.target.value); setSujo(true); }}
+            onBlur={autosave}
+            rows={6}
+            disabled={ro}
+            placeholder="Escreva o conteúdo desta seção…"
+            // Formatação automática (Sprint 2): fonte, justificado e espaçamento
+            // aqui espelham o que sai no .docx oficial (templates/politica-modelo.docx
+            // — Arial, corpo justificado, spacing before/after 120 twips ≈ leading 1.15).
+            // O usuário não escolhe formatação — o padrão institucional é aplicado sozinho.
+            style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
+            className="w-full rounded-md border border-black/15 p-3 text-sm leading-[1.15] text-justify outline-none focus:border-marsala disabled:bg-black/[0.03] disabled:text-black/50"
+          />
+
+          {/* Sprint 3: comentários de revisão, um thread por parágrafo (linha
+              de corpo.split("\n") — mesmo critério usado por gerarDocx.ts pra
+              quebrar parágrafo no .docx oficial). Independente do modo edição:
+              revisor comenta mesmo sem poder editar (podeComentar ≠ podeEditar). */}
+          {(props.podeComentar || (props.comentarios && props.comentarios.length > 0)) && (
+            // Usa props.corpo (última versão SALVA), não o `corpo` do estado local —
+            // comentário ancora no que já foi persistido, nunca em edição em
+            // andamento ainda não salva (evita índice de parágrafo instável).
+            <div className="mt-2 space-y-1 border-t border-black/5 pt-2">
+              {props.corpo.split("\n").map((trecho, i) => (
+                <ThreadComentario
+                  key={i}
+                  secaoId={props.id}
+                  paragrafoIndex={i}
+                  trechoAncora={trecho}
+                  podeComentar={!!props.podeComentar}
+                  comentarios={(props.comentarios ?? []).filter((c) => c.paragrafoIndex === i)}
+                />
+              ))}
+            </div>
+          )}
+        </>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -137,7 +193,9 @@ export default function SecaoEditor(props: Props) {
                         onBlur={autosave}
                         rows={2}
                         disabled={ro}
-                        className="w-full rounded border border-black/15 p-2 text-sm outline-none focus:border-marsala disabled:bg-black/[0.03] disabled:text-black/50"
+                        // Mesma formatação automática do corpo de texto (ver comentário acima).
+                        style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
+                        className="w-full rounded border border-black/15 p-2 text-sm leading-[1.15] text-justify outline-none focus:border-marsala disabled:bg-black/[0.03] disabled:text-black/50"
                       />
                     </td>
                   ))}

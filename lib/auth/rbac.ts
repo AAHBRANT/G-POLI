@@ -90,6 +90,36 @@ export function podeGerirAberturaArea(u: UsuarioAtual | null): boolean {
   return !!u && (u.perfil === "sgi" || ehAdminOuSuper(u));
 }
 
+// Sprint 3: comentar uma seção (revisão por parágrafo, estilo Word).
+// Diferente de podeEditarSecao — comentar NÃO edita o conteúdo, então Área
+// pode comentar qualquer seção do próprio setor mesmo se não estiver
+// "abertaAArea" (revisar ≠ escrever). Colaborador nunca comenta (só lê
+// publicada). Só faz sentido em rascunho — política publicada é definitiva.
+export function podeComentarSecao(
+  u: UsuarioAtual | null,
+  politica: { areaId: string; estado: string },
+): boolean {
+  if (!u) return false;
+  if (politica.estado !== "rascunho") return false;
+  if (u.perfil === "sgi" || u.perfil === "diretoria" || ehAdminOuSuper(u)) return true;
+  if (u.perfil === "area") return noSetor(u, politica.areaId);
+  return false;
+}
+
+// Resolver/reabrir um comentário: o autor do próprio comentário, ou quem já
+// pode editar o conteúdo dessa política (SGI/admin/super) — Diretoria só
+// aprova/publica, não é dona do conteúdo, então não resolve comentário de
+// outra pessoa (só o que ela mesma abriu).
+export function podeResolverComentario(
+  u: UsuarioAtual | null,
+  politica: { areaId: string; estado: string },
+  comentario: { autorEmail: string },
+): boolean {
+  if (!u) return false;
+  if (u.email.toLowerCase() === comentario.autorEmail.toLowerCase()) return true;
+  return podeEditarConteudo(u, politica);
+}
+
 // Publicar: Diretoria, admin ou super.
 export function podePublicar(u: UsuarioAtual | null): boolean {
   return !!u && (u.perfil === "diretoria" || ehAdminOuSuper(u));
