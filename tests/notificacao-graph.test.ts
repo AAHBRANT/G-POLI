@@ -51,6 +51,15 @@ describe("enviarNotificacaoPoliticaPublicada", () => {
 
     const [, init] = fetchMock.mock.calls[0];
     const corpo = JSON.parse(init.body as string);
+
+    // Regressão: sem templateParameters o Graph aceita (204) mas o Teams não
+    // consegue montar o texto do templateText ("Norma publicada:
+    // {politicaTitulo}") declarado em teams/manifest.json — o sininho fica
+    // sem renderizar de forma confiável mesmo com a chamada "bem sucedida".
+    expect(corpo.templateParameters).toEqual([
+      { name: "politicaTitulo", value: "Política de Teste" },
+    ]);
+
     const webUrl: string = corpo.topic.webUrl;
 
     // Graph rejeita com 400 se webUrl não começar com domínio Teams + "/l/".
@@ -109,6 +118,10 @@ describe("enviarNotificacaoLembretePendencia", () => {
     expect(corpo.activityType).toBe("pendenciaLembrete");
     expect(corpo.topic.value).toContain("7 dias");
     expect(corpo.topic.value).toContain("Política de Teste");
+    // O manifest só tem placeholder {politicaTitulo} para este activityType.
+    expect(corpo.templateParameters).toEqual([
+      { name: "politicaTitulo", value: "Política de Teste" },
+    ]);
   });
 });
 
@@ -143,5 +156,6 @@ describe("enviarResumoPendenciasSgi", () => {
     const [, init] = fetchMock.mock.calls[0];
     const corpo = JSON.parse(init.body as string);
     expect(corpo.topic.value).toContain("1 pessoa passou");
+    expect(corpo.templateParameters).toEqual([{ name: "quantidade", value: "1" }]);
   });
 });

@@ -44,6 +44,7 @@ async function enviarAtividade(params: {
   activityType: string;
   texto: string;
   webUrl: string;
+  templateParameters: { name: string; value: string }[];
 }): Promise<ResultadoNotificacao> {
   let token: string;
   try {
@@ -63,6 +64,7 @@ async function enviarAtividade(params: {
           topic: { source: "text", value: params.texto, webUrl: params.webUrl },
           activityType: params.activityType,
           previewText: { content: params.texto },
+          templateParameters: params.templateParameters,
           recipient: {
             "@odata.type": "microsoft.graph.aadUserNotificationRecipient",
             userId: params.oid,
@@ -93,6 +95,10 @@ export async function enviarNotificacaoPoliticaPublicada(params: {
     activityType: "politicaPublicada",
     texto,
     webUrl: montarWebUrlTeams(`/catalogo/${params.politicaId}`, params.politicaId),
+    // Nome precisa bater com o placeholder {politicaTitulo} do templateText
+    // deste activityType em teams/manifest.json. Sem isso o Graph aceita a
+    // chamada (204) mas o Teams não consegue montar o texto do sininho.
+    templateParameters: [{ name: "politicaTitulo", value: params.tituloPolitica }],
   });
 }
 
@@ -114,6 +120,12 @@ export async function enviarNotificacaoLembretePendencia(params: {
     activityType: "pendenciaLembrete",
     texto,
     webUrl: montarWebUrlTeams(`/catalogo/${params.politicaId}`, params.politicaId),
+    // O templateText deste activityType no manifest só tem {politicaTitulo}
+    // — não existe placeholder para "há X dias". O detalhe de dias continua
+    // aparecendo no previewText/topic (abre a notificação), mas não no
+    // texto principal do sininho. Melhorar isso exigiria mudar o manifest
+    // (novo placeholder), o que está fora do escopo deste ajuste.
+    templateParameters: [{ name: "politicaTitulo", value: params.tituloPolitica }],
   });
 }
 
@@ -126,9 +138,14 @@ export async function enviarResumoPendenciasSgi(params: {
 }): Promise<ResultadoNotificacao[]> {
   const texto = `${params.quantidade} ${params.quantidade === 1 ? "pessoa passou" : "pessoas passaram"} de 15 dias sem dar ciência`;
   const webUrl = montarWebUrlTeams("/catalogo");
+  // Nome precisa bater com {quantidade} do templateText deste activityType
+  // em teams/manifest.json. Obs.: o texto do manifest está no plural fixo
+  // ("pessoas passaram..."), então para quantidade=1 a gramática do sininho
+  // fica levemente incorreta — limitação aceita, fora do escopo deste ajuste.
+  const templateParameters = [{ name: "quantidade", value: String(params.quantidade) }];
   return Promise.all(
     params.oidsSgi.map((oid) =>
-      enviarAtividade({ oid, activityType: "pendenciaResumoSgi", texto, webUrl }),
+      enviarAtividade({ oid, activityType: "pendenciaResumoSgi", texto, webUrl, templateParameters }),
     ),
   );
 }
