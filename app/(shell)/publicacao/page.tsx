@@ -1,27 +1,37 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getUsuarioAtual, podePublicar } from "@/lib/auth/usuario";
+import { getUsuarioAtual, podePublicar, filtroVisibilidade } from "@/lib/auth/usuario";
 import { corClassificacao, rotuloClassificacao } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
+// Sprint 4/5/6: modelo A (rascunho → Diretoria publica direto) e modelo B
+// (rascunho → Gestor → Diretoria) coexistem — nenhuma política é obrigada a
+// passar pelo Gestor, mas quem enviar pra aprovação passa por aqui.
 const COLUNAS: { estado: string; titulo: string; dica: string; cor: string }[] = [
-  { estado: "rascunho", titulo: "Aguardando publicação", dica: "Rascunhos prontos para a Diretoria revisar e publicar.", cor: "text-black/70" },
+  { estado: "rascunho", titulo: "Rascunho", dica: "Ainda não enviada para aprovação (ou Diretoria pode publicar direto).", cor: "text-black/70" },
+  { estado: "em_aprovacao_gestor", titulo: "Aguardando Gestor", dica: "Gestor do setor dono revisa e aprova ou rejeita.", cor: "text-amber-800" },
+  { estado: "em_aprovacao_diretoria", titulo: "Aguardando Diretoria", dica: "Já passou pelo Gestor — falta a aprovação final.", cor: "text-amber-900" },
   { estado: "publicada", titulo: "Publicadas", dica: "Normas oficiais em vigência.", cor: "text-emerald-800" },
   { estado: "revogada", titulo: "Revogadas", dica: "Normas que deixaram de valer.", cor: "text-red-800" },
 ];
 
 export default async function PublicacaoPage() {
   const atual = await getUsuarioAtual();
-  if (!podePublicar(atual)) {
+  // Diretoria/admin/super veem tudo (mesma alçada de publicar); Gestor de
+  // Setor (perfil "area") vê a fila do(s) próprio(s) setor(es) — precisa
+  // acompanhar o que está esperando ele mesmo, mesmo sem poder publicar.
+  const ehGestorDeSetor = atual?.perfil === "area" && atual.setores.length > 0;
+  if (!podePublicar(atual) && !ehGestorDeSetor) {
     return (
       <div className="rounded-lg border border-black/10 bg-white p-8 text-center text-sm text-black/60">
-        Acesso restrito. A publicação de normas é atribuição da Diretoria.
+        Acesso restrito. A aprovação/publicação de normas é atribuição do Gestor do setor e da Diretoria.
       </div>
     );
   }
 
   const politicas = await prisma.politica.findMany({
+    where: podePublicar(atual) ? undefined : filtroVisibilidade(atual),
     include: { area: true },
     orderBy: { criadaEm: "desc" },
   });
@@ -31,11 +41,11 @@ export default async function PublicacaoPage() {
       <div>
         <h2 className="text-lg font-semibold text-marsala">Publicação de Normas</h2>
         <p className="text-sm text-black/50">
-          Fluxo de aprovação (modelo A). Diretoria publica, revoga ou reabre para revisão — na página de cada norma.
+          Fluxo de aprovação: rascunho → Gestor do setor → Diretoria → publicada. Ações na página de cada norma.
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {COLUNAS.map((col) => {
           const lista = politicas.filter((p) => p.estado === col.estado);
           return (

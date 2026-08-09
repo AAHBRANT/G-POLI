@@ -80,6 +80,8 @@ export default async function BuscaPage({ searchParams }: { searchParams: Params
           <select name="estado" defaultValue={estado} className="rounded border border-black/15 px-2 py-1.5 text-sm">
             <option value="">Todos</option>
             <option value="rascunho">Rascunho</option>
+            <option value="em_aprovacao_gestor">Aguardando Gestor</option>
+            <option value="em_aprovacao_diretoria">Aguardando Diretoria</option>
             <option value="publicada">Publicada</option>
             <option value="revogada">Revogada</option>
           </select>

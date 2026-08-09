@@ -110,6 +110,9 @@ export const CLASSIFICACOES = [
 
 export const ESTADOS_POLITICA: Record<string, { rotulo: string; cor: string }> = {
   rascunho: { rotulo: "Rascunho", cor: "bg-black/10 text-black/70" },
+  // Sprint 4/5/6: fluxo de aprovação Gestor → Diretoria.
+  em_aprovacao_gestor: { rotulo: "Aguardando Gestor", cor: "bg-amber-100 text-amber-800" },
+  em_aprovacao_diretoria: { rotulo: "Aguardando Diretoria", cor: "bg-amber-100 text-amber-900" },
   publicada: { rotulo: "Publicada", cor: "bg-emerald-100 text-emerald-800" },
   revogada: { rotulo: "Revogada", cor: "bg-red-100 text-red-800" },
 };

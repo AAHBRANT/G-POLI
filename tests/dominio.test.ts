@@ -6,6 +6,7 @@ import {
   formatarCodigoNormativo,
   ORG_PADRAO,
   editavel,
+  comentavel,
   transicao,
   temConteudo,
   montarSnapshot,
@@ -95,9 +96,12 @@ describe("Máquina de estados", () => {
   });
 
   it("transições proibidas retornam erro (mensagem exata)", () => {
+    // Sprint 4/5/6: mensagem mudou pra cobrir os dois caminhos válidos de
+    // publicar (rascunho direto = modelo A/legado; em_aprovacao_diretoria =
+    // modelo B/novo) — só "publicada" continua inválido pros dois.
     expect(transicao("publicada", "publicar")).toEqual({
       ok: false,
-      erro: "Só é possível publicar uma política em rascunho.",
+      erro: "Só é possível publicar uma política em rascunho ou em aprovação da Diretoria.",
     });
     expect(transicao("rascunho", "revogar")).toEqual({
       ok: false,
@@ -115,8 +119,50 @@ describe("Máquina de estados", () => {
 
   it("edição: só rascunho é editável", () => {
     expect(editavel("rascunho")).toBe(true);
+    expect(editavel("em_aprovacao_gestor")).toBe(false);
+    expect(editavel("em_aprovacao_diretoria")).toBe(false);
     expect(editavel("publicada")).toBe(false);
     expect(editavel("revogada")).toBe(false);
+  });
+
+  it("comentável (Sprint 3+4/5/6): rascunho e as duas etapas de aprovação; não publicada/revogada", () => {
+    expect(comentavel("rascunho")).toBe(true);
+    expect(comentavel("em_aprovacao_gestor")).toBe(true);
+    expect(comentavel("em_aprovacao_diretoria")).toBe(true);
+    expect(comentavel("publicada")).toBe(false);
+    expect(comentavel("revogada")).toBe(false);
+  });
+});
+
+describe("Fluxo de aprovação Gestor → Diretoria (Sprint 4/5/6)", () => {
+  it("cadeia completa: rascunho → gestor → diretoria → publicada", () => {
+    expect(transicao("rascunho", "enviar_aprovacao")).toEqual({ ok: true, estado: "em_aprovacao_gestor" });
+    expect(transicao("em_aprovacao_gestor", "aprovar_gestor")).toEqual({ ok: true, estado: "em_aprovacao_diretoria" });
+    expect(transicao("em_aprovacao_diretoria", "publicar")).toEqual({ ok: true, estado: "publicada" });
+  });
+
+  it("rejeição em qualquer etapa volta pra rascunho (não é um estado próprio)", () => {
+    expect(transicao("em_aprovacao_gestor", "rejeitar_gestor")).toEqual({ ok: true, estado: "rascunho" });
+    expect(transicao("em_aprovacao_diretoria", "rejeitar_diretoria")).toEqual({ ok: true, estado: "rascunho" });
+  });
+
+  it("retirar da aprovação volta pra rascunho, nas duas etapas", () => {
+    expect(transicao("em_aprovacao_gestor", "retirar_aprovacao")).toEqual({ ok: true, estado: "rascunho" });
+    expect(transicao("em_aprovacao_diretoria", "retirar_aprovacao")).toEqual({ ok: true, estado: "rascunho" });
+  });
+
+  it("modelo A (legado) continua funcionando: Diretoria publica direto de rascunho, pulando o Gestor", () => {
+    expect(transicao("rascunho", "publicar")).toEqual({ ok: true, estado: "publicada" });
+  });
+
+  it("ações fora de ordem são rejeitadas", () => {
+    expect(transicao("rascunho", "aprovar_gestor").ok).toBe(false);
+    expect(transicao("rascunho", "rejeitar_gestor").ok).toBe(false);
+    expect(transicao("em_aprovacao_gestor", "rejeitar_diretoria").ok).toBe(false);
+    expect(transicao("em_aprovacao_diretoria", "rejeitar_gestor").ok).toBe(false);
+    expect(transicao("em_aprovacao_diretoria", "enviar_aprovacao").ok).toBe(false);
+    expect(transicao("publicada", "retirar_aprovacao").ok).toBe(false);
+    expect(transicao("rascunho", "retirar_aprovacao").ok).toBe(false);
   });
 });
 
@@ -260,8 +306,17 @@ describe("Esqueleto normativo de Política (Manual SGI 16.1)", () => {
 // Invariantes — regras que nunca podem quebrar
 // ===========================================================================
 describe("Invariantes do domínio", () => {
-  const ESTADOS: Estado[] = ["rascunho", "publicada", "revogada"];
-  const ACOES: AcaoEstado[] = ["publicar", "revogar", "reabrir"];
+  const ESTADOS: Estado[] = ["rascunho", "em_aprovacao_gestor", "em_aprovacao_diretoria", "publicada", "revogada"];
+  const ACOES: AcaoEstado[] = [
+    "enviar_aprovacao",
+    "aprovar_gestor",
+    "rejeitar_gestor",
+    "publicar",
+    "rejeitar_diretoria",
+    "retirar_aprovacao",
+    "revogar",
+    "reabrir",
+  ];
 
   it("toda transição bem-sucedida termina em estado válido", () => {
     for (const e of ESTADOS) {
