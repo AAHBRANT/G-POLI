@@ -244,8 +244,40 @@ model Secao {
   linhas      Json? // array de linhas (array de células) quando tipo = tabela
   abertaAArea Boolean  @default(false) // #3b: libera edição para o perfil "area"
   atualizadaEm DateTime @default(now()) @updatedAt
+  comentarios Comentario[]
 
   @@unique([politicaId, codigo])
+}
+
+// Sprint 3: comentário de revisão por parágrafo (estilo Word), com thread de
+// respostas e resolver/reabrir. Não edita o conteúdo — é anotação em paralelo.
+// paragrafoIndex + trechoAncora: ancora no parágrafo pela posição em
+// corpo.split("\n") no momento da criação + um snapshot do texto. Se o
+// parágrafo mudar depois, o comentário não se perde — a UI compara o texto
+// atual daquele índice com trechoAncora e avisa que mudou, em vez de
+// desancorar ou inventar posição nova (mesmo princípio de "nunca perde dado"
+// usado em importarDocumento/Controle de Revisões).
+model Comentario {
+  id             String       @id @default(cuid())
+  secao          Secao        @relation(fields: [secaoId], references: [id], onDelete: Cascade)
+  secaoId        String
+  paragrafoIndex Int
+  trechoAncora   String       @default("")
+  texto          String
+  autorNome      String
+  autorEmail     String
+  resolvido      Boolean      @default(false)
+  resolvidoPorNome String?
+  resolvidoEm    DateTime?
+  criadoEm       DateTime     @default(now())
+  // Thread: null = comentário raiz; preenchido = resposta. Respostas não têm
+  // paragrafoIndex/trechoAncora próprios — herdam do pai (ver leituras).
+  respostaDeId   String?
+  respostaDe     Comentario?  @relation("Respostas", fields: [respostaDeId], references: [id], onDelete: Cascade)
+  respostas      Comentario[] @relation("Respostas")
+
+  @@index([secaoId])
+  @@index([respostaDeId])
 }
 
 model Versao {
