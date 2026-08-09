@@ -1,5 +1,6 @@
 // Regras puras de RBAC e acesso — SEM dependência de prisma/next.
 // Isolado aqui para ser unit-testável. usuario.ts consome e reexporta.
+import { comentavel, type Estado } from "@/lib/politica/dominio";
 
 export type Perfil = "superadmin" | "admin" | "sgi" | "diretoria" | "area" | "colaborador";
 
@@ -123,6 +124,38 @@ export function podeRetirarDaAprovacao(
   if (u.perfil === "sgi" || ehAdminOuSuper(u)) return true;
   if (u.perfil === "area") return noSetor(u, politica.areaId);
   return false;
+}
+
+// Sprint 3: comentar uma seção (revisão por parágrafo, estilo Word).
+// Diferente de podeEditarSecao — comentar NÃO edita o conteúdo, então Área
+// pode comentar qualquer seção do próprio setor mesmo se não estiver
+// "abertaAArea" (revisar ≠ escrever). Colaborador nunca comenta (só lê
+// publicada). Faz sentido em rascunho e nas 2 etapas de aprovação (Sprint
+// 4/5/6) — usa comentavel() do domínio pra não duplicar essa lista de
+// estados aqui; só fica definitivamente fechado quando publicada/revogada.
+export function podeComentarSecao(
+  u: UsuarioAtual | null,
+  politica: { areaId: string; estado: string },
+): boolean {
+  if (!u) return false;
+  if (!comentavel(politica.estado as Estado)) return false;
+  if (u.perfil === "sgi" || u.perfil === "diretoria" || ehAdminOuSuper(u)) return true;
+  if (u.perfil === "area") return noSetor(u, politica.areaId);
+  return false;
+}
+
+// Resolver/reabrir um comentário: o autor do próprio comentário, ou quem já
+// pode editar o conteúdo dessa política (SGI/admin/super) — Diretoria só
+// aprova/publica, não é dona do conteúdo, então não resolve comentário de
+// outra pessoa (só o que ela mesma abriu).
+export function podeResolverComentario(
+  u: UsuarioAtual | null,
+  politica: { areaId: string; estado: string },
+  comentario: { autorEmail: string },
+): boolean {
+  if (!u) return false;
+  if (u.email.toLowerCase() === comentario.autorEmail.toLowerCase()) return true;
+  return podeEditarConteudo(u, politica);
 }
 
 // Publicar (= aprovar na etapa da Diretoria): Diretoria, admin ou super.

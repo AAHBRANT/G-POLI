@@ -5,7 +5,7 @@ import SecaoEditor from "@/components/politica/SecaoEditor";
 import GerarEsqueletoBtn from "@/components/politica/GerarEsqueletoBtn";
 import GerarIAButton from "@/components/politica/GerarIAButton";
 import { ESQUELETO_PADRAO } from "@/lib/politica/esqueleto";
-import { getUsuarioAtual, podeEditarConteudo, podeEditarSecao, podeGerirAberturaArea, filtroVisibilidade } from "@/lib/auth/usuario";
+import { getUsuarioAtual, podeEditarConteudo, podeEditarSecao, podeComentarSecao, podeGerirAberturaArea, filtroVisibilidade } from "@/lib/auth/usuario";
 import { iaDisponivel } from "@/lib/politica/ai";
 
 export const dynamic = "force-dynamic";
@@ -20,11 +20,25 @@ export default async function EditarConteudo({ params }: { params: { id: string 
   // verdade, não só metadado.
   const politica = await prisma.politica.findFirst({
     where: { id: params.id, AND: [filtroVisibilidade(usuario)] },
-    include: { secoes: { orderBy: { ordem: "asc" } } },
+    include: {
+      secoes: {
+        orderBy: { ordem: "asc" },
+        include: {
+          // Sprint 3: só threads raiz aqui (respostaDeId: null), com as
+          // respostas já aninhadas — evita 2ª consulta por seção.
+          comentarios: {
+            where: { respostaDeId: null },
+            orderBy: { criadoEm: "asc" },
+            include: { respostas: { orderBy: { criadoEm: "asc" } } },
+          },
+        },
+      },
+    },
   });
   if (!politica) notFound();
   const mostrarToggle = podeGerirAberturaArea(usuario);
   const podeEditar = podeEditarConteudo(usuario, politica);
+  const podeComentar = podeComentarSecao(usuario, politica);
   const dicas = Object.fromEntries(ESQUELETO_PADRAO.map((s) => [s.codigo, s.dica]));
 
   return (
@@ -66,6 +80,8 @@ export default async function EditarConteudo({ params }: { params: { id: string 
             podeEditar={podeEditarSecao(usuario, politica, s)}
             abertaAArea={s.abertaAArea}
             mostrarToggle={mostrarToggle}
+            comentarios={s.comentarios}
+            podeComentar={podeComentar}
           />
         ))
       )}
