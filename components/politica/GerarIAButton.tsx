@@ -42,9 +42,9 @@ export default function GerarIAButton({ politicaId, disponivel }: { politicaId: 
       <Button
         onClick={() => setAberto(true)}
         disabled={!disponivel}
-        title={disponivel ? "" : "IA não configurada neste ambiente"}
+        title={disponivel ? "" : "Guuly não configurada neste ambiente"}
       >
-        ✨ Gerar com IA
+        ✨ Gerar com a Guuly
       </Button>
     );
   }
@@ -53,7 +53,7 @@ export default function GerarIAButton({ politicaId, disponivel }: { politicaId: 
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={() => !gerando && !aplicando && setAberto(false)}>
       <div className="max-h-[85vh] w-full max-w-2xl overflow-auto rounded-xl bg-white p-5 shadow-premium" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-marsala">✨ Gerar rascunho com IA</h3>
+          <h3 className="text-sm font-semibold text-marsala">✨ Gerar rascunho com a Guuly</h3>
           <button onClick={() => setAberto(false)} className="text-xs text-black/40 hover:text-black/70">fechar</button>
         </div>
 
@@ -100,7 +100,7 @@ export default function GerarIAButton({ politicaId, disponivel }: { politicaId: 
                 className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-60">
                 {aplicando ? "Aplicando…" : "Aplicar ao rascunho"}
               </button>
-              <span className="text-[11px] text-black/40">A IA não publica — só preenche o rascunho para revisão.</span>
+              <span className="text-[11px] text-black/40">A Guuly não publica — só preenche o rascunho para revisão.</span>
             </div>
           </div>
         )}

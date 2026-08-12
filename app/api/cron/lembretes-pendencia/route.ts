@@ -12,7 +12,17 @@ function campoDoMarco(marco: MarcoLembrete): "lembrete3EnviadoEm" | "lembrete7En
   return "lembrete15EnviadoEm";
 }
 
+// Vercel Cron chama com GET; o job antigo do Azure Container Apps chamava
+// com POST. Mesma autorização (Authorization: Bearer CRON_SECRET) nos dois.
+export async function GET(request: Request) {
+  return executar(request);
+}
+
 export async function POST(request: Request) {
+  return executar(request);
+}
+
+async function executar(request: Request) {
   if (!autorizadoCron(request.headers.get("authorization"))) {
     return new NextResponse("Não autorizado", { status: 401 });
   }

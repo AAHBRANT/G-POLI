@@ -15,9 +15,9 @@ describe("gerarDescricaoRevisao", () => {
     vi.unstubAllGlobals();
   });
 
-  it("IA não configurada (sem endpoint/key): retorna null sem chamar fetch", async () => {
-    vi.stubEnv("AZURE_OPENAI_ENDPOINT", "");
-    vi.stubEnv("AZURE_OPENAI_KEY", "");
+  it("IA não configurada (sem url/secret): retorna null sem chamar fetch", async () => {
+    vi.stubEnv("OLLAMA_URL", "");
+    vi.stubEnv("OLLAMA_PROXY_SECRET", "");
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     const { gerarDescricaoRevisao } = await import("@/lib/politica/ai");
@@ -29,11 +29,11 @@ describe("gerarDescricaoRevisao", () => {
   });
 
   it("IA disponível e responde com texto: retorna o texto (trim aplicado)", async () => {
-    vi.stubEnv("AZURE_OPENAI_ENDPOINT", "https://fake.openai.azure.com");
-    vi.stubEnv("AZURE_OPENAI_KEY", "fake-key");
+    vi.stubEnv("OLLAMA_URL", "https://fake.ts.net");
+    vi.stubEnv("OLLAMA_PROXY_SECRET", "fake-secret");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ choices: [{ message: { content: "  Revisão do item 4.  " } }] }),
+      json: async () => ({ message: { content: "  Revisão do item 4.  " } }),
     }));
     const { gerarDescricaoRevisao } = await import("@/lib/politica/ai");
 
@@ -43,8 +43,8 @@ describe("gerarDescricaoRevisao", () => {
   });
 
   it("fetch rejeita (erro de rede): retorna null", async () => {
-    vi.stubEnv("AZURE_OPENAI_ENDPOINT", "https://fake.openai.azure.com");
-    vi.stubEnv("AZURE_OPENAI_KEY", "fake-key");
+    vi.stubEnv("OLLAMA_URL", "https://fake.ts.net");
+    vi.stubEnv("OLLAMA_PROXY_SECRET", "fake-secret");
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("timeout")));
     const { gerarDescricaoRevisao } = await import("@/lib/politica/ai");
 
@@ -54,8 +54,8 @@ describe("gerarDescricaoRevisao", () => {
   });
 
   it("resposta HTTP não-ok: retorna null", async () => {
-    vi.stubEnv("AZURE_OPENAI_ENDPOINT", "https://fake.openai.azure.com");
-    vi.stubEnv("AZURE_OPENAI_KEY", "fake-key");
+    vi.stubEnv("OLLAMA_URL", "https://fake.ts.net");
+    vi.stubEnv("OLLAMA_PROXY_SECRET", "fake-secret");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500, text: async () => "erro" }));
     const { gerarDescricaoRevisao } = await import("@/lib/politica/ai");
 
@@ -65,11 +65,11 @@ describe("gerarDescricaoRevisao", () => {
   });
 
   it("resposta vazia/só espaço: retorna null", async () => {
-    vi.stubEnv("AZURE_OPENAI_ENDPOINT", "https://fake.openai.azure.com");
-    vi.stubEnv("AZURE_OPENAI_KEY", "fake-key");
+    vi.stubEnv("OLLAMA_URL", "https://fake.ts.net");
+    vi.stubEnv("OLLAMA_PROXY_SECRET", "fake-secret");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ choices: [{ message: { content: "   " } }] }),
+      json: async () => ({ message: { content: "   " } }),
     }));
     const { gerarDescricaoRevisao } = await import("@/lib/politica/ai");
 
@@ -82,11 +82,11 @@ describe("gerarDescricaoRevisao", () => {
   // null/undefined mesmo em seção tipo tabela. Com `??` isso não caía no
   // fallback de `linhas`, e a IA via a seção como vazia.
   it("seção tipo tabela (corpo vazio, linhas preenchidas): envia as linhas formatadas à IA, não texto vazio", async () => {
-    vi.stubEnv("AZURE_OPENAI_ENDPOINT", "https://fake.openai.azure.com");
-    vi.stubEnv("AZURE_OPENAI_KEY", "fake-key");
+    vi.stubEnv("OLLAMA_URL", "https://fake.ts.net");
+    vi.stubEnv("OLLAMA_PROXY_SECRET", "fake-secret");
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ choices: [{ message: { content: "Atualização da tabela." } }] }),
+      json: async () => ({ message: { content: "Atualização da tabela." } }),
     });
     vi.stubGlobal("fetch", fetchMock);
     const { gerarDescricaoRevisao } = await import("@/lib/politica/ai");
@@ -99,5 +99,23 @@ describe("gerarDescricaoRevisao", () => {
     const mensagemUsuario = corpoRequisicao.messages.find((m: { role: string }) => m.role === "user").content;
     expect(mensagemUsuario).toContain("a | b");
     expect(mensagemUsuario).not.toMatch(/Controle de Revisões:\s*(\n|$)/);
+  });
+
+  it("chama a Authorization com o segredo configurado, no endpoint /api/chat", async () => {
+    vi.stubEnv("OLLAMA_URL", "https://fake.ts.net");
+    vi.stubEnv("OLLAMA_PROXY_SECRET", "fake-secret");
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ message: { content: "Texto." } }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { gerarDescricaoRevisao } = await import("@/lib/politica/ai");
+
+    await gerarDescricaoRevisao(SECOES_ANTES, SECOES_DEPOIS);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://fake.ts.net/api/chat",
+      expect.objectContaining({ headers: expect.objectContaining({ Authorization: "Bearer fake-secret" }) }),
+    );
   });
 });

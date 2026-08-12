@@ -21,6 +21,7 @@
     "@azure/storage-blob": "^12.33.0",
     "@microsoft/teams-js": "^2.54.0",
     "@prisma/client": "5.17.0",
+    "@vercel/blob": "^2.7.0",
     "docx-templates": "^4.15.0",
     "jose": "^6.2.4",
     "mammoth": "^1.12.0",

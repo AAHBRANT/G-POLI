@@ -1,12 +1,36 @@
 import { ESQUELETO_PADRAO } from "@/lib/politica/esqueleto";
 
-// Camada de IA (Azure OpenAI). Plugável por env; se não configurada, generation fica indisponível.
-const ENDPOINT = (process.env.AZURE_OPENAI_ENDPOINT ?? "").replace(/\/$/, "");
-const KEY = process.env.AZURE_OPENAI_KEY ?? "";
-const DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT ?? "gpt5mini";
-const API_VERSION = process.env.AZURE_OPENAI_API_VERSION ?? "2025-04-01-preview";
+// Camada de IA (Ollama próprio, numa máquina da empresa, exposto via Tailscale
+// Funnel + proxy de autenticação — ver scripts/ollama-proxy/proxy.js). Plugável
+// por env; se não configurada, geração fica indisponível.
+const OLLAMA_URL = (process.env.OLLAMA_URL ?? "").replace(/\/$/, "");
+const OLLAMA_SECRET = process.env.OLLAMA_PROXY_SECRET ?? "";
+const MODEL = process.env.OLLAMA_MODEL ?? "gemma4:12b";
 
-export const iaDisponivel = () => ENDPOINT.length > 0 && KEY.length > 0;
+export const iaDisponivel = () => OLLAMA_URL.length > 0 && OLLAMA_SECRET.length > 0;
+
+async function chamarOllama(
+  messages: { role: string; content: string }[],
+  opcoes: { formatoJson?: boolean; maxTokens?: number } = {},
+): Promise<string> {
+  const r = await fetch(`${OLLAMA_URL}/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${OLLAMA_SECRET}` },
+    body: JSON.stringify({
+      model: MODEL,
+      messages,
+      stream: false,
+      ...(opcoes.formatoJson ? { format: "json" } : {}),
+      ...(opcoes.maxTokens ? { options: { num_predict: opcoes.maxTokens } } : {}),
+    }),
+  });
+  if (!r.ok) {
+    const t = await r.text();
+    throw new Error(`Falha na IA (${r.status}): ${t.slice(0, 200)}`);
+  }
+  const data = await r.json();
+  return data?.message?.content ?? "";
+}
 
 export type SecaoIA = { codigo: string; corpo?: string; linhas?: string[][] };
 
@@ -62,27 +86,14 @@ export async function gerarRascunhoNorma(dados: {
   ].join("\n");
 
   try {
-    const url = `${ENDPOINT}/openai/deployments/${DEPLOYMENT}/chat/completions?api-version=${API_VERSION}`;
-    const r = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "api-key": KEY },
-      body: JSON.stringify({
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-        // gpt-5 (reasoning): usa max_completion_tokens e temperatura padrão.
-        max_completion_tokens: 6000,
-        response_format: { type: "json_object" },
-      }),
-    });
-    if (!r.ok) {
-      const t = await r.text();
-      return { ok: false, erro: `Falha na IA (${r.status}): ${t.slice(0, 200)}` };
-    }
-    const data = await r.json();
-    const raw = data?.choices?.[0]?.message?.content ?? "{}";
-    const parsed = JSON.parse(raw);
+    const raw = await chamarOllama(
+      [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+      { formatoJson: true, maxTokens: 6000 },
+    );
+    const parsed = JSON.parse(raw || "{}");
     const secoes: SecaoIA[] = Array.isArray(parsed?.secoes) ? parsed.secoes : [];
     if (!secoes.length) return { ok: false, erro: "A IA não retornou seções válidas." };
     return { ok: true, secoes };
@@ -122,21 +133,15 @@ export async function gerarDescricaoRevisao(
   const user = ["VERSÃO ANTERIOR:", formatar(secoesAnteriores), "", "VERSÃO ATUAL:", formatar(secoesAtuais)].join("\n");
 
   try {
-    const url = `${ENDPOINT}/openai/deployments/${DEPLOYMENT}/chat/completions?api-version=${API_VERSION}`;
-    const r = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "api-key": KEY },
-      body: JSON.stringify({
-        messages: [
+    const texto = (
+      await chamarOllama(
+        [
           { role: "system", content: system },
           { role: "user", content: user },
         ],
-        max_completion_tokens: 100,
-      }),
-    });
-    if (!r.ok) return null;
-    const data = await r.json();
-    const texto = (data?.choices?.[0]?.message?.content ?? "").trim();
+        { maxTokens: 100 },
+      )
+    ).trim();
     return texto.length > 0 ? texto : null;
   } catch {
     return null;
