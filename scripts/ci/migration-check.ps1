@@ -50,6 +50,10 @@ while (-not $ok) {
 }
 
 try {
+    # schema.prisma exige directUrl (conexao direta, sem pooler) para o Neon
+    # em produção. O banco descartavel do CI nao tem pooler -- mesma conexao
+    # serve para as duas variaveis.
+    $env:DIRECT_URL = $env:DATABASE_URL
     npx prisma migrate deploy
     if ($LASTEXITCODE -ne 0) { exit 1 }
 } finally {
