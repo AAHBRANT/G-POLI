@@ -32,6 +32,7 @@ vi.mock("@/lib/politica/gerarDocx", () => ({ gerarDocumentoOficial: vi.fn() }));
 vi.mock("@/lib/politica/pendencia", () => ({ dadosPendencia: vi.fn() }));
 
 vi.mock("@/lib/politica/ai", () => ({ gerarDescricaoRevisao: vi.fn() }));
+vi.mock("@/lib/politica/indiceServidor", () => ({ reindexarPolitica: vi.fn(), removerIndice: vi.fn() }));
 
 import { prisma } from "@/lib/prisma";
 import { getUsuarioAtual, podePublicar } from "@/lib/auth/usuario";
@@ -42,6 +43,7 @@ import { salvarArquivo } from "@/lib/storage";
 import { gerarDocumentoOficial } from "@/lib/politica/gerarDocx";
 import { dadosPendencia } from "@/lib/politica/pendencia";
 import { gerarDescricaoRevisao } from "@/lib/politica/ai";
+import { reindexarPolitica, removerIndice } from "@/lib/politica/indiceServidor";
 import { publicarPolitica, revogarPolitica } from "@/app/(shell)/catalogo/[id]/estado-actions";
 
 const usuarioAtual = getUsuarioAtual as ReturnType<typeof vi.fn>;
@@ -509,5 +511,48 @@ describe("publicarPolitica — público-alvo respeita a classificação", () => 
     const filtros = usuarioFindMany.mock.calls.map((c) => JSON.stringify((c[0] as { where: unknown }).where));
     expect(filtros.some((q) => q.includes("u-nominal"))).toBe(true);
     expect(filtros.some((q) => q.includes('"setores"'))).toBe(false); // setor nunca basta para confidencial
+  });
+});
+
+describe("índice por seção acompanha o ciclo de vida do documento", () => {
+  const reindexar = reindexarPolitica as ReturnType<typeof vi.fn>;
+  const remover = removerIndice as ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    usuarioAtual.mockResolvedValue({ id: "u1", nome: "Fulano de Tal", email: "fulano@aahbrant.com" });
+    publicarPermitido.mockReturnValue(true);
+    notificar.mockResolvedValue({ ok: true });
+    salvar.mockResolvedValue({ hash: "abc123", tamanho: 100, caminhoRelativo: "x" });
+    versaoCount.mockResolvedValue(0);
+    usuarioFindMany.mockResolvedValue([]);
+    gerar.mockResolvedValue(Buffer.from("conteudo-fake"));
+    transacao.mockImplementation(async (arg: unknown) => {
+      if (Array.isArray(arg)) return Promise.all(arg);
+      return (arg as (tx: unknown) => Promise<void>)({
+        versao: { create: versaoCreate, updateMany: versaoUpdateMany, count: versaoCount },
+        politica: { update: politicaUpdate },
+      });
+    });
+    findUnique.mockResolvedValue({ ...politicaBase(), classificacao: "publico_interno", areaId: "a1", consorcioId: null, audienciaSetores: [], audienciaUsuarios: [] });
+  });
+
+  it("publicar indexa o texto oficial", async () => {
+    const r = await publicarPolitica("p1");
+    expect(r.ok).toBe(true);
+    expect(reindexar).toHaveBeenCalledWith("p1");
+  });
+
+  it("falha ao indexar NÃO desfaz a publicação", async () => {
+    reindexar.mockRejectedValue(new Error("banco fora"));
+    const r = await publicarPolitica("p1");
+    expect(r.ok).toBe(true);
+  });
+
+  it("revogar remove o índice", async () => {
+    findUnique.mockResolvedValue({ id: "p1", titulo: "Política de Teste", estado: "publicada" });
+    politicaUpdate.mockResolvedValue({});
+    expect((await revogarPolitica("p1")).ok).toBe(true);
+    expect(remover).toHaveBeenCalledWith("p1");
   });
 });

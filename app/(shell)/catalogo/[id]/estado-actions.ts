@@ -29,6 +29,7 @@ import { gerarDocumentoOficial } from "@/lib/politica/gerarDocx";
 import { dadosPendencia } from "@/lib/politica/pendencia";
 import { gerarDescricaoRevisao } from "@/lib/politica/ai";
 import { calcularProximaRevisao } from "@/lib/politica/revisao";
+import { reindexarPolitica, removerIndice } from "@/lib/politica/indiceServidor";
 import type { Prisma } from "@prisma/client";
 
 export type ResultadoAcao = { ok: boolean; erro?: string };
@@ -480,6 +481,14 @@ export async function publicarPolitica(id: string): Promise<ResultadoAcao> {
     return { ok: false, erro: "Falha ao salvar o documento oficial. Publicação cancelada — tente novamente." };
   }
 
+  // Índice por seção (etapa 2b): best-effort — a publicação já foi confirmada e
+  // uma falha aqui nunca a desfaz (o admin pode reconstruir em /api/admin/reindexar).
+  try {
+    await reindexarPolitica(id);
+  } catch (erro) {
+    console.error("Falha ao indexar o texto oficial (publicação já confirmada):", erro);
+  }
+
   await registrar("politica.publicar", "Politica", id, politica.titulo);
 
   // Fail-open (mesma filosofia de antes desta task, quando essa query vivia
@@ -537,6 +546,11 @@ export async function revogarPolitica(id: string): Promise<ResultadoAcao> {
   } catch (erro) {
     console.error("Falha ao cancelar pendencias de ciencia (revogação já confirmada):", erro);
   }
+  try {
+    await removerIndice(id); // revogado deixa de ser consultável
+  } catch (erro) {
+    console.error("Falha ao remover o índice do documento revogado (revogação já confirmada):", erro);
+  }
   await registrar("politica.revogar", "Politica", id, politica.titulo);
   revalidatePath(`/catalogo/${id}`);
   revalidatePath("/catalogo");
@@ -559,6 +573,11 @@ export async function reabrirPolitica(id: string): Promise<ResultadoAcao> {
     where: { id },
     data: { estado: t.estado },
   });
+  try {
+    await removerIndice(id); // em edição, o texto não é mais o oficial vigente
+  } catch (erro) {
+    console.error("Falha ao remover o índice do documento reaberto (reabertura já confirmada):", erro);
+  }
   await registrar("politica.reabrir", "Politica", id, politica.titulo);
   revalidatePath(`/catalogo/${id}`);
   revalidatePath("/catalogo");
