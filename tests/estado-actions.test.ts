@@ -28,6 +28,7 @@ vi.mock("@/lib/notificacao/graph", () => ({
 vi.mock("@/lib/storage", () => ({ salvarArquivo: vi.fn() }));
 
 vi.mock("@/lib/politica/gerarDocx", () => ({ gerarDocumentoOficial: vi.fn() }));
+vi.mock("@/lib/politica/gerarPdf", () => ({ gerarPdfOficial: vi.fn() }));
 
 vi.mock("@/lib/politica/pendencia", () => ({ dadosPendencia: vi.fn() }));
 
@@ -41,6 +42,7 @@ import { revalidatePath } from "next/cache";
 import { enviarNotificacaoPoliticaPublicada } from "@/lib/notificacao/graph";
 import { salvarArquivo } from "@/lib/storage";
 import { gerarDocumentoOficial } from "@/lib/politica/gerarDocx";
+import { gerarPdfOficial } from "@/lib/politica/gerarPdf";
 import { dadosPendencia } from "@/lib/politica/pendencia";
 import { gerarDescricaoRevisao } from "@/lib/politica/ai";
 import { reindexarPolitica, removerIndice } from "@/lib/politica/indiceServidor";
@@ -51,6 +53,7 @@ const publicarPermitido = podePublicar as ReturnType<typeof vi.fn>;
 const notificar = enviarNotificacaoPoliticaPublicada as ReturnType<typeof vi.fn>;
 const salvar = salvarArquivo as ReturnType<typeof vi.fn>;
 const gerar = gerarDocumentoOficial as ReturnType<typeof vi.fn>;
+const gerarPdf = gerarPdfOficial as ReturnType<typeof vi.fn>;
 const findUnique = prisma.politica.findUnique as ReturnType<typeof vi.fn>;
 const politicaUpdate = prisma.politica.update as ReturnType<typeof vi.fn>;
 const transacao = prisma.$transaction as ReturnType<typeof vi.fn>;
@@ -91,6 +94,7 @@ describe("publicarPolitica — geração do documento oficial", () => {
     publicarPermitido.mockReturnValue(true);
     notificar.mockResolvedValue({ ok: true });
     salvar.mockResolvedValue({ hash: "abc123", tamanho: 100, caminhoRelativo: "x" });
+    gerarPdf.mockResolvedValue(Buffer.from("%PDF-fake"));
     versaoCount.mockResolvedValue(0);
     versaoFindMany.mockResolvedValue([]); // NOVO — sem versões anteriores por padrão
     // NOVO — resolverAudiencia (extraída neste task) agora roda incondicionalmente
@@ -118,14 +122,27 @@ describe("publicarPolitica — geração do documento oficial", () => {
 
     expect(resultado.ok).toBe(true);
     expect(gerar).toHaveBeenCalledTimes(1);
-    expect(versaoCreate).toHaveBeenCalledTimes(1);
+    // .docx oficial + PDF oficial (derivado do mesmo conteúdo congelado)
+    expect(versaoCreate).toHaveBeenCalledTimes(2);
     expect(versaoCreate.mock.calls[0][0].data.documento.create.oficial).toBe(true);
+    expect(versaoCreate.mock.calls[1][0].data.documento.create).toMatchObject({ oficial: true, tipo: "application/pdf" });
     // Invariante central: só a cadeia de documentos OFICIAIS é substituída.
     // Se o filtro `documento: { oficial: true }` sumisse do where, TODOS os
     // anexos manuais seriam marcados "substituida" a cada publicação.
     expect(versaoUpdateMany.mock.calls[0][0].where).toMatchObject({
       documento: { oficial: true },
     });
+  });
+
+  it("falha ao gerar o PDF NÃO cancela a publicação (segue só com o .docx)", async () => {
+    findUnique.mockResolvedValue(politicaBase());
+    gerar.mockResolvedValue(Buffer.from("conteudo-fake"));
+    gerarPdf.mockRejectedValue(new Error("pdf quebrou"));
+
+    const resultado = await publicarPolitica("p1");
+
+    expect(resultado.ok).toBe(true);
+    expect(versaoCreate).toHaveBeenCalledTimes(1);
   });
 
   it("grava conteudoSnapshot e revisaoNaEpoca na nova versão", async () => {
@@ -339,7 +356,7 @@ describe("publicarPolitica — Controle de Revisões", () => {
 
     expect(resultado.ok).toBe(true);
     expect(versaoFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { politicaId: "p1", documento: { oficial: true } } }),
+      expect.objectContaining({ where: { politicaId: "p1", documento: { oficial: true, NOT: { tipo: "application/pdf" } } } }),
     );
   });
 

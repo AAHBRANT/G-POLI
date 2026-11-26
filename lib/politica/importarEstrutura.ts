@@ -6,6 +6,8 @@
 // Funções PURAS (sem rede e sem banco): recebem o HTML que o mammoth gera.
 
 export type SecaoEstruturada = {
+  /** Numeração do original: 7 para o capítulo, 7.1, 7.2… para tabelas e continuações dele. */
+  codigo?: string;
   titulo: string;
   corpo: string;
   tipo: "texto" | "tabela";
@@ -154,12 +156,13 @@ export function extrairEstrutura(html: string): ResultadoEstrutura {
     if (cabecalho.some((b) => b.tipo === "tabela")) {
       avisos.push("O cabeçalho do original (título e tabela de controle de revisões) não foi importado: o sistema gera o controle de revisões na publicação.");
     }
-    if (apresentacao.trim()) secoes.push({ titulo: "Apresentação", corpo: apresentacao.trim(), tipo: "texto" });
+    if (apresentacao.trim()) secoes.push({ codigo: "0", titulo: "Apresentação", corpo: apresentacao.trim(), tipo: "texto" });
   }
 
   // ---- Corpo: capítulos, texto e tabelas ----
   const indiceBase = primeiro;
   let capituloAtual = capitulos.size > 0 ? "" : "Conteúdo Importado";
+  let numeroAtual = capitulos.size > 0 ? 0 : 1;
   let partesDoCapitulo = 0; // quantas seções de texto/tabela deste capítulo já saíram
   let texto: string[] = [];
   let legendaPendente: string | null = null;
@@ -169,11 +172,12 @@ export function extrairEstrutura(html: string): ResultadoEstrutura {
     if (sufixo) return `${base} — ${sufixo}`;
     return partesDoCapitulo === 0 ? base : `${base} (continuação)`;
   };
+  const codigoDaParte = () => (partesDoCapitulo === 0 ? String(numeroAtual) : `${numeroAtual}.${partesDoCapitulo}`);
   const descarregarTexto = () => {
     const corpo = texto.join("\n").trim();
     texto = [];
     if (!corpo || !capituloAtual) return;
-    secoes.push({ titulo: tituloDaParte(), corpo, tipo: "texto" });
+    secoes.push({ codigo: codigoDaParte(), titulo: tituloDaParte(), corpo, tipo: "texto" });
     partesDoCapitulo += 1;
   };
 
@@ -184,6 +188,7 @@ export function extrairEstrutura(html: string): ResultadoEstrutura {
       descarregarTexto();
       // só reescreve se veio TUDO em maiúsculas (não estraga siglas em títulos já bem escritos)
       capituloAtual = cap.titulo === cap.titulo.toUpperCase() ? tituloLegivel(cap.titulo) : cap.titulo;
+      numeroAtual = cap.numero;
       partesDoCapitulo = 0;
       legendaPendente = null;
       continue;
@@ -208,7 +213,7 @@ export function extrairEstrutura(html: string): ResultadoEstrutura {
       }
       const nome = (legenda ?? "Tabela") + (fonte ? ` (${fonte})` : "");
       const [colunas, ...linhas] = b.linhas;
-      secoes.push({ titulo: tituloDaParte(nome), corpo: "", tipo: "tabela", colunas, linhas });
+      secoes.push({ codigo: codigoDaParte(), titulo: tituloDaParte(nome), corpo: "", tipo: "tabela", colunas, linhas });
       partesDoCapitulo += 1;
       tabelas += 1;
       continue;

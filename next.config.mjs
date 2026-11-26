@@ -13,6 +13,8 @@ const TEAMS_FRAME_ANCESTORS = [
 const nextConfig = {
   reactStrictMode: true,
   output: "standalone", // imagem Docker enxuta para Container Apps
+  // pdfkit lê fontes (.afm) do próprio pacote em tempo de execução: não pode ser empacotado.
+  serverExternalPackages: ["pdfkit"],
   experimental: {
     serverActions: {
       // Uploads de documentos normativos podem ser grandes.
