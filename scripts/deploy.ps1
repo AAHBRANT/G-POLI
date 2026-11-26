@@ -81,6 +81,7 @@ try {
 
     docker run -d --name $SmokeApp --network $SmokeNet -p 13000:3000 `
         -e DATABASE_URL="postgresql://gpol:gpol_dev@${SmokePg}:5432/gpoliticas?schema=public" `
+        -e DIRECT_URL="postgresql://gpol:gpol_dev@${SmokePg}:5432/gpoliticas?schema=public" `
         -e AZURE_AD_TENANT_ID="8cc518ea-6df8-4d1e-a79f-89ee9314335c" `
         -e AZURE_AD_CLIENT_ID="1b98db67-5ce0-469e-aea3-8beaf8044b87" `
         -e AZURE_AD_CLIENT_SECRET="dummy" `
@@ -90,7 +91,10 @@ try {
         $Image | Out-Null
 
     Start-Sleep 5
+    # stderr do docker vira NativeCommandError no PowerShell 5.1: relaxa so este trecho
+    $ErrorActionPreference = "Continue"
     $logs = docker logs $SmokeApp 2>&1 | Out-String
+    $ErrorActionPreference = "Stop"
     Write-Host $logs
 
     if ($logs -notmatch "All migrations have been successfully applied") {
