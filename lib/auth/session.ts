@@ -27,7 +27,7 @@ export async function criarSessao(dados: Sessao): Promise<void> {
   // Secure; em dev (http://localhost) isso é impossível, daí o Lax lá.
   const emProducao = process.env.NODE_ENV === "production";
 
-  cookies().set(SESSION_COOKIE, token, {
+  (await cookies()).set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: emProducao,
     sameSite: emProducao ? "none" : "lax",
@@ -37,7 +37,7 @@ export async function criarSessao(dados: Sessao): Promise<void> {
 }
 
 export async function lerSessao(): Promise<Sessao | null> {
-  const token = cookies().get(SESSION_COOKIE)?.value;
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, chave());
@@ -52,6 +52,6 @@ export async function lerSessao(): Promise<Sessao | null> {
   }
 }
 
-export function limparSessao(): void {
-  cookies().delete(SESSION_COOKIE);
+export async function limparSessao(): Promise<void> {
+  (await cookies()).delete(SESSION_COOKIE);
 }

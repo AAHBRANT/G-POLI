@@ -6,11 +6,10 @@ import Brand from "@/components/shell/Brand";
 
 export const dynamic = "force-dynamic";
 
-export default function LoginPage({
-  searchParams,
-}: {
-  searchParams: { erro?: string };
+export default async function LoginPage(props: {
+  searchParams: Promise<{ erro?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   const erros: Record<string, string> = {
     sem_code: "Login não retornou o código de autorização.",
     falha_login: "Não foi possível concluir o login. Tente novamente.",

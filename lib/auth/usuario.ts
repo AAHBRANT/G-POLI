@@ -74,7 +74,7 @@ export async function provisionarUsuario(dados: {
 export async function getUsuarioAtual(): Promise<UsuarioAtual | null> {
   // Modo dev (auth desligada): usuário sintético; perfil via cookie para teste.
   if (!authEnabled) {
-    const perfil = (cookies().get(DEV_PERFIL_COOKIE)?.value as Perfil) || "superadmin";
+    const perfil = ((await cookies()).get(DEV_PERFIL_COOKIE)?.value as Perfil) || "superadmin";
     let setores: string[] = [];
     if (perfil === "area") {
       const a = await prisma.area.findFirst({ orderBy: { criadoEm: "asc" } });

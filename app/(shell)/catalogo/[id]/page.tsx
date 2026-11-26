@@ -28,7 +28,8 @@ function formatoTamanho(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export default async function PoliticaDetalhe({ params }: { params: { id: string } }) {
+export default async function PoliticaDetalhe(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const usuario = await getUsuarioAtual();
   // findFirst (não findUnique) para poder combinar o id com o filtro de
   // visibilidade — sem isso, colaborador abria qualquer política direto pela

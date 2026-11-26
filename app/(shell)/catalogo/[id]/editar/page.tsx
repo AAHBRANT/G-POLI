@@ -10,7 +10,8 @@ import { iaDisponivel } from "@/lib/politica/ai";
 
 export const dynamic = "force-dynamic";
 
-export default async function EditarConteudo({ params }: { params: { id: string } }) {
+export default async function EditarConteudo(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const usuario = await getUsuarioAtual();
   // findFirst (não findUnique) + filtroVisibilidade: sem isso, o texto
   // completo de qualquer seção (inclusive classificação Restrito de outro

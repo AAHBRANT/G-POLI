@@ -9,8 +9,8 @@ import { leituraValida } from "@/lib/politica/dominio";
 
 export type ResultadoAcao = { ok: boolean; erro?: string };
 
-function ipDoRequest(): string {
-  const h = headers();
+async function ipDoRequest(): Promise<string> {
+  const h = await headers();
   const encaminhado = h.get("x-forwarded-for");
   if (encaminhado) return encaminhado.split(",")[0]!.trim();
   return h.get("x-real-ip") ?? "desconhecido";
@@ -35,13 +35,13 @@ export async function darCiencia(politicaId: string, abertoEm: string): Promise<
 
   await prisma.ciencia.upsert({
     where: { politicaId_usuarioOid: { politicaId, usuarioOid: usuario.oid } },
-    update: { politicaPublicadaEm: politica.publicadaEm, ip: ipDoRequest(), criadoEm: new Date() },
+    update: { politicaPublicadaEm: politica.publicadaEm, ip: await ipDoRequest(), criadoEm: new Date() },
     create: {
       politicaId,
       usuarioOid: usuario.oid,
       usuarioNome: usuario.nome,
       usuarioEmail: usuario.email,
-      ip: ipDoRequest(),
+      ip: await ipDoRequest(),
       politicaPublicadaEm: politica.publicadaEm,
     },
   });

@@ -9,11 +9,10 @@ export const dynamic = "force-dynamic";
 //
 // Rota pública (ver middleware.ts): ela roda ANTES de o app validar sessão, e
 // o popup é uma janela própria — barrá-la travaria o login pela metade.
-export default function TeamsFimPage({
-  searchParams,
-}: {
-  searchParams: { authId?: string; metodo?: string; host?: string };
+export default async function TeamsFimPage(props: {
+  searchParams: Promise<{ authId?: string; metodo?: string; host?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   // Revalida no servidor antes de entregar ao cliente. O callback já filtrou,
   // mas esta página é pública e acessível direto — quem chamar não pode induzir
   // um redirect para host arbitrário (open redirect).

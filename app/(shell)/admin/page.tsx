@@ -12,7 +12,8 @@ export const dynamic = "force-dynamic";
 
 type Params = { q?: string; cargo?: string; status?: string; tab?: string };
 
-export default async function AdminPage({ searchParams }: { searchParams: Params }) {
+export default async function AdminPage(props: { searchParams: Promise<Params> }) {
+  const searchParams = await props.searchParams;
   const atual = await getUsuarioAtual();
   if (!podeAdministrar(atual)) {
     return (

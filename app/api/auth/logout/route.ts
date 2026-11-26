@@ -5,6 +5,6 @@ import { limparSessao } from "@/lib/auth/session";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  limparSessao();
+  await limparSessao();
   return NextResponse.redirect(new URL("/login", authConfig.baseUrl));
 }

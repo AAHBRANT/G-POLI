@@ -11,8 +11,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  { params: paramsP }: { params: Promise<{ id: string }> },
 ) {
+  const params = await paramsP;
   const doc = await prisma.documento.findUnique({
     where: { id: params.id },
     include: { versao: true },
