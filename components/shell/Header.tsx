@@ -28,6 +28,25 @@ export default async function Header() {
         )}
       </div>
 
+      <form action="/busca" method="get" role="search" className="mx-4 hidden max-w-md flex-1 sm:block">
+        <label htmlFor="busca-global" className="sr-only">
+          Buscar políticas, normas e procedimentos
+        </label>
+        <div className="liquid flex items-center gap-2 rounded-full px-4 py-1.5 focus-within:ring-2 focus-within:ring-black/30">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" className="shrink-0 text-black/50">
+            <path d="M21 21l-4.3-4.3M11 18a7 7 0 100-14 7 7 0 000 14z" />
+          </svg>
+          <input
+            id="busca-global"
+            name="q"
+            type="search"
+            placeholder="Buscar documento, código ou assunto…"
+            autoComplete="off"
+            className="w-full bg-transparent text-sm outline-none placeholder:text-black/45"
+          />
+        </div>
+      </form>
+
       <div className="flex items-center gap-3">
         {!authEnabled && (
           <form className="flex items-center gap-1" action="/api/dev/perfil" method="get">
