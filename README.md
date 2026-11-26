@@ -3,7 +3,7 @@
 Gestão e geração de normas/políticas da AAHBRANT, dentro do Microsoft Teams. Primeiro cliente da **Plataforma Corporativa de IA** (ver `docs/PLATFORM-MANIFEST.md`).
 
 ## Stack
-Next.js 14 (App Router) · TypeScript · Prisma · PostgreSQL · Entra ID / Teams SSO · Azure OpenAI. Deploy: Azure Container Apps.
+Next.js 14 (App Router) · TypeScript · Prisma · PostgreSQL · Entra ID / Teams SSO · IA: Anthropic (Claude). Deploy: Azure Container Apps.
 
 ## Estrutura
 ```

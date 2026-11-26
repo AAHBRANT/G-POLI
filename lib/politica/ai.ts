@@ -1,27 +1,51 @@
 import { ESQUELETO_PADRAO } from "@/lib/politica/esqueleto";
 
-// Camada de IA (Ollama próprio, numa máquina da empresa, exposto via Tailscale
-// Funnel + proxy de autenticação — ver scripts/ollama-proxy/proxy.js). Plugável
-// por env; se não configurada, geração fica indisponível.
-const OLLAMA_URL = (process.env.OLLAMA_URL ?? "").replace(/\/$/, "");
-const OLLAMA_SECRET = process.env.OLLAMA_PROXY_SECRET ?? "";
-const MODEL = process.env.OLLAMA_MODEL ?? "gemma4:12b";
+// Camada de IA do assistente de redação: SOMENTE Anthropic (Claude), pela API de
+// Mensagens — decisão do usuário (26/11/2026). Mesma configuração do G-SST:
+//   ANTHROPIC_API_KEY        chave da API (segredo do Container App; nunca no código)
+//   ANTHROPIC_WORKSPACE_ID   opcional; exigido quando a chave não está presa a um workspace
+//   ANTHROPIC_MODEL          modelo de redação (padrão: claude-sonnet-5-5)
+//   ANTHROPIC_MODEL_RAPIDO   modelo das tarefas curtas (padrão: claude-haiku-5-5)
+//   ANTHROPIC_ENDPOINT       padrão https://api.anthropic.com
+// Sem chave, a geração fica indisponível (botão desabilitado).
+const API_KEY = process.env.ANTHROPIC_API_KEY ?? "";
+const WORKSPACE_ID = process.env.ANTHROPIC_WORKSPACE_ID ?? "";
+const MODELO = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5";
+const MODELO_RAPIDO = process.env.ANTHROPIC_MODEL_RAPIDO ?? "claude-haiku-5-5";
+const ENDPOINT = (process.env.ANTHROPIC_ENDPOINT ?? "https://api.anthropic.com").replace(/\/$/, "");
 
-export const iaDisponivel = () => OLLAMA_URL.length > 0 && OLLAMA_SECRET.length > 0;
+export const iaDisponivel = () => API_KEY.length > 0;
 
-async function chamarOllama(
-  messages: { role: string; content: string }[],
-  opcoes: { formatoJson?: boolean; maxTokens?: number } = {},
-): Promise<string> {
-  const r = await fetch(`${OLLAMA_URL}/api/chat`, {
+type Mensagem = { role: string; content: string };
+type OpcoesChamada = { maxTokens?: number; rapido?: boolean };
+
+/** Extrai o objeto JSON de uma resposta que pode vir com texto ou cercas de código ao redor. */
+export function extrairJson(texto: string): string {
+  const ini = texto.indexOf("{");
+  const fim = texto.lastIndexOf("}");
+  return ini >= 0 && fim > ini ? texto.slice(ini, fim + 1) : "{}";
+}
+
+async function chamarIA(messages: Mensagem[], opcoes: OpcoesChamada = {}): Promise<string> {
+  const system = messages
+    .filter((m) => m.role === "system")
+    .map((m) => m.content)
+    .join("\n\n");
+  const conversa = messages.filter((m) => m.role !== "system").map((m) => ({ role: m.role, content: m.content }));
+
+  const r = await fetch(`${ENDPOINT}/v1/messages`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${OLLAMA_SECRET}` },
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": API_KEY,
+      "anthropic-version": "2023-06-01",
+      ...(WORKSPACE_ID ? { "anthropic-workspace-id": WORKSPACE_ID } : {}),
+    },
     body: JSON.stringify({
-      model: MODEL,
-      messages,
-      stream: false,
-      ...(opcoes.formatoJson ? { format: "json" } : {}),
-      ...(opcoes.maxTokens ? { options: { num_predict: opcoes.maxTokens } } : {}),
+      model: opcoes.rapido ? MODELO_RAPIDO : MODELO,
+      max_tokens: opcoes.maxTokens ?? 4096,
+      ...(system ? { system } : {}),
+      messages: conversa,
     }),
   });
   if (!r.ok) {
@@ -29,7 +53,11 @@ async function chamarOllama(
     throw new Error(`Falha na IA (${r.status}): ${t.slice(0, 200)}`);
   }
   const data = await r.json();
-  return data?.message?.content ?? "";
+  const blocos: { type: string; text?: string }[] = Array.isArray(data?.content) ? data.content : [];
+  return blocos
+    .filter((b) => b.type === "text")
+    .map((b) => b.text ?? "")
+    .join("");
 }
 
 export type SecaoIA = { codigo: string; corpo?: string; linhas?: string[][] };
@@ -41,7 +69,7 @@ export async function gerarRascunhoNorma(dados: {
   area: string;
   classificacao: string;
 }): Promise<{ ok: boolean; secoes?: SecaoIA[]; erro?: string }> {
-  if (!iaDisponivel()) return { ok: false, erro: "IA não configurada (Azure OpenAI ausente)." };
+  if (!iaDisponivel()) return { ok: false, erro: "IA não configurada (chave da Anthropic ausente)." };
   const tema = dados.tema.trim();
   if (tema.length < 5) return { ok: false, erro: "Descreva melhor o tema da norma." };
 
@@ -86,14 +114,14 @@ export async function gerarRascunhoNorma(dados: {
   ].join("\n");
 
   try {
-    const raw = await chamarOllama(
+    const raw = await chamarIA(
       [
         { role: "system", content: system },
         { role: "user", content: user },
       ],
-      { formatoJson: true, maxTokens: 6000 },
+      { maxTokens: 8000 },
     );
-    const parsed = JSON.parse(raw || "{}");
+    const parsed = JSON.parse(extrairJson(raw));
     const secoes: SecaoIA[] = Array.isArray(parsed?.secoes) ? parsed.secoes : [];
     if (!secoes.length) return { ok: false, erro: "A IA não retornou seções válidas." };
     return { ok: true, secoes };
@@ -134,12 +162,12 @@ export async function gerarDescricaoRevisao(
 
   try {
     const texto = (
-      await chamarOllama(
+      await chamarIA(
         [
           { role: "system", content: system },
           { role: "user", content: user },
         ],
-        { maxTokens: 100 },
+        { maxTokens: 300, rapido: true },
       )
     ).trim();
     return texto.length > 0 ? texto : null;
