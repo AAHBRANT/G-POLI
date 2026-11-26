@@ -178,6 +178,8 @@ model Politica {
   // fundamenta este (política → procedimento → instrução → formulário). Regras
   // de tipo em lib/politica/hierarquia.ts. Se o superior for apagado, o vínculo
   // cai (SetNull) e o documento passa a ser sinalizado como órfão.
+  // Etapa 2b: texto oficial publicado dividido por seção (índice de busca). Ver TrechoPolitica.
+  trechos       TrechoPolitica[]
   pai           Politica?      @relation("Hierarquia", fields: [paiId], references: [id], onDelete: SetNull)
   paiId         String?
   filhos        Politica[]     @relation("Hierarquia")
@@ -361,4 +363,28 @@ model Documento {
   // planilha de apoio) - convive com outros anexos, nunca substitui nada.
   oficial   Boolean         @default(false)
   enviadoEm DateTime        @default(now())
+}
+
+// Etapa 2b (base para a IA): ÍNDICE POR SEÇÃO do texto oficial VIGENTE. Existe
+// só para documentos publicados (criado/recriado ao publicar; removido ao
+// revogar/reabrir) e vem do snapshot congelado — nunca do rascunho. Serve à busca
+// da biblioteca e à ferramenta do agente de Consulta, que sempre filtra o
+// resultado por filtroVisibilidade (quem não pode ver o documento não recebe o trecho).
+// `busca` é uma coluna GERADA pelo banco (tsvector 'portuguese' sobre textoBusca,
+// que é o texto sem acento e em minúsculas) com índice GIN — ver a migration.
+model TrechoPolitica {
+  id          String   @id @default(cuid())
+  politica    Politica @relation(fields: [politicaId], references: [id], onDelete: Cascade)
+  politicaId  String
+  revisao     Int
+  secaoCodigo String
+  secaoTitulo String
+  parte       Int      @default(1)
+  ordem       Int
+  texto       String
+  textoBusca  String
+  busca       Unsupported("tsvector")?
+  criadoEm    DateTime @default(now())
+
+  @@index([politicaId])
 }

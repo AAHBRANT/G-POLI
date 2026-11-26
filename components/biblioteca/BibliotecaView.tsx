@@ -21,6 +21,7 @@ import {
   whereBase,
   whereBiblioteca,
 } from "@/lib/politica/biblioteca";
+import { idsPorBuscaTexto } from "@/lib/politica/indiceServidor";
 import PainelBiblioteca from "./PainelBiblioteca";
 import BuscaBiblioteca from "./BuscaBiblioteca";
 import FiltroPilulas from "./FiltroPilulas";
@@ -71,7 +72,9 @@ export default async function BibliotecaView({
     const achados = await prisma.$queryRaw<{ politicaId: string }[]>`
       SELECT DISTINCT "politicaId" FROM "Secao" WHERE "linhas"::text ILIKE ${"%" + p.q + "%"}
     `;
-    idsPorTabela = achados.map((r) => r.politicaId);
+    // + índice por seção do texto oficial (acha formas derivadas: "codificação" → "codificar").
+    const porIndice = await idsPorBuscaTexto(p.q);
+    idsPorTabela = [...new Set([...achados.map((r) => r.politicaId), ...porIndice])];
   }
 
   const contarAlerta = (a: "vencida" | "vencendo" | "orfao") =>
