@@ -57,7 +57,7 @@ export default function SinoNotificacoes() {
           <path d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5m6 0a3 3 0 11-6 0" />
         </svg>
         {!carregando && total > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 rounded-full bg-red-600 px-1 text-[9px] font-medium text-white">
+          <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-marsala/90 px-1 text-[9px] font-semibold tabular-nums leading-none text-bege shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_1px_2px_rgba(0,0,0,0.16)] ring-1 ring-white/60">
             {total}
           </span>
         )}
