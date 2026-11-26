@@ -27,7 +27,7 @@ export default function CriarDocumentoMenu() {
       </Button>
 
       {aberto && (
-        <div className="absolute right-0 top-full z-40 mt-1 w-56 rounded-lg border border-black/10 bg-white py-1 shadow-premium">
+        <div className="absolute right-0 top-full z-40 mt-1 w-56 liquid rounded-2xl py-1">
           {TIPOS_DOCUMENTO.map((t) => (
             <Link
               key={t.valor}

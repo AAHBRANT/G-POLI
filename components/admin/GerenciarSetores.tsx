@@ -23,7 +23,7 @@ export default function GerenciarSetores({ setores }: { setores: Setor[] }) {
   }
 
   return (
-    <section className="rounded-lg border border-black/10 bg-white shadow-card">
+    <section className="rounded-2xl liquid relative">
       <div className="border-b border-black/5 px-4 py-3">
         <span className="text-sm font-semibold text-black/80">Setores ({setores.length})</span>
       </div>

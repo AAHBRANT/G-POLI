@@ -193,7 +193,7 @@ export default function LinhaUsuario({
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="12" cy="19" r="1.6" /></svg>
               </button>
               {menuAberto && (
-                <div className="absolute right-0 top-full z-30 mt-1 w-40 rounded-lg border border-black/10 bg-white py-1 shadow-premium">
+                <div className="absolute right-0 top-full z-30 mt-1 w-40 liquid rounded-2xl py-1">
                   <button
                     onClick={() => { setMenuAberto(false); agir(() => alternarAtivo(usuario.id, !usuario.ativo)); }}
                     className="block w-full px-3 py-1.5 text-left text-xs text-black/70 hover:bg-black/5"
@@ -218,7 +218,7 @@ export default function LinhaUsuario({
 
         {pendentePerfil && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div className="w-full max-w-sm rounded-lg bg-white p-5 shadow-xl">
+            <div className="w-full max-w-sm rounded-2xl liquid relative p-5 shadow-xl">
               <p className="text-sm text-black/80">
                 Mudar cargo de <strong>{usuario.nome || usuario.email}</strong> de{" "}
                 <strong>{rotuloCargo(perfil)}</strong> para <strong>{rotuloCargo(pendentePerfil)}</strong>?
@@ -238,7 +238,7 @@ export default function LinhaUsuario({
 
         {confirmandoRemover && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div className="w-full max-w-sm rounded-lg bg-white p-5 shadow-xl">
+            <div className="w-full max-w-sm rounded-2xl liquid relative p-5 shadow-xl">
               <p className="text-sm text-black/80">Remover {usuario.email}? Revoga o acesso.</p>
               <div className="mt-4 flex justify-end gap-2">
                 <button

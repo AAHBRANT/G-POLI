@@ -22,7 +22,7 @@ export default function NovaVersaoForm({ politicaId }: { politicaId: string }) {
     <form
       ref={ref}
       action={onSubmit}
-      className="rounded-lg border border-black/10 bg-white p-4"
+      className="rounded-2xl liquid relative p-4"
     >
       <h3 className="mb-3 text-sm font-semibold text-marsala">Nova versão</h3>
       <div className="flex flex-wrap items-center gap-3">

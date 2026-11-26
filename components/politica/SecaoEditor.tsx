@@ -110,7 +110,7 @@ export default function SecaoEditor(props: Props) {
   }
 
   return (
-    <section id={`secao-${props.codigo}`} className="rounded-lg border border-black/10 bg-white p-5">
+    <section id={`secao-${props.codigo}`} className="rounded-2xl liquid relative p-5">
       <div className="mb-1 flex items-center gap-2">
         <span className="grid h-6 w-6 place-items-center rounded bg-bege ring-1 ring-black/10 text-xs font-semibold text-black/85">
           {props.codigo}

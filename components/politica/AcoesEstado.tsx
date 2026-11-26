@@ -205,7 +205,7 @@ export default function AcoesEstado({ id, estado, podeEnviar, podeGestor, podeDi
 
       {confirmando && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-lg bg-white p-5 shadow-xl">
+          <div className="w-full max-w-sm rounded-2xl liquid relative p-5 shadow-xl">
             <p className="text-sm text-black/80">{CONFIRMA[confirmando]}</p>
             {PEDE_MOTIVO.includes(confirmando) && (
               <textarea

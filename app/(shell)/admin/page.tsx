@@ -17,7 +17,7 @@ export default async function AdminPage(props: { searchParams: Promise<Params> }
   const atual = await getUsuarioAtual();
   if (!podeAdministrar(atual)) {
     return (
-      <div className="rounded-lg border border-black/10 bg-white p-8 text-center text-sm text-black/60">
+      <div className="rounded-2xl liquid relative p-8 text-center text-sm text-black/60">
         Acesso restrito. Somente administradores gerenciam usuários.
       </div>
     );
@@ -104,7 +104,7 @@ export default async function AdminPage(props: { searchParams: Promise<Params> }
       ) : (
         <>
           {/* Filtros */}
-          <form method="get" className="flex flex-wrap items-end gap-3 rounded-lg border border-black/10 bg-white p-3 shadow-card">
+          <form method="get" className="flex flex-wrap items-end gap-3 rounded-2xl liquid relative p-3">
             <input type="hidden" name="tab" value="usuarios" />
             <div className="min-w-[200px] flex-1">
               <label className="mb-1 block text-[11px] uppercase tracking-wide text-black/40">Buscar</label>
@@ -139,7 +139,7 @@ export default async function AdminPage(props: { searchParams: Promise<Params> }
             )}
           </form>
 
-          <div className="overflow-hidden rounded-lg border border-black/10 bg-white shadow-card">
+          <div className="overflow-hidden rounded-2xl liquid relative">
             <div className="border-b border-black/5 px-4 py-2 text-xs text-black/50">
               {usuarios.length} usuário{usuarios.length === 1 ? "" : "s"}
             </div>

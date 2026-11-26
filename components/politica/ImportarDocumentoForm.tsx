@@ -45,7 +45,7 @@ export default function ImportarDocumentoForm({ tipo = "politica" }: { tipo?: Ti
   return (
     <form
       action={onSubmit}
-      className="rounded-lg border border-black/10 bg-white p-5 shadow-sm"
+      className="rounded-2xl liquid relative p-5"
     >
       <h3 className="mb-4 text-sm font-semibold text-marsala">
         Importar {info.rotulo.toLowerCase()} de arquivo ou texto

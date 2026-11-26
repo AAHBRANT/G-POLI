@@ -35,7 +35,7 @@ export default function VerVersaoAntiga({
 
       {aberto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-white shadow-xl">
+          <div className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-white/85 backdrop-blur-xl ring-1 ring-white/70 shadow-xl">
             <DocumentoRenderizado
               secoes={secoes}
               tituloPolitica={tituloPolitica}

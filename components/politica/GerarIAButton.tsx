@@ -51,7 +51,7 @@ export default function GerarIAButton({ politicaId, disponivel }: { politicaId: 
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={() => !gerando && !aplicando && setAberto(false)}>
-      <div className="max-h-[85vh] w-full max-w-2xl overflow-auto rounded-xl bg-white p-5 shadow-premium" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[85vh] w-full max-w-2xl overflow-auto rounded-xl bg-white/85 backdrop-blur-xl ring-1 ring-white/70 p-5 shadow-premium" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-marsala">✨ Gerar rascunho com a Guuly</h3>
           <button onClick={() => setAberto(false)} className="text-xs text-black/40 hover:text-black/70">fechar</button>

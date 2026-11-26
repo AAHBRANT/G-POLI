@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 export default function SemAcesso() {
   return (
     <main className="grid min-h-screen place-items-center bg-bege/30 p-6">
-      <div className="w-full max-w-md rounded-lg border border-black/10 bg-white p-8 text-center shadow-sm">
+      <div className="w-full max-w-md rounded-2xl liquid relative p-8 text-center">
         <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-full bg-bege/70 text-2xl">
           🔒
         </div>
