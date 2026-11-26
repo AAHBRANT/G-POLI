@@ -8,7 +8,8 @@ export const dynamic = "force-dynamic";
 
 type Params = { q?: string; area?: string; estado?: string };
 
-export default async function CatalogoPage({ searchParams }: { searchParams: Params }) {
+export default async function CatalogoPage(props: { searchParams: Promise<Params> }) {
+  const searchParams = await props.searchParams;
   const usuario = await getUsuarioAtual();
   const podeCriar = podeCriarPolitica(usuario);
   const q = (searchParams.q ?? "").trim();

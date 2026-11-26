@@ -12,13 +12,12 @@ type Params = { q?: string; area?: string; estado?: string };
 
 // Seção genérica para os 7 tipos de documento além de Política (que tem seção
 // própria em /catalogo, já existente antes desta feature).
-export default async function TipoDocumentoPage({
-  params,
-  searchParams,
-}: {
-  params: { tipo: string };
-  searchParams: Params;
+export default async function TipoDocumentoPage(props: {
+  params: Promise<{ tipo: string }>;
+  searchParams: Promise<Params>;
 }) {
+  const params = await props.params;
+  const searchParams = await props.searchParams;
   if (!tipoDocumentoValido(params.tipo)) notFound();
   if (params.tipo === "politica") redirect("/catalogo");
 
