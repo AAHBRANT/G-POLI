@@ -35,7 +35,7 @@ export default function ImportarDocumentoForm({ tipo = "politica" }: { tipo?: Ti
     return (
       <Button
         onClick={() => setAberto(true)}
-        className="border border-marsala !bg-white !text-marsala hover:!bg-marsala hover:!text-white"
+        className="border border-black/40 !bg-white !text-marsala hover:!bg-bege ring-1 ring-black/10 hover:!text-black/85"
       >
         Importar arquivo
       </Button>
@@ -81,7 +81,7 @@ export default function ImportarDocumentoForm({ tipo = "politica" }: { tipo?: Ti
             name="arquivo"
             type="file"
             accept=".docx,.pdf,.txt,.md"
-            className="w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-marsala file:px-3 file:py-1.5 file:text-white hover:file:bg-marsala-600"
+            className="w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-bege file:px-3 file:py-1.5 file:text-black/85 hover:file:bg-bege-300"
           />
         </label>
 

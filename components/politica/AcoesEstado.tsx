@@ -90,7 +90,7 @@ export default function AcoesEstado({ id, estado, podeEnviar, podeGestor, podeDi
               <button
                 onClick={() => pedirConfirmacao("enviar_aprovacao")}
                 disabled={pendente}
-                className="rounded-md bg-marsala px-3 py-1.5 text-xs font-medium text-white transition hover:bg-marsala-600 disabled:opacity-60"
+                className="rounded-md bg-bege ring-1 ring-black/10 px-3 py-1.5 text-xs font-medium text-black/85 transition hover:bg-bege-300 disabled:opacity-60"
               >
                 {pendente ? "…" : "Enviar para aprovação"}
               </button>

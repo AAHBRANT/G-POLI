@@ -148,7 +148,7 @@ export default async function Home() {
     ]);
 
   const cards = [
-    { titulo: "Total de normas", valor: total, cor: "text-marsala", bg: "bg-marsala/5", href: "/catalogo", icone: "M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z", tendencia: criadasUlt30 > 0 ? `+${criadasUlt30} este mês` : null },
+    { titulo: "Total de normas", valor: total, cor: "text-marsala", bg: "bg-bege/40", href: "/catalogo", icone: "M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z", tendencia: criadasUlt30 > 0 ? `+${criadasUlt30} este mês` : null },
     { titulo: "Publicadas", valor: publicadas, cor: "text-emerald-700", bg: "bg-emerald-50", href: "/busca?estado=publicada", icone: "M5 13l4 4L19 7", tendencia: publicadasUlt30 > 0 ? `+${publicadasUlt30} este mês` : null },
     { titulo: "Em rascunho", valor: rascunho, cor: "text-amber-700", bg: "bg-amber-50", href: "/busca?estado=rascunho", icone: "M11 4h9M11 4l-7 7-2 5 5-2 7-7", tendencia: null },
     { titulo: "Em aprovação", valor: emAprovacao, cor: "text-amber-800", bg: "bg-amber-50", href: "/publicacao", icone: "M12 8v4l3 3", tendencia: null },
@@ -179,7 +179,7 @@ export default async function Home() {
 
       <section className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         {cards.map((c) => (
-          <Link key={c.titulo} href={c.href} className={`rounded-xl border border-black/10 ${c.bg} p-4 transition hover:border-marsala/30 hover:shadow-premium`}>
+          <Link key={c.titulo} href={c.href} className={`rounded-xl border border-black/10 ${c.bg} p-4 transition hover:border-black/20 hover:shadow-premium`}>
             <div className="flex items-center justify-between">
               <div className="text-xs text-black/50">{c.titulo}</div>
               <Icone path={c.icone} className={c.cor} />
@@ -245,7 +245,7 @@ export default async function Home() {
                   </div>
                   <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/5">
                     <div
-                      className="h-full rounded-full bg-marsala"
+                      className="h-full rounded-full bg-bege-500"
                       style={{ width: `${(a._count.politicas / maiorContagem) * 100}%` }}
                     />
                   </div>

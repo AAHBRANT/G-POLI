@@ -19,8 +19,8 @@ export default async function TeamsFimPage(props: {
   const host = hostRedirectConfiavel(searchParams.host) ? searchParams.host : undefined;
 
   return (
-    <div className="grid min-h-screen place-items-center bg-gradient-to-br from-marsala-900 via-marsala to-marsala-700 p-6">
-      <div className="rounded-2xl bg-white px-8 py-6 text-center shadow-premium">
+    <div className="grid min-h-screen place-items-center p-6">
+      <div className="vidro rounded-2xl px-8 py-6 text-center">
         <p className="text-sm text-black/60">Login concluído. Voltando ao Teams…</p>
         <FecharPopupTeams
           authId={searchParams.authId}

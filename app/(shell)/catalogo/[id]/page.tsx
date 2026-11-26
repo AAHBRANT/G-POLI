@@ -334,7 +334,7 @@ export default async function PoliticaDetalhe(props: { params: Promise<{ id: str
                       <span
                         className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-medium ${
                           v.documento.oficial
-                            ? "bg-marsala/10 text-marsala"
+                            ? "bg-bege/70 text-marsala"
                             : "bg-black/5 text-black/60"
                         }`}
                       >

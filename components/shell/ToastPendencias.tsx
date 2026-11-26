@@ -50,14 +50,14 @@ export default function ToastPendencias() {
   if (!item) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex max-w-sm items-start gap-3 rounded-lg bg-marsala px-4 py-3 shadow-premium">
-      <span className="flex-1 text-sm text-white">
+    <div className="fixed bottom-4 right-4 z-50 flex max-w-sm items-start gap-3 rounded-xl bg-bege/80 px-4 py-3 shadow-premium ring-1 ring-white/70 backdrop-blur-xl">
+      <span className="flex-1 text-sm font-medium text-black/85">
         <Link href={`/catalogo/${item.politicaId}`} className="underline hover:no-underline">
           {item.titulo}
         </Link>{" "}
         foi publicada. Confirme sua ciência.
       </span>
-      <button onClick={() => setItem(null)} aria-label="Fechar" className="text-bege/80 hover:text-white">
+      <button onClick={() => setItem(null)} aria-label="Fechar" className="text-black/50 hover:text-black">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M18 6L6 18M6 6l12 12" />
         </svg>

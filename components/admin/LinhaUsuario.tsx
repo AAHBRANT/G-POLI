@@ -131,7 +131,7 @@ export default function LinhaUsuario({
             <div className="mb-2 flex flex-wrap gap-1">
               {setores.map((s) => (
                 <button key={s.id} type="button" onClick={() => toggleSel(s.id)}
-                  className={`rounded-full border px-2 py-0.5 text-[10px] transition ${sel.includes(s.id) ? "border-marsala bg-marsala text-white" : "border-black/15 text-black/60 hover:bg-black/5"}`}>
+                  className={`rounded-full border px-2 py-0.5 text-[10px] transition ${sel.includes(s.id) ? "border-black/40 bg-bege ring-1 ring-black/10 text-black/85" : "border-black/15 text-black/60 hover:bg-black/5"}`}>
                   {s.nome}
                 </button>
               ))}
@@ -162,13 +162,13 @@ export default function LinhaUsuario({
             <div className="mb-2 flex flex-wrap gap-1">
               {consorcios.map((c) => (
                 <button key={c.id} type="button" onClick={() => toggleSelConsorcio(c.id)}
-                  className={`rounded-full border px-2 py-0.5 text-[10px] transition ${selConsorcio.includes(c.id) ? "border-marsala bg-marsala text-white" : "border-black/15 text-black/60 hover:bg-black/5"}`}>
+                  className={`rounded-full border px-2 py-0.5 text-[10px] transition ${selConsorcio.includes(c.id) ? "border-black/40 bg-bege ring-1 ring-black/10 text-black/85" : "border-black/15 text-black/60 hover:bg-black/5"}`}>
                   {c.nome}
                 </button>
               ))}
             </div>
             <div className="flex gap-2">
-              <button onClick={salvarConsorcios} disabled={pend} className="rounded bg-marsala px-2 py-1 text-[11px] font-medium text-white disabled:opacity-60">Salvar</button>
+              <button onClick={salvarConsorcios} disabled={pend} className="rounded bg-bege ring-1 ring-black/10 px-2 py-1 text-[11px] font-medium text-black/85 disabled:opacity-60">Salvar</button>
               <button onClick={() => setEditConsorcio(false)} className="text-[11px] text-black/50">cancelar</button>
             </div>
           </div>

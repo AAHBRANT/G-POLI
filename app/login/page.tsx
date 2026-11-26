@@ -17,11 +17,11 @@ export default async function LoginPage(props: {
   const erro = searchParams.erro ? erros[searchParams.erro] ?? "Erro no login." : null;
 
   return (
-    <div className="relative grid min-h-screen place-items-center overflow-hidden bg-gradient-to-br from-marsala-900 via-marsala to-marsala-700 p-6">
-      <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-bege/10 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-32 -left-24 h-96 w-96 rounded-full bg-black/20 blur-3xl" />
+    <div className="relative grid min-h-screen place-items-center overflow-hidden p-6">
+      <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-bege-300/60 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -left-24 h-96 w-96 rounded-full bg-white/80 blur-3xl" />
 
-      <div className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-white p-8 shadow-premium">
+      <div className="relative w-full max-w-sm vidro rounded-2xl p-8">
         <div className="mb-6 flex justify-center">
           <Brand size="lg" />
         </div>
