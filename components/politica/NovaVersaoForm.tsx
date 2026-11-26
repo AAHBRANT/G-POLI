@@ -19,12 +19,8 @@ export default function NovaVersaoForm({ politicaId }: { politicaId: string }) {
   }
 
   return (
-    <form
-      ref={ref}
-      action={onSubmit}
-      className="rounded-2xl liquid relative p-4"
-    >
-      <h3 className="mb-3 text-sm font-semibold text-marsala">Nova versão</h3>
+    <form ref={ref} action={onSubmit} className="border-t border-black/5 p-4">
+      <h3 className="mb-3 text-sm font-semibold text-black/80">Anexar arquivo</h3>
       <div className="flex flex-wrap items-center gap-3">
         <input
           name="arquivo"
@@ -34,11 +30,11 @@ export default function NovaVersaoForm({ politicaId }: { politicaId: string }) {
           className="text-sm file:mr-3 file:rounded-md file:border-0 file:bg-bege file:px-3 file:py-1.5 file:text-black/85 hover:file:bg-bege-300"
         />
         <Button type="submit" disabled={pendente}>
-          {pendente ? "Enviando…" : "Enviar documento"}
+          {pendente ? "Anexando…" : "Anexar"}
         </Button>
       </div>
       <p className="mt-2 text-[11px] text-black/40">
-        PDF, Word, Excel ou imagem · até 25 MB · original preservado com hash.
+        PDF, Word, Excel ou imagem · até 25 MB. Não altera o texto oficial do documento.
       </p>
       {erro && (
         <p className="mt-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{erro}</p>

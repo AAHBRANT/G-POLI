@@ -9,6 +9,7 @@ import { corClassificacao, rotuloClassificacao, ESTADOS_POLITICA, tipoDocumento,
 import {
   getUsuarioAtual,
   podeEditarConteudo,
+  podeAnexarArquivo,
   podePublicar,
   podeEnviarParaAprovacao,
   podeAprovarGestor,
@@ -81,6 +82,25 @@ export default async function PoliticaDetalhe(props: {
   const ciencaNoPdf = politica.versoes.some(
     (v) => v.estado === "ativa" && !!v.documento?.oficial && /\.pdf$/i.test(v.documento.nome),
   );
+  // Um documento = uma revisão oficial (PDF + Word do MESMO conteúdo) + anexos. Cada arquivo é
+  // uma "Versao" no banco, mas na tela o que importa é a revisão, não o número do arquivo.
+  const versoesOficiais = politica.versoes.filter((v) => !!v.documento?.oficial);
+  const ehPdf = (nome: string) => /\.pdf$/i.test(nome);
+  const revisoesOficiais = [...new Set(versoesOficiais.map((v) => v.revisaoNaEpoca ?? 0))]
+    .sort((a, b) => b - a)
+    .map((rev) => {
+      const arquivos = versoesOficiais.filter((v) => (v.revisaoNaEpoca ?? 0) === rev);
+      return {
+        rev,
+        vigente: arquivos.some((v) => v.estado === "ativa"),
+        data: arquivos[arquivos.length - 1]?.criadaEm,
+        pdf: arquivos.find((v) => ehPdf(v.documento!.nome)),
+        word: arquivos.find((v) => !ehPdf(v.documento!.nome)),
+        snapshotDe: arquivos.find((v) => !!v.conteudoSnapshot),
+      };
+    });
+  const anexos = politica.versoes.filter((v) => !!v.documento && !v.documento.oficial);
+  const podeAnexar = podeAnexarArquivo(usuario, politica);
   const verRelatorioCiencia = !!usuario && ["sgi", "admin", "diretoria"].includes(usuario.perfil);
 
   const [todosSetores, todosUsuarios] = podeEditar
@@ -373,111 +393,110 @@ export default async function PoliticaDetalhe(props: {
         )}
       </section>
 
-      {podeEditar && <NovaVersaoForm politicaId={politica.id} />}
+      <div className="overflow-hidden rounded-2xl liquid relative">
+        <div className="border-b border-black/5 px-4 py-3 text-sm font-semibold text-black/80">Documento oficial</div>
+        {revisoesOficiais.length === 0 ? (
+          <p className="p-6 text-center text-sm text-black/50">
+            O documento oficial (PDF e Word) é gerado quando a norma é publicada.
+          </p>
+        ) : (
+          <ul className="divide-y divide-black/5">
+            {revisoesOficiais.map((r) => (
+              <li key={r.rev} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-black/85">
+                    Revisão {String(r.rev).padStart(2, "0")}
+                    <span
+                      className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                        r.vigente ? "bg-emerald-100 text-emerald-800" : "bg-black/5 text-black/60"
+                      }`}
+                    >
+                      {r.vigente ? "vigente" : "substituída"}
+                    </span>
+                  </p>
+                  <p className="text-xs text-black/50">{r.data ? `Emitida em ${r.data.toLocaleDateString("pt-BR")}` : ""}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {r.vigente ? (
+                    <>
+                      {r.pdf && (
+                        <>
+                          <VisualizadorPdf
+                            documentoId={r.pdf.documento!.id}
+                            titulo={politica.titulo}
+                            nomeArquivo={r.pdf.documento!.nome}
+                            className={BUTTON_CLASSES}
+                            abrirAoCarregar={abrirPdf}
+                            ciencia={
+                              politica.estado === "publicada"
+                                ? { politicaId: politica.id, jaCiente: !!minhaCiencia }
+                                : undefined
+                            }
+                          />
+                          <a href={`/api/documentos/${r.pdf.documento!.id}`} className={BUTTON_CLASSES}>
+                            Baixar PDF
+                          </a>
+                        </>
+                      )}
+                      {r.word && (
+                        <a href={`/api/documentos/${r.word.documento!.id}`} className={BUTTON_CLASSES}>
+                          Baixar Word
+                        </a>
+                      )}
+                    </>
+                  ) : (
+                    r.snapshotDe && (
+                      <VerVersaoAntiga
+                        secoes={r.snapshotDe.conteudoSnapshot as unknown as SecaoRenderizada[]}
+                        tituloPolitica={politica.titulo}
+                        areaNome={politica.area.nome}
+                        codigo={politica.codigo}
+                        publicadaEm={r.snapshotDe.criadaEm}
+                        revisao={r.rev}
+                      />
+                    )
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <div className="overflow-hidden rounded-2xl liquid relative">
         <div className="border-b border-black/5 px-4 py-3 text-sm font-semibold text-black/80">
-          Versões ({politica.versoes.length})
+          Anexos ({anexos.length})
         </div>
-        {politica.versoes.length === 0 ? (
-          <p className="p-6 text-center text-sm text-black/50">
-            Nenhum documento enviado. Use “Nova versão” acima.
-          </p>
+        {anexos.length === 0 ? (
+          <p className="p-6 text-center text-sm text-black/50">Nenhum anexo neste documento.</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-black/[0.03] text-left text-xs uppercase tracking-wide text-black/50">
-              <tr>
-                <th className="px-4 py-2 font-medium">Versão</th>
-                <th className="px-4 py-2 font-medium">Documento</th>
-                <th className="px-4 py-2 font-medium">Tamanho</th>
-                <th className="px-4 py-2 font-medium">Estado</th>
-                <th className="px-4 py-2 font-medium">Enviado</th>
-                <th className="px-4 py-2 font-medium">Ação</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-black/5">
-              {politica.versoes.map((v) => (
-                <tr key={v.id} className="hover:bg-black/[0.02]">
-                  <td className="px-4 py-2 font-medium">
-                    v{v.numero}
-                    {v.estado === "ativa" && (
-                      <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-800">
-                        ativa
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2 text-black/70">
-                    {v.documento?.nome ?? "—"}
-                    {v.documento && (
-                      <span
-                        className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                          v.documento.oficial
-                            ? "bg-bege/70 text-marsala"
-                            : "bg-black/5 text-black/60"
-                        }`}
-                      >
-                        {v.documento.oficial ? "Documento oficial" : "Anexo"}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2 text-black/60">
-                    {v.documento ? formatoTamanho(v.documento.tamanho) : "—"}
-                  </td>
-                  <td className="px-4 py-2 text-black/60">{v.documento?.estado ?? "—"}</td>
-                  <td className="px-4 py-2 text-black/50">
-                    {v.criadaEm.toLocaleDateString("pt-BR")}
-                  </td>
-                  <td className="px-4 py-2">
-                    {(() => {
-                      const acao = acaoVersao({
-                        temDocumento: !!v.documento,
-                        oficial: !!v.documento?.oficial,
-                        estado: v.estado,
-                        temSnapshot: !!v.conteudoSnapshot,
-                      });
-                      if (acao === "ver") {
-                        return (
-                          <VerVersaoAntiga
-                            secoes={v.conteudoSnapshot as unknown as SecaoRenderizada[]}
-                            tituloPolitica={politica.titulo}
-                            areaNome={politica.area.nome}
-                            codigo={politica.codigo}
-                            publicadaEm={v.criadaEm}
-                            revisao={v.revisaoNaEpoca ?? 0}
-                          />
-                        );
-                      }
-                      if (acao === "baixar") {
-                        return (
-                          <span className="flex flex-wrap gap-2">
-                            {/\.pdf$/i.test(v.documento!.nome) && (
-                              <VisualizadorPdf
-                                documentoId={v.documento!.id}
-                                titulo={politica.titulo}
-                                nomeArquivo={v.documento!.nome}
-                                className={BUTTON_CLASSES}
-                                abrirAoCarregar={abrirPdf && !!v.documento!.oficial && v.estado === "ativa"}
-                                ciencia={
-                                  politica.estado === "publicada" && v.documento!.oficial && v.estado === "ativa"
-                                    ? { politicaId: politica.id, jaCiente: !!minhaCiencia }
-                                    : undefined
-                                }
-                              />
-                            )}
-                            <a href={`/api/documentos/${v.documento!.id}`} className={BUTTON_CLASSES}>
-                              Baixar
-                            </a>
-                          </span>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <ul className="divide-y divide-black/5">
+            {anexos.map((v) => (
+              <li key={v.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-black/80">{v.documento!.nome}</p>
+                  <p className="text-xs text-black/50">
+                    {formatoTamanho(v.documento!.tamanho)} · anexado em {v.criadaEm.toLocaleDateString("pt-BR")}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {ehPdf(v.documento!.nome) && (
+                    <VisualizadorPdf
+                      documentoId={v.documento!.id}
+                      titulo={v.documento!.nome}
+                      nomeArquivo={v.documento!.nome}
+                      className={BUTTON_CLASSES}
+                    />
+                  )}
+                  <a href={`/api/documentos/${v.documento!.id}`} className={BUTTON_CLASSES}>
+                    Baixar
+                  </a>
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
+        {podeAnexar && <NovaVersaoForm politicaId={politica.id} />}
       </div>
     </div>
   );
