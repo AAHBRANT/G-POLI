@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import Sidebar from "@/components/shell/Sidebar";
 import Header from "@/components/shell/Header";
 import ToastPendencias from "@/components/shell/ToastPendencias";
+import ConsultaFlutuante from "@/components/consulta/ConsultaFlutuante";
+import { consultaDisponivel } from "@/lib/consulta/agente";
 import { authEnabled } from "@/lib/auth/config";
 import { getUsuarioAtual } from "@/lib/auth/usuario";
 
@@ -24,6 +26,7 @@ export default async function ShellLayout({
         <main className="flex-1 p-6">{children}</main>
       </div>
       <ToastPendencias />
+      {consultaDisponivel() && <ConsultaFlutuante />}
     </div>
   );
 }

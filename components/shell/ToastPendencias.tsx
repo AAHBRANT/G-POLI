@@ -50,7 +50,7 @@ export default function ToastPendencias() {
   if (!item) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex max-w-sm items-start gap-3 rounded-xl bg-bege/80 px-4 py-3 shadow-premium ring-1 ring-white/70 backdrop-blur-xl">
+    <div className="fixed bottom-24 right-5 z-50 flex max-w-sm items-start gap-3 rounded-xl bg-bege/80 px-4 py-3 shadow-premium ring-1 ring-white/70 backdrop-blur-xl">
       <span className="flex-1 text-sm font-medium text-black/85">
         <Link href={`/catalogo/${item.politicaId}`} className="underline hover:no-underline">
           {item.titulo}
