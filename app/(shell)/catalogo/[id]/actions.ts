@@ -4,7 +4,7 @@ import path from "path";
 import { prisma } from "@/lib/prisma";
 import { salvarArquivo } from "@/lib/storage";
 import { revalidatePath } from "next/cache";
-import { getUsuarioAtual, podeEditarConteudo } from "@/lib/auth/usuario";
+import { getUsuarioAtual, podeAnexarArquivo } from "@/lib/auth/usuario";
 import { registrar } from "@/lib/auditoria";
 import { validarUpload, proximoNumeroVersao } from "@/lib/politica/dominio";
 
@@ -28,8 +28,8 @@ export async function adicionarVersao(
   if (!politica) return { ok: false, erro: "Política não encontrada." };
 
   const usuario = await getUsuarioAtual();
-  if (!podeEditarConteudo(usuario, politica)) {
-    return { ok: false, erro: "Sem permissão para enviar versão nesta política." };
+  if (!podeAnexarArquivo(usuario, politica)) {
+    return { ok: false, erro: "Sem permissão para anexar arquivo neste documento." };
   }
 
   const bytes = Buffer.from(await arquivo.arrayBuffer());

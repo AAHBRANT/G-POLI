@@ -3,6 +3,7 @@ import {
   regraAcesso,
   podeCriarPolitica,
   podeEditarConteudo,
+  podeAnexarArquivo,
   podeEditarSecao,
   podeEnviarParaAprovacao,
   podeAprovarGestor,
@@ -72,6 +73,21 @@ describe("podeEditarConteudo (P1)", () => {
   });
   it("colaborador não edita", () => {
     expect(podeEditarConteudo(u("colaborador"), rascunhoS1)).toBe(false);
+  });
+});
+
+describe("podeAnexarArquivo — anexo vale com o documento publicado", () => {
+  const pub = { areaId: "s1", estado: "publicada" };
+  it("sgi e gestor do setor anexam em documento publicado; outro setor e colaborador não", () => {
+    expect(podeAnexarArquivo(u("sgi"), pub)).toBe(true);
+    expect(podeAnexarArquivo(u("area", ["s1"]), pub)).toBe(true);
+    expect(podeAnexarArquivo(u("area", ["s2"]), pub)).toBe(false);
+    expect(podeAnexarArquivo(u("colaborador"), pub)).toBe(false);
+    expect(podeAnexarArquivo(null, pub)).toBe(false);
+  });
+  it("rascunho também; revogada não", () => {
+    expect(podeAnexarArquivo(u("sgi"), { areaId: "s1", estado: "rascunho" })).toBe(true);
+    expect(podeAnexarArquivo(u("sgi"), { areaId: "s1", estado: "revogada" })).toBe(false);
   });
 });
 

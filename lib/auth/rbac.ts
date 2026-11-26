@@ -73,6 +73,20 @@ export function podeEditarConteudo(
   return false;
 }
 
+// Anexar arquivo de apoio (planilha, formulário, original em Word…). NÃO altera o texto
+// oficial, então vale em qualquer estado, exceto revogada: SGI/admin/super em todas e o
+// Gestor de Setor nas do próprio setor.
+export function podeAnexarArquivo(
+  u: UsuarioAtual | null,
+  politica: { areaId: string; estado: string },
+): boolean {
+  if (!u) return false;
+  if (politica.estado === "revogada") return false;
+  if (u.perfil === "sgi" || ehAdminOuSuper(u)) return true;
+  if (u.perfil === "area") return noSetor(u, politica.areaId);
+  return false;
+}
+
 // Documento superior e prazo de revisão são METADADOS (não mudam o texto oficial),
 // então SGI/admin/super podem ajustá-los em qualquer estado; o Gestor de Setor
 // dono só enquanto o documento é rascunho (mesma alçada de editar o conteúdo).

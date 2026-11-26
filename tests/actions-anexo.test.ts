@@ -11,7 +11,7 @@ vi.mock("@/lib/prisma", () => ({
 
 vi.mock("@/lib/auth/usuario", () => ({
   getUsuarioAtual: vi.fn(),
-  podeEditarConteudo: vi.fn(),
+  podeAnexarArquivo: vi.fn(),
 }));
 
 vi.mock("@/lib/auditoria", () => ({ registrar: vi.fn() }));
@@ -19,12 +19,12 @@ vi.mock("@/lib/auditoria", () => ({ registrar: vi.fn() }));
 vi.mock("@/lib/storage", () => ({ salvarArquivo: vi.fn() }));
 
 import { prisma } from "@/lib/prisma";
-import { getUsuarioAtual, podeEditarConteudo } from "@/lib/auth/usuario";
+import { getUsuarioAtual, podeAnexarArquivo } from "@/lib/auth/usuario";
 import { salvarArquivo } from "@/lib/storage";
 import { adicionarVersao } from "@/app/(shell)/catalogo/[id]/actions";
 
 const usuarioAtual = getUsuarioAtual as ReturnType<typeof vi.fn>;
-const editarPermitido = podeEditarConteudo as ReturnType<typeof vi.fn>;
+const editarPermitido = podeAnexarArquivo as ReturnType<typeof vi.fn>;
 const salvar = salvarArquivo as ReturnType<typeof vi.fn>;
 const findUnique = prisma.politica.findUnique as ReturnType<typeof vi.fn>;
 const transacao = prisma.$transaction as ReturnType<typeof vi.fn>;
