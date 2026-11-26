@@ -1,7 +1,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
-import { getUsuarioAtual, filtroVisibilidade } from "@/lib/auth/usuario";
+import { getUsuarioAtual, filtroVisibilidade, veAlertasDeQualidade } from "@/lib/auth/usuario";
+import { ehOrfao } from "@/lib/politica/hierarquia";
+import { situacaoRevisao, textoRevisao } from "@/lib/politica/revisao";
 import {
   ESTADOS_POLITICA,
   TIPOS_DOCUMENTO,
@@ -12,6 +14,7 @@ import {
 } from "@/lib/constants";
 import {
   ESTADOS_FILTRAVEIS,
+  clausulaAlerta,
   hrefBiblioteca,
   normalizarParamsBiblioteca,
   temCriterioBiblioteca,
@@ -54,6 +57,9 @@ export default async function BibliotecaView({
   const p = normalizarParamsBiblioteca(searchParams);
   if (tipoFixo) p.tipo = ""; // a tela já é de um tipo só
   const usuario = await getUsuarioAtual();
+  const veAlertas = veAlertasDeQualidade(usuario);
+  if (!veAlertas) p.alerta = ""; // alertas de qualidade são da gestão
+  const agora = new Date();
   const visibilidade = filtroVisibilidade(usuario);
   const escopo = whereBase(visibilidade, tipoFixo);
   const filtrando = temCriterioBiblioteca(p);
@@ -68,13 +74,16 @@ export default async function BibliotecaView({
     idsPorTabela = achados.map((r) => r.politicaId);
   }
 
-  const [porTipo, porEstado, porArea, areas, itens, pendencias] = await Promise.all([
+  const contarAlerta = (a: "vencida" | "vencendo" | "orfao") =>
+    veAlertas ? prisma.politica.count({ where: { AND: [...escopo.AND, clausulaAlerta(a, agora)] } }) : 0;
+
+  const [porTipo, porEstado, porArea, areas, itens, pendencias, nVencida, nVencendo, nOrfao] = await Promise.all([
     tipoFixo ? [] : prisma.politica.groupBy({ by: ["tipo"], where: escopo, _count: { _all: true } }),
     prisma.politica.groupBy({ by: ["estado"], where: escopo, _count: { _all: true } }),
     prisma.politica.groupBy({ by: ["areaId"], where: escopo, _count: { _all: true } }),
     prisma.area.findMany({ where: { ativa: true }, orderBy: { nome: "asc" }, select: { id: true, nome: true } }),
     prisma.politica.findMany({
-      where: whereBiblioteca(visibilidade, filtro, idsPorTabela),
+      where: whereBiblioteca(visibilidade, filtro, idsPorTabela, agora),
       include: { area: { select: { nome: true } } },
       orderBy: p.q ? [{ titulo: "asc" }] : [{ criadaEm: "desc" }],
       take: LIMITE,
@@ -85,6 +94,9 @@ export default async function BibliotecaView({
           select: { politicaId: true },
         })
       : [],
+    contarAlerta("vencida"),
+    contarAlerta("vencendo"),
+    contarAlerta("orfao"),
   ]);
 
   const pendentesIds = new Set(pendencias.map((x) => x.politicaId));
@@ -96,6 +108,18 @@ export default async function BibliotecaView({
   const setores = areas
     .filter((a) => (contArea.get(a.id) ?? 0) > 0)
     .map((a) => ({ id: a.id, nome: a.nome, total: contArea.get(a.id) ?? 0 }));
+
+  const alertasDe = (d: { tipo: string; estado: string; paiId: string | null; proximaRevisaoEm: Date | null }) => {
+    const lista: { texto: string; grave: boolean }[] = [];
+    if (d.estado !== "revogada" && ehOrfao(d.tipo as never, d.paiId)) lista.push({ texto: "Sem documento superior", grave: false });
+    if (d.estado === "publicada") {
+      const sit = situacaoRevisao(d.proximaRevisaoEm, agora);
+      const txt = textoRevisao(d.proximaRevisaoEm, agora);
+      if (sit === "vencida" && txt) lista.push({ texto: txt, grave: true });
+      else if (sit === "vence_em_breve" && txt) lista.push({ texto: txt, grave: false });
+    }
+    return lista;
+  };
 
   const linhas: LinhaBiblioteca[] = itens.map((d) => {
     const est = ESTADOS_POLITICA[d.estado] ?? { rotulo: d.estado, cor: "bg-black/10 text-black/70" };
@@ -113,6 +137,7 @@ export default async function BibliotecaView({
       estado: d.estado,
       estadoRotulo: est.rotulo,
       estadoCor: est.cor,
+      alertas: veAlertas ? alertasDe(d) : [],
       classificacaoRotulo: rotuloClassificacao(d.classificacao),
       classificacaoCor: corClassificacao(d.classificacao),
       pendente: pendentesIds.has(d.id),
@@ -127,6 +152,11 @@ export default async function BibliotecaView({
     total: contEstado.get(e) ?? 0,
   })).filter((o) => o.total > 0);
   const mostrarEstados = opcoesEstado.length > 1;
+  const opcoesAlerta = [
+    { valor: "vencida", rotulo: "Revisão vencida", total: nVencida },
+    { valor: "vencendo", rotulo: "Vencem em 30 dias", total: nVencendo },
+    { valor: "orfao", rotulo: "Sem documento superior", total: nOrfao },
+  ].filter((o) => o.total > 0 || o.valor === p.alerta);
   const opcoesTipo = TIPOS_DOCUMENTO.map((t) => ({
     valor: t.valor as string,
     rotulo: t.rotuloPlural,
@@ -173,6 +203,17 @@ export default async function BibliotecaView({
                 {!tipoFixo && (
                   <FiltroPilulas base={base} params={p} chave="tipo" opcoes={opcoesTipo} aria="Filtrar por tipo de documento" />
                 )}
+                {opcoesAlerta.length > 0 && (
+                  <FiltroPilulas
+                    base={base}
+                    params={p}
+                    chave="alerta"
+                    opcoes={opcoesAlerta}
+                    rotuloTodos="Qualidade"
+                    mostrarTotalTodos={false}
+                    aria="Filtrar por alerta de qualidade"
+                  />
+                )}
                 {mostrarEstados && (
                   <FiltroPilulas
                     base={base}
@@ -200,7 +241,7 @@ export default async function BibliotecaView({
                 </h2>
                 {filtrando && (
                   <Link
-                    href={hrefBiblioteca(base, { q: "", tipo: "", areaId: "", estado: "" })}
+                    href={hrefBiblioteca(base, { q: "", tipo: "", areaId: "", estado: "", alerta: "" })}
                     className="text-xs font-semibold text-black underline-offset-2 hover:underline"
                   >
                     Limpar filtros

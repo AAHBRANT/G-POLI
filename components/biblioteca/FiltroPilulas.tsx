@@ -19,13 +19,15 @@ export default function FiltroPilulas({
   chave,
   opcoes,
   rotuloTodos = "Todos",
+  mostrarTotalTodos = true,
   aria,
 }: {
   base: string;
   params: ParamsBiblioteca;
-  chave: "tipo" | "estado";
+  chave: "tipo" | "estado" | "alerta";
   opcoes: OpcaoPilula[];
   rotuloTodos?: string;
+  mostrarTotalTodos?: boolean;
   aria: string;
 }) {
   const { navegar } = useBiblioteca();
@@ -33,7 +35,7 @@ export default function FiltroPilulas({
   const [ativo, setAtivo] = useState<string>(atual);
   useEffect(() => setAtivo(atual), [atual]);
 
-  const todas: OpcaoPilula[] = [{ valor: "", rotulo: rotuloTodos, total: opcoes.reduce((s, o) => s + o.total, 0) }, ...opcoes];
+  const todas: OpcaoPilula[] = [{ valor: "", rotulo: rotuloTodos, total: mostrarTotalTodos ? opcoes.reduce((s, o) => s + o.total, 0) : -1 }, ...opcoes];
   const hrefDe = (valor: string) => hrefBiblioteca(base, params, { [chave]: valor } as Partial<ParamsBiblioteca>);
 
   return (
@@ -64,6 +66,7 @@ export default function FiltroPilulas({
                   />
                 )}
                 <span className="relative">{o.rotulo}</span>
+                {o.total >= 0 && (
                 <span
                   className={`relative rounded-full px-1.5 py-0.5 text-[11px] leading-none transition-colors ${
                     selecionado ? "bg-black/10 text-black" : "bg-black/[0.06] text-black/50"
@@ -71,6 +74,7 @@ export default function FiltroPilulas({
                 >
                   <NumeroAnimado valor={o.total} />
                 </span>
+                )}
               </Link>
             </li>
           );

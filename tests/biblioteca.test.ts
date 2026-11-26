@@ -10,7 +10,7 @@ import {
 describe("biblioteca: parâmetros", () => {
   it("normaliza espaços, limita a busca e descarta tipo/estado inválidos", () => {
     const p = normalizarParamsBiblioteca({ q: "  codificação  ", tipo: "inventado", area: " a1 ", estado: "xyz" });
-    expect(p).toEqual({ q: "codificação", tipo: "", areaId: "a1", estado: "" });
+    expect(p).toEqual({ q: "codificação", tipo: "", areaId: "a1", estado: "", alerta: "" });
     expect(normalizarParamsBiblioteca({ q: "x".repeat(500) }).q).toHaveLength(100);
   });
 
@@ -64,5 +64,36 @@ describe("biblioteca: links", () => {
     expect(hrefBiblioteca("/tipos/manual", p, { areaId: "a1" })).toBe(
       "/tipos/manual?q=abc&tipo=manual&area=a1&estado=rascunho",
     );
+  });
+});
+
+describe("biblioteca: alertas de qualidade", () => {
+  const agora = new Date("2026-11-26T12:00:00Z");
+  it("normaliza o alerta e descarta valor inválido", () => {
+    expect(normalizarParamsBiblioteca({ alerta: "vencida" }).alerta).toBe("vencida");
+    expect(normalizarParamsBiblioteca({ alerta: "xyz" }).alerta).toBe("");
+    expect(temCriterioBiblioteca(normalizarParamsBiblioteca({ alerta: "orfao" }))).toBe(true);
+  });
+  it("vencida: publicada com revisão no passado", () => {
+    const w = whereBiblioteca({}, normalizarParamsBiblioteca({ alerta: "vencida" }), [], agora);
+    expect(w.AND).toContainEqual({ estado: "publicada", proximaRevisaoEm: { lt: agora } });
+  });
+  it("vencendo: entre agora e 30 dias", () => {
+    const w = whereBiblioteca({}, normalizarParamsBiblioteca({ alerta: "vencendo" }), [], agora);
+    const c = w.AND.find((x) => "proximaRevisaoEm" in x) as { proximaRevisaoEm: { gte: Date; lte: Date } };
+    expect(c.proximaRevisaoEm.gte).toEqual(agora);
+    expect(c.proximaRevisaoEm.lte.toISOString().slice(0, 10)).toBe("2026-12-26");
+  });
+  it("órfão: tipos que exigem superior, sem superior, não revogado", () => {
+    const w = whereBiblioteca({}, normalizarParamsBiblioteca({ alerta: "orfao" }), [], agora);
+    const c = w.AND.find((x) => "paiId" in x) as { tipo: { in: string[] }; paiId: null };
+    expect(c.paiId).toBeNull();
+    expect(c.tipo.in).toContain("procedimento");
+    expect(c.tipo.in).not.toContain("politica");
+  });
+  it("o link preserva o alerta", () => {
+    const p = normalizarParamsBiblioteca({ alerta: "vencida" });
+    expect(hrefBiblioteca("/busca", p)).toBe("/busca?alerta=vencida");
+    expect(hrefBiblioteca("/busca", p, { alerta: "" })).toBe("/busca");
   });
 });

@@ -28,6 +28,7 @@ import { salvarArquivo } from "@/lib/storage";
 import { gerarDocumentoOficial } from "@/lib/politica/gerarDocx";
 import { dadosPendencia } from "@/lib/politica/pendencia";
 import { gerarDescricaoRevisao } from "@/lib/politica/ai";
+import { calcularProximaRevisao } from "@/lib/politica/revisao";
 import type { Prisma } from "@prisma/client";
 
 export type ResultadoAcao = { ok: boolean; erro?: string };
@@ -469,6 +470,8 @@ export async function publicarPolitica(id: string): Promise<ResultadoAcao> {
           conteudoPublicado: snapshot as never,
           revogadaEm: null,
           revisao: novaRevisao,
+          // Etapa 2: prazo de revisão — próxima revisão = publicação + periodicidade.
+          proximaRevisaoEm: calcularProximaRevisao(agora, politica.periodicidadeRevisaoMeses),
         },
       });
     });

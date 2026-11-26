@@ -174,6 +174,21 @@ model Politica {
   audienciaUsuarios Usuario[]   @relation("PoliticaAudienciaUsuarios")
   notificacoes  Notificacao[]
 
+  // Etapa 2 (base para a IA): hierarquia documental — o "documento superior" que
+  // fundamenta este (política → procedimento → instrução → formulário). Regras
+  // de tipo em lib/politica/hierarquia.ts. Se o superior for apagado, o vínculo
+  // cai (SetNull) e o documento passa a ser sinalizado como órfão.
+  pai           Politica?      @relation("Hierarquia", fields: [paiId], references: [id], onDelete: SetNull)
+  paiId         String?
+  filhos        Politica[]     @relation("Hierarquia")
+  // Prazo de revisão: periodicidade (meses) e a próxima revisão, calculada na
+  // publicação (publicadaEm + periodicidade). Ver lib/politica/revisao.ts.
+  periodicidadeRevisaoMeses Int       @default(12)
+  proximaRevisaoEm          DateTime?
+
+  @@index([paiId])
+  @@index([proximaRevisaoEm])
+
   // v3: tipo entra na chave — uma Norma e uma Política podem ter o mesmo
   // título na mesma área (são documentos diferentes); só colide dentro do
   // mesmo tipo.
