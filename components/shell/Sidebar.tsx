@@ -47,7 +47,10 @@ export default function Sidebar() {
       </svg>
     );
     const badge = m.badge ? (
-      <span className="relative ml-auto rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-medium text-white">
+      <span
+        aria-label={`${m.badge} pendente${m.badge > 1 ? "s" : ""}`}
+        className="relative ml-auto inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-marsala/90 px-1.5 text-[10px] font-semibold tabular-nums leading-none text-bege shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_1px_2px_rgba(0,0,0,0.16)] ring-1 ring-white/60"
+      >
         {m.badge}
       </span>
     ) : null;
