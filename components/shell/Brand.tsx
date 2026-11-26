@@ -38,7 +38,7 @@ export default function Brand({
 
   const tituloCls =
     size === "lg" ? "text-lg" : size === "sm" ? "text-sm" : "text-[15px]";
-  const corTitulo = invertido ? "text-white" : "text-marsala";
+  const corTitulo = invertido ? "text-white" : "text-black/85";
   const corSub = invertido ? "text-white/60" : "text-black/45";
 
   return (

@@ -60,7 +60,7 @@ export default async function EditarConteudo(props: { params: Promise<{ id: stri
       </div>
 
       {politica.secoes.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-black/15 bg-white p-8 text-center">
+        <div className="rounded-2xl liquid relative p-8 text-center">
           <p className="mb-4 text-sm text-black/60">
             Esta política ainda não tem conteúdo estruturado.
           </p>

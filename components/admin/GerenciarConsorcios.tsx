@@ -22,7 +22,7 @@ export default function GerenciarConsorcios({ consorcios }: { consorcios: Consor
   }
 
   return (
-    <section className="rounded-lg border border-black/10 bg-white shadow-card">
+    <section className="rounded-2xl liquid relative">
       <div className="border-b border-black/5 px-4 py-3">
         <span className="text-sm font-semibold text-black/80">Consórcios ({consorcios.length})</span>
       </div>
@@ -30,7 +30,7 @@ export default function GerenciarConsorcios({ consorcios }: { consorcios: Consor
         <div className="mb-3 flex gap-2">
           <input value={novo} onChange={(e) => setNovo(e.target.value)} placeholder="Novo consórcio (ex.: Rodovia X)" className="h-10 flex-1 rounded border border-black/15 px-3 text-sm" />
           <button onClick={() => { if (novo.trim()) { agir(() => criarConsorcio(novo)); setNovo(""); } }} disabled={pend}
-            className="h-10 rounded-md bg-marsala px-3 text-xs font-medium text-white hover:bg-marsala-600 disabled:opacity-60">
+            className="h-10 rounded-md bg-bege ring-1 ring-black/10 px-3 text-xs font-medium text-black/85 hover:bg-bege-300 disabled:opacity-60">
             + Adicionar
           </button>
         </div>

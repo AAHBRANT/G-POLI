@@ -33,7 +33,7 @@ export default async function AuditoriaPage() {
   const atual = await getUsuarioAtual();
   if (!podeAdministrar(atual)) {
     return (
-      <div className="rounded-lg border border-black/10 bg-white p-8 text-center text-sm text-black/60">
+      <div className="rounded-2xl liquid relative p-8 text-center text-sm text-black/60">
         Acesso restrito. A trilha de auditoria é visível apenas a administradores.
       </div>
     );
@@ -74,7 +74,7 @@ export default async function AuditoriaPage() {
         <Link href="/admin" className="text-xs text-marsala hover:underline">← Voltar à administração</Link>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-black/10 bg-white">
+      <div className="overflow-hidden rounded-2xl liquid relative">
         <table className="w-full text-sm">
           <thead className="bg-black/[0.03] text-left text-xs uppercase tracking-wide text-black/50">
             <tr>

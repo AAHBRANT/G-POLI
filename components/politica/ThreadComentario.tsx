@@ -12,7 +12,7 @@ import {
 // no mesmo estilo dos botões pequenos já usados em SecaoEditor, ex.:
 // "+ Adicionar linha").
 const BOTAO_MINI =
-  "shrink-0 rounded-md bg-marsala px-2.5 py-1 text-[11px] font-medium text-white transition hover:bg-marsala-600 disabled:opacity-60";
+  "shrink-0 rounded-md bg-bege ring-1 ring-black/10 px-2.5 py-1 text-[11px] font-medium text-black/85 transition hover:bg-bege-300 disabled:opacity-60";
 
 // Só 2 níveis (thread raiz + respostas diretas — responderComentario sempre
 // aninha na raiz, nunca resposta-de-resposta). "respostas" usa um tipo à

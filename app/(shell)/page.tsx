@@ -96,7 +96,7 @@ export default async function Home() {
           <p className="text-sm text-black/50">Normas publicadas para você.</p>
         </div>
 
-        <section className="rounded-xl border border-black/10 bg-white p-5 shadow-card">
+        <section className="rounded-2xl liquid relative p-5">
           <h2 className="mb-3 text-sm font-semibold text-black/80">
             Aguardando sua ciência {pendentesCiencia.length > 0 && `(${pendentesCiencia.length})`}
           </h2>
@@ -148,11 +148,11 @@ export default async function Home() {
     ]);
 
   const cards = [
-    { titulo: "Total de normas", valor: total, cor: "text-marsala", bg: "bg-marsala/5", href: "/catalogo", icone: "M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z", tendencia: criadasUlt30 > 0 ? `+${criadasUlt30} este mês` : null },
-    { titulo: "Publicadas", valor: publicadas, cor: "text-emerald-700", bg: "bg-emerald-50", href: "/busca?estado=publicada", icone: "M5 13l4 4L19 7", tendencia: publicadasUlt30 > 0 ? `+${publicadasUlt30} este mês` : null },
-    { titulo: "Em rascunho", valor: rascunho, cor: "text-amber-700", bg: "bg-amber-50", href: "/busca?estado=rascunho", icone: "M11 4h9M11 4l-7 7-2 5 5-2 7-7", tendencia: null },
-    { titulo: "Em aprovação", valor: emAprovacao, cor: "text-amber-800", bg: "bg-amber-50", href: "/publicacao", icone: "M12 8v4l3 3", tendencia: null },
-    { titulo: "Revogadas", valor: revogadas, cor: "text-red-700", bg: "bg-red-50", href: "/busca?estado=revogada", icone: "M18 6L6 18M6 6l12 12", tendencia: null },
+    { titulo: "Total de normas", valor: total, cor: "text-marsala", bg: "bg-bege/55", href: "/catalogo", icone: "M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z", tendencia: criadasUlt30 > 0 ? `+${criadasUlt30} este mês` : null },
+    { titulo: "Publicadas", valor: publicadas, cor: "text-emerald-700", bg: "bg-emerald-200/40", href: "/busca?estado=publicada", icone: "M5 13l4 4L19 7", tendencia: publicadasUlt30 > 0 ? `+${publicadasUlt30} este mês` : null },
+    { titulo: "Em rascunho", valor: rascunho, cor: "text-amber-700", bg: "bg-amber-200/40", href: "/busca?estado=rascunho", icone: "M11 4h9M11 4l-7 7-2 5 5-2 7-7", tendencia: null },
+    { titulo: "Em aprovação", valor: emAprovacao, cor: "text-amber-800", bg: "bg-amber-200/40", href: "/publicacao", icone: "M12 8v4l3 3", tendencia: null },
+    { titulo: "Revogadas", valor: revogadas, cor: "text-red-700", bg: "bg-red-200/35", href: "/busca?estado=revogada", icone: "M18 6L6 18M6 6l12 12", tendencia: null },
   ];
 
   // Bar horizontal simples (sem lib de gráfico) — setores sem norma nenhuma
@@ -171,7 +171,7 @@ export default async function Home() {
         </div>
         <div className="flex gap-2">
           {podeCriar && <CriarDocumentoMenu />}
-          <Link href="/busca" className="rounded-lg border border-black/15 px-4 py-2 text-sm text-black/70 transition hover:bg-black/5">
+          <Link href="/busca" className="liquid relative rounded-xl px-4 py-2 text-sm font-medium text-black/75 transition hover:text-black">
             Buscar norma
           </Link>
         </div>
@@ -179,7 +179,7 @@ export default async function Home() {
 
       <section className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         {cards.map((c) => (
-          <Link key={c.titulo} href={c.href} className={`rounded-xl border border-black/10 ${c.bg} p-4 transition hover:border-marsala/30 hover:shadow-premium`}>
+          <Link key={c.titulo} href={c.href} className={`liquid relative rounded-2xl ${c.bg} p-4 transition hover:-translate-y-0.5`}>
             <div className="flex items-center justify-between">
               <div className="text-xs text-black/50">{c.titulo}</div>
               <Icone path={c.icone} className={c.cor} />
@@ -191,7 +191,7 @@ export default async function Home() {
       </section>
 
       {semCiencia > 0 && (
-        <Link href="/busca?estado=publicada" className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 transition hover:bg-amber-100">
+        <Link href="/busca?estado=publicada" className="liquid relative flex items-center gap-3 rounded-2xl bg-amber-200/45 px-4 py-3 text-sm text-amber-950 transition hover:bg-amber-200/60">
           <span className="text-lg">⚠️</span>
           <span>
             <strong>{semCiencia}</strong> norma{semCiencia > 1 ? "s" : ""} publicada{semCiencia > 1 ? "s" : ""} sem nenhuma ciência registrada.
@@ -200,7 +200,7 @@ export default async function Home() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <section className="rounded-xl border border-black/10 bg-white p-5 shadow-card lg:col-span-2">
+        <section className="rounded-2xl liquid relative p-5 lg:col-span-2">
           <h2 className="mb-3 text-sm font-semibold text-black/80">Atividade recente</h2>
           {atividades.length === 0 ? (
             <p className="py-6 text-center text-sm text-black/40">Sem atividade ainda.</p>
@@ -231,7 +231,7 @@ export default async function Home() {
           )}
         </section>
 
-        <section className="rounded-xl border border-black/10 bg-white p-5 shadow-card">
+        <section className="rounded-2xl liquid relative p-5">
           <h2 className="mb-3 text-sm font-semibold text-black/80">Normas por área</h2>
           {areasComNorma.length === 0 ? (
             <p className="py-6 text-center text-sm text-black/40">Nenhuma norma cadastrada ainda.</p>
@@ -245,7 +245,7 @@ export default async function Home() {
                   </div>
                   <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/5">
                     <div
-                      className="h-full rounded-full bg-marsala"
+                      className="h-full rounded-full bg-bege-500"
                       style={{ width: `${(a._count.politicas / maiorContagem) * 100}%` }}
                     />
                   </div>
@@ -257,7 +257,7 @@ export default async function Home() {
       </div>
 
       {rascunhosRecentes.length > 0 && (
-        <section className="rounded-xl border border-black/10 bg-white shadow-card">
+        <section className="rounded-2xl liquid relative">
           <h2 className="border-b border-black/5 px-5 py-3 text-sm font-semibold text-black/80">Rascunhos recentes</h2>
           <ul className="divide-y divide-black/5">
             {rascunhosRecentes.map((p) => (

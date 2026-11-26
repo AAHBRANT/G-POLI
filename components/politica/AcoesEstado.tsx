@@ -90,7 +90,7 @@ export default function AcoesEstado({ id, estado, podeEnviar, podeGestor, podeDi
               <button
                 onClick={() => pedirConfirmacao("enviar_aprovacao")}
                 disabled={pendente}
-                className="rounded-md bg-marsala px-3 py-1.5 text-xs font-medium text-white transition hover:bg-marsala-600 disabled:opacity-60"
+                className="rounded-md bg-bege ring-1 ring-black/10 px-3 py-1.5 text-xs font-medium text-black/85 transition hover:bg-bege-300 disabled:opacity-60"
               >
                 {pendente ? "…" : "Enviar para aprovação"}
               </button>
@@ -205,7 +205,7 @@ export default function AcoesEstado({ id, estado, podeEnviar, podeGestor, podeDi
 
       {confirmando && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-lg bg-white p-5 shadow-xl">
+          <div className="w-full max-w-sm rounded-2xl liquid relative p-5 shadow-xl">
             <p className="text-sm text-black/80">{CONFIRMA[confirmando]}</p>
             {PEDE_MOTIVO.includes(confirmando) && (
               <textarea

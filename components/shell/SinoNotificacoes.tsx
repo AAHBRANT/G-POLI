@@ -64,7 +64,7 @@ export default function SinoNotificacoes() {
       </button>
 
       {aberto && (
-        <div className="absolute right-0 top-full z-40 mt-1 w-72 rounded-lg border border-black/10 bg-white py-1 shadow-premium">
+        <div className="absolute right-0 top-full z-40 mt-1 w-72 liquid rounded-2xl py-1">
           <div className="border-b border-black/5 px-3 py-2 text-[11px] uppercase tracking-wide text-black/40">
             Pendências{itens.length > 0 ? ` (${itens.length})` : ""}
           </div>

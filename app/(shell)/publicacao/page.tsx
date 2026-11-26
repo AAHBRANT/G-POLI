@@ -24,7 +24,7 @@ export default async function PublicacaoPage() {
   const ehGestorDeSetor = atual?.perfil === "area" && atual.setores.length > 0;
   if (!podePublicar(atual) && !ehGestorDeSetor) {
     return (
-      <div className="rounded-lg border border-black/10 bg-white p-8 text-center text-sm text-black/60">
+      <div className="rounded-2xl liquid relative p-8 text-center text-sm text-black/60">
         Acesso restrito. A aprovação/publicação de normas é atribuição do Gestor do setor e da Diretoria.
       </div>
     );
@@ -49,7 +49,7 @@ export default async function PublicacaoPage() {
         {COLUNAS.map((col) => {
           const lista = politicas.filter((p) => p.estado === col.estado);
           return (
-            <section key={col.estado} className="overflow-hidden rounded-lg border border-black/10 bg-white">
+            <section key={col.estado} className="overflow-hidden rounded-2xl liquid relative">
               <div className="border-b border-black/5 px-4 py-3">
                 <div className="flex items-center justify-between">
                   <h3 className={`text-sm font-semibold ${col.cor}`}>{col.titulo}</h3>

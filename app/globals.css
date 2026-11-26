@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --marsala: #670000;
+  --marsala: #2e2d12; /* tinta oliva (antigo vinho) */
   --bege: #ebe9ad;
 }
 
@@ -11,7 +11,125 @@ html,
 body {
   padding: 0;
   margin: 0;
-  background: #f7f7f8;
+  background-color: #f8f8f1;
+  background-image:
+    radial-gradient(900px 520px at 6% -6%, rgba(235, 233, 173, 0.75), transparent 62%),
+    radial-gradient(760px 520px at 96% 8%, rgba(235, 233, 173, 0.45), transparent 60%),
+    radial-gradient(900px 600px at 55% 108%, rgba(235, 233, 173, 0.5), transparent 62%);
+  background-attachment: fixed;
   color: #111;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* Biblioteca — microanimações (nomes an-*: ver skill microanimacoes-aahbrant). */
+@keyframes an-barra {
+  0%, 100% { transform: scaleY(0.35); opacity: 0.4; }
+  50% { transform: scaleY(1); opacity: 1; }
+}
+.an-barra { transform-origin: bottom; animation: an-barra 0.9s ease-in-out infinite; }
+
+@keyframes an-pulso-ponto {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.55); }
+  50% { box-shadow: 0 0 0 5px rgba(217, 119, 6, 0); }
+}
+.pulso-ponto { animation: an-pulso-ponto 1.6s ease-out infinite; }
+
+.fundo-pontos {
+  background-image: radial-gradient(rgba(60, 58, 10, 0.16) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(to bottom right, black 0%, transparent 75%);
+  -webkit-mask-image: linear-gradient(to bottom right, black 0%, transparent 75%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .an-barra, .pulso-ponto { animation: none; }
+}
+
+/* Vidro bege — superfícies translúcidas sobre o fundo com manchas. */
+.vidro {
+  background: rgba(255, 255, 255, 0.56);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+  backdrop-filter: blur(18px) saturate(1.35);
+  box-shadow:
+    0 10px 34px -16px rgba(60, 58, 10, 0.28),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.vidro-bege {
+  background: linear-gradient(135deg, rgba(235, 233, 173, 0.78), rgba(235, 233, 173, 0.42));
+  -webkit-backdrop-filter: blur(22px) saturate(1.4);
+  backdrop-filter: blur(22px) saturate(1.4);
+  box-shadow:
+    0 24px 50px -26px rgba(60, 58, 10, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .vidro { background: rgba(255, 255, 255, 0.92); }
+  .vidro-bege { background: rgba(235, 233, 173, 0.95); }
+}
+
+/* ===== Liquid Glass =====================================================
+   Vidro líquido: translucidez + desfoque saturado + realce de borda (luz
+   entrando por cima/esquerda, sombra interna embaixo) + reflexo especular.
+   Requer elemento posicionado (relative/absolute) por causa dos reflexos.
+   Fica em @layer components para que utilitários (ring, shadow) possam
+   sobrescrever, por exemplo no foco. */
+@layer components {
+  .liquid {
+    isolation: isolate;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.2) 42%, rgba(255, 255, 255, 0.4) 100%);
+    -webkit-backdrop-filter: blur(16px) saturate(1.9) brightness(1.04);
+    backdrop-filter: blur(16px) saturate(1.9) brightness(1.04);
+    box-shadow:
+      inset 0 1.5px 1px rgba(255, 255, 255, 0.95),
+      inset 0 -2px 3px rgba(60, 58, 10, 0.13),
+      inset 1.5px 0 1px rgba(255, 255, 255, 0.55),
+      inset -1.5px 0 1px rgba(255, 255, 255, 0.3),
+      0 14px 30px -14px rgba(60, 58, 10, 0.4);
+  }
+  .liquid::before,
+  .liquid::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: -1;
+  }
+  /* reflexo especular: brilho de luz no canto superior esquerdo */
+  .liquid::before {
+    background: radial-gradient(120% 90% at 8% -10%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 52%);
+    opacity: 0.55;
+  }
+  /* cáustica: acúmulo de cor na base, como luz atravessando o vidro */
+  .liquid::after {
+    background: linear-gradient(0deg, rgba(235, 233, 173, 0.45), transparent 45%);
+    opacity: 0.6;
+  }
+  /* variante com tinta bege institucional */
+  .liquid-bege {
+    background: linear-gradient(135deg, rgba(235, 233, 173, 0.88) 0%, rgba(235, 233, 173, 0.4) 48%, rgba(255, 255, 255, 0.42) 100%);
+  }
+}
+
+/* manchas que derivam lentamente atrás do vidro (dão o aspecto "líquido") */
+@keyframes liquido-a { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(-48px, 36px) scale(1.18); } }
+@keyframes liquido-b { 0% { transform: translate(0, 0) scale(1.05); } 100% { transform: translate(56px, -28px) scale(0.9); } }
+@keyframes liquido-c { 0% { transform: translate(0, 0) scale(0.95); } 100% { transform: translate(-30px, -40px) scale(1.15); } }
+.liquido-a { animation: liquido-a 17s ease-in-out infinite alternate; }
+.liquido-b { animation: liquido-b 21s ease-in-out infinite alternate; }
+.liquido-c { animation: liquido-c 14s ease-in-out infinite alternate; }
+
+/* brilho que acompanha o ponteiro sobre o painel */
+.painel-vidro .brilho-ponteiro {
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  background: radial-gradient(260px circle at var(--mx, 70%) var(--my, 0%), rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0) 62%);
+}
+.painel-vidro:hover .brilho-ponteiro { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .liquido-a, .liquido-b, .liquido-c { animation: none; }
+  .painel-vidro .brilho-ponteiro { transition: none; }
 }

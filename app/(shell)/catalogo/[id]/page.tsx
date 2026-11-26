@@ -151,7 +151,7 @@ export default async function PoliticaDetalhe(props: { params: Promise<{ id: str
       </div>
 
       {politica.estado === "publicada" && (
-        <section className="rounded-lg border border-black/10 bg-white p-4">
+        <section className="rounded-2xl liquid relative p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-semibold text-black/80">Ciência de leitura</h3>
@@ -242,7 +242,7 @@ export default async function PoliticaDetalhe(props: { params: Promise<{ id: str
       )}
 
       {podeEditar && politica.estado === "rascunho" && !politica.consorcioId && (
-        <section className="rounded-lg border border-black/10 bg-white p-4">
+        <section className="rounded-2xl liquid relative p-4">
           <h3 className="mb-3 text-sm font-semibold text-black/80">Público-alvo da publicação</h3>
           <AudienciaSelector
             politicaId={politica.id}
@@ -255,7 +255,7 @@ export default async function PoliticaDetalhe(props: { params: Promise<{ id: str
         </section>
       )}
 
-      <section className="overflow-hidden rounded-lg border border-black/10 bg-white">
+      <section className="overflow-hidden rounded-2xl liquid relative">
         <div className="flex items-center justify-between border-b border-black/5 px-4 py-3">
           <h3 className="text-sm font-semibold text-black/80">
             Conteúdo estruturado {politica.secoes.length > 0 && `(${politica.secoes.length} seções)`}
@@ -298,7 +298,7 @@ export default async function PoliticaDetalhe(props: { params: Promise<{ id: str
 
       {podeEditar && <NovaVersaoForm politicaId={politica.id} />}
 
-      <div className="overflow-hidden rounded-lg border border-black/10 bg-white">
+      <div className="overflow-hidden rounded-2xl liquid relative">
         <div className="border-b border-black/5 px-4 py-3 text-sm font-semibold text-black/80">
           Versões ({politica.versoes.length})
         </div>
@@ -335,7 +335,7 @@ export default async function PoliticaDetalhe(props: { params: Promise<{ id: str
                       <span
                         className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-medium ${
                           v.documento.oficial
-                            ? "bg-marsala/10 text-marsala"
+                            ? "bg-bege/70 text-marsala"
                             : "bg-black/5 text-black/60"
                         }`}
                       >

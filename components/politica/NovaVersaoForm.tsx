@@ -22,7 +22,7 @@ export default function NovaVersaoForm({ politicaId }: { politicaId: string }) {
     <form
       ref={ref}
       action={onSubmit}
-      className="rounded-lg border border-black/10 bg-white p-4"
+      className="rounded-2xl liquid relative p-4"
     >
       <h3 className="mb-3 text-sm font-semibold text-marsala">Nova versão</h3>
       <div className="flex flex-wrap items-center gap-3">
@@ -31,7 +31,7 @@ export default function NovaVersaoForm({ politicaId }: { politicaId: string }) {
           type="file"
           required
           accept=".pdf,.docx,.doc,.xlsx,.xls,.png,.jpg,.jpeg"
-          className="text-sm file:mr-3 file:rounded-md file:border-0 file:bg-marsala file:px-3 file:py-1.5 file:text-white hover:file:bg-marsala-600"
+          className="text-sm file:mr-3 file:rounded-md file:border-0 file:bg-bege file:px-3 file:py-1.5 file:text-black/85 hover:file:bg-bege-300"
         />
         <Button type="submit" disabled={pendente}>
           {pendente ? "Enviando…" : "Enviar documento"}

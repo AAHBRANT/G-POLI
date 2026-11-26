@@ -7,8 +7,8 @@ export const metadata = { title: "Termos de Uso — G-Políticas" };
 export default function TermosPage() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-16 text-neutral-800">
-      <div className="mb-8 h-1 w-16 rounded bg-[#670000]" />
-      <h1 className="mb-2 text-2xl font-semibold text-[#670000]">Termos de Uso</h1>
+      <div className="mb-8 h-1 w-16 rounded bg-bege-400" />
+      <h1 className="mb-2 text-2xl font-semibold text-black/85">Termos de Uso</h1>
       <p className="mb-8 text-sm text-neutral-500">G-Políticas — AAHBRANT Engenharia &amp; Construções</p>
 
       <section className="space-y-4 text-sm leading-relaxed">

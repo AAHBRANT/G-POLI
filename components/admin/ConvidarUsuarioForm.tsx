@@ -49,7 +49,7 @@ export default function ConvidarUsuarioForm({
   }
 
   return (
-    <div className="rounded-lg border border-black/10 bg-white p-4 shadow-card">
+    <div className="rounded-2xl liquid relative p-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-black/80">Convidar usuário</h3>
         <button onClick={() => setAberto(false)} className="text-xs text-black/40 hover:text-black/70">fechar</button>
@@ -82,7 +82,7 @@ export default function ConvidarUsuarioForm({
                 key={s.id}
                 type="button"
                 onClick={() => toggle(s.id)}
-                className={`rounded-full border px-2.5 py-1 text-xs transition ${sel.includes(s.id) ? "border-marsala bg-marsala text-white" : "border-black/15 text-black/60 hover:bg-black/5"}`}
+                className={`rounded-full border px-2.5 py-1 text-xs transition ${sel.includes(s.id) ? "border-black/40 bg-bege ring-1 ring-black/10 text-black/85" : "border-black/15 text-black/60 hover:bg-black/5"}`}
               >
                 {s.nome}
               </button>
