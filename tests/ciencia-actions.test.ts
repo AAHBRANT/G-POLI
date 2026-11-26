@@ -5,13 +5,13 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    politica: { findUnique: vi.fn() },
+    politica: { findFirst: vi.fn() },
     ciencia: { upsert: vi.fn() },
     pendencia: { updateMany: vi.fn() },
   },
 }));
 
-vi.mock("@/lib/auth/usuario", () => ({ getUsuarioAtual: vi.fn() }));
+vi.mock("@/lib/auth/usuario", () => ({ getUsuarioAtual: vi.fn(), filtroVisibilidade: vi.fn(() => ({})) }));
 vi.mock("@/lib/auditoria", () => ({ registrar: vi.fn() }));
 
 import { prisma } from "@/lib/prisma";
@@ -19,7 +19,7 @@ import { getUsuarioAtual } from "@/lib/auth/usuario";
 import { darCiencia } from "@/app/(shell)/catalogo/[id]/ciencia-actions";
 
 const usuarioAtual = getUsuarioAtual as ReturnType<typeof vi.fn>;
-const findUnique = prisma.politica.findUnique as ReturnType<typeof vi.fn>;
+const findUnique = prisma.politica.findFirst as ReturnType<typeof vi.fn>; // ciência só de documento que o usuário PODE ver (filtroVisibilidade)
 const cienciaUpsert = prisma.ciencia.upsert as ReturnType<typeof vi.fn>;
 const pendenciaUpdateMany = prisma.pendencia.updateMany as ReturnType<typeof vi.fn>;
 

@@ -1,4 +1,5 @@
-import { audienciaVazia, type UsuarioAlvo } from "@/lib/politica/dominio";
+import type { UsuarioAlvo } from "@/lib/politica/dominio";
+import { podeVerDocumento, type Classificacao } from "@/lib/auth/rbac";
 
 export type DadoPendencia = {
   politicaId: string;
@@ -30,25 +31,39 @@ export type PoliticaAlvoReconciliacao = {
   id: string;
   tipo: string;
   publicadaEm: Date;
+  classificacao: Classificacao;
+  areaId: string; // setor dono
   setorIds: string[]; // ids de audienciaSetores desta política
   usuarioIds: string[]; // ids de audienciaUsuarios — audiência "aberta a todos" exige setor E usuário vazios
 };
 
-// Filtra, entre políticas publicadas SEM consórcio, quais valem pro usuário
-// recém-criado: audiência vazia (aberta a todos, via audienciaVazia — mesma
-// regra usada no resto do sistema) OU algum setor do convite bate com
-// audienciaSetores da política. Espelha audienciaVazia/unirAudiencia
-// (lib/politica/dominio.ts), só que na direção inversa (usuário → políticas,
-// não política → usuários) — usada pela reconciliação de pendência retroativa
-// (lib/politica/reconciliarPendencias.ts) quando um usuário nasce depois da
-// política já publicada.
+// Filtra, entre políticas publicadas SEM consórcio, quais um usuário recém-criado
+// (que ainda não é nominal em nenhum público-alvo) pode ver pelas regras de
+// visibilidade — inclusive a classificação: restrito só se ele for do setor dono
+// ou de um setor do público-alvo; confidencial nunca (só nominais). Usada pela
+// reconciliação de pendência retroativa (lib/politica/reconciliarPendencias.ts)
+// quando um usuário nasce depois da política já publicada.
 export function politicasParaNovoUsuario(
   politicas: PoliticaAlvoReconciliacao[],
   setorIdsUsuario: string[],
 ): PoliticaAlvoReconciliacao[] {
-  return politicas.filter(
-    (p) =>
-      audienciaVazia(p.setorIds, p.usuarioIds) ||
-      p.setorIds.some((id) => setorIdsUsuario.includes(id)),
+  const novo = {
+    id: null,
+    oid: "",
+    nome: "",
+    email: "",
+    perfil: "colaborador" as const,
+    setores: setorIdsUsuario,
+    consorcios: [],
+  };
+  return politicas.filter((p) =>
+    podeVerDocumento(novo, {
+      estado: "publicada",
+      classificacao: p.classificacao,
+      areaId: p.areaId,
+      consorcioId: null,
+      audienciaSetorIds: p.setorIds,
+      audienciaUsuarioIds: p.usuarioIds,
+    }),
   );
 }

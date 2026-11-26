@@ -250,6 +250,7 @@ export default async function PoliticaDetalhe(props: { params: Promise<{ id: str
             usuarios={todosUsuarios.map((u) => ({ id: u.id, rotulo: u.nome || u.email }))}
             setoresSelecionados={politica.audienciaSetores.map((a) => a.id)}
             usuariosSelecionados={politica.audienciaUsuarios.map((u) => u.id)}
+            classificacao={politica.classificacao}
           />
         </section>
       )}

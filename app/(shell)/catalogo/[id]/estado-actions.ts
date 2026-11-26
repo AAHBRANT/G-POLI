@@ -11,13 +11,14 @@ import {
   podeRetirarDaAprovacao,
 } from "@/lib/auth/usuario";
 import { registrar } from "@/lib/auditoria";
+import { podeVerDocumento, type Classificacao, type Perfil } from "@/lib/auth/rbac";
 import {
   transicao,
   temConteudo,
   montarSnapshot,
   corpoParaTexto,
   proximoNumeroVersao,
-  audienciaVazia,
+  regraAudiencia,
   unirAudiencia,
   type Estado,
   type UsuarioAlvo,
@@ -35,40 +36,72 @@ function paraAlvo(u: { id: string; oid: string | null; nome: string; email: stri
   return { id: u.id, oid: u.oid, nome: u.nome, email: u.email };
 }
 
-// Resolve o público-alvo de uma política: setores/usuários explícitos, ou
-// "todos os colaboradores ativos" quando a audiência não foi restringida.
-// Reaproveitada tanto pela notificação do Teams quanto pela criação de
-// Pendencia — evita duas queries idênticas e duas cópias da lógica
-// audienciaVazia/unirAudiencia.
+// Resolve o público-alvo de uma política: quem vai receber o aviso do Teams e a
+// Pendencia de ciência. Depende da CLASSIFICAÇÃO (ver regraAudiencia em
+// lib/politica/dominio.ts) e é sempre FILTRADO por podeVerDocumento — ninguém é
+// avisado de um documento que não consegue abrir. Reaproveitada tanto pela
+// notificação do Teams quanto pela criação de Pendencia.
 async function resolverAudiencia(politicaId: string): Promise<UsuarioAlvo[]> {
   const politica = await prisma.politica.findUnique({
     where: { id: politicaId },
     include: {
-      audienciaSetores: { include: { membros: { where: { ativo: true } } } },
-      audienciaUsuarios: { where: { ativo: true } },
+      audienciaSetores: { select: { id: true } },
+      audienciaUsuarios: { select: { id: true } },
     },
   });
   if (!politica) return [];
 
-  // Consórcio como destino substitui o público-alvo por setor/usuário — ver
-  // spec docs/superpowers/specs/2026-08-02-consorcios-design.md.
-  if (politica.consorcioId) {
-    const consorcio = await prisma.consorcio.findUnique({
-      where: { id: politica.consorcioId },
-      include: { membros: { where: { ativo: true } } },
-    });
-    return (consorcio?.membros ?? []).map(paraAlvo);
-  }
-
   const setorIds = politica.audienciaSetores.map((a) => a.id);
   const usuarioIds = politica.audienciaUsuarios.map((u) => u.id);
+  const vinculos = { setores: { select: { id: true } }, consorcios: { select: { id: true } } };
 
-  return audienciaVazia(setorIds, usuarioIds)
-    ? (await prisma.usuario.findMany({ where: { ativo: true } })).map(paraAlvo)
-    : unirAudiencia(
-        politica.audienciaSetores.flatMap((a) => a.membros).map(paraAlvo),
-        politica.audienciaUsuarios.map(paraAlvo),
-      );
+  let candidatos;
+  if (politica.consorcioId) {
+    // Consórcio como destino: os vinculados ao consórcio (ver spec
+    // docs/superpowers/specs/2026-08-02-consorcios-design.md) — e, se o
+    // documento for restrito/confidencial, só os que também podem vê-lo.
+    candidatos = await prisma.usuario.findMany({
+      where: { ativo: true, consorcios: { some: { id: politica.consorcioId } } },
+      include: vinculos,
+    });
+  } else {
+    const regra = regraAudiencia(politica.classificacao, setorIds, usuarioIds);
+    if (regra.todos) {
+      candidatos = await prisma.usuario.findMany({ where: { ativo: true }, include: vinculos });
+    } else {
+      const quem: Prisma.UsuarioWhereInput[] = [];
+      if (regra.setoresDoPublicoAlvo && setorIds.length) quem.push({ setores: { some: { id: { in: setorIds } } } });
+      if (regra.setorDono) quem.push({ setores: { some: { id: politica.areaId } } });
+      if (regra.nominais && usuarioIds.length) quem.push({ id: { in: usuarioIds } });
+      candidatos = quem.length
+        ? await prisma.usuario.findMany({ where: { ativo: true, OR: quem }, include: vinculos })
+        : [];
+    }
+  }
+
+  const doc = {
+    estado: "publicada",
+    classificacao: politica.classificacao as Classificacao,
+    areaId: politica.areaId,
+    consorcioId: politica.consorcioId,
+    audienciaSetorIds: setorIds,
+    audienciaUsuarioIds: usuarioIds,
+  };
+  const veem = candidatos.filter((c) =>
+    podeVerDocumento(
+      {
+        id: c.id,
+        oid: c.oid ?? "",
+        nome: c.nome,
+        email: c.email,
+        perfil: c.perfil as Perfil,
+        setores: c.setores.map((x) => x.id),
+        consorcios: c.consorcios.map((x) => x.id),
+      },
+      doc,
+    ),
+  );
+  return unirAudiencia(veem.map(paraAlvo), []);
 }
 
 // Dispara a notificação do Teams para cada alvo da audiência já resolvida.

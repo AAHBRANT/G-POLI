@@ -185,5 +185,21 @@ A IA **assiste** a redação, gerando um rascunho das seções a partir de um te
 - Modo **aberto**: qualquer pessoa do domínio da organização entra (perfil
   Colaborador). Modo **fechado**: somente por convite.
 - **Desativar** uma pessoa bloqueia o acesso, independentemente do modo.
-- A visibilidade de normas segue o papel: gestão/SGI/diretoria veem tudo; Gestor de
-  Setor vê publicadas + as do seu setor; Colaborador vê apenas publicadas.
+- A visibilidade de normas depende do **papel** e da **classificação** (decisão de
+  26/11/2026 — "Restrito" e "Confidencial" restringem de verdade):
+  - **Gestão** (super admin, admin, SGI, Diretoria): vê tudo.
+  - **Gestor de Setor**: vê tudo do(s) próprio(s) setor(es), em qualquer estado e
+    classificação, mais os públicos internos publicados sem consórcio.
+  - **Demais** veem apenas documentos **publicados**, com consórcio compatível:
+    - *Público interno*: público-alvo vazio = todos; com público-alvo, só ele.
+    - *Restrito*: só o setor dono, os setores do público-alvo e os nominais.
+      Público-alvo vazio **não** é "todos" — é só o setor dono.
+    - *Confidencial*: só os **nominais** do público-alvo (setor, mesmo o dono, não basta).
+  - A mesma regra vale para listas, busca, detalhe, edição, download, painel, ciência
+    e para quem recebe **aviso do Teams e pendência de leitura** na publicação
+    (ninguém é avisado de um documento que não consegue abrir).
+  - Fonte única: `podeVerDocumento` / `filtroVisibilidade` em `lib/auth/rbac.ts`
+    (testes em `tests/visibilidade.test.ts`, que provam que o filtro do banco e o
+    predicado em memória concordam).
+  - Ao **mudar a classificação** de um documento já publicado, as pendências de
+    leitura já criadas não são recalculadas automaticamente.

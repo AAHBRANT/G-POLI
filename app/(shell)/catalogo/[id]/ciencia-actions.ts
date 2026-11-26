@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { getUsuarioAtual } from "@/lib/auth/usuario";
+import { getUsuarioAtual, filtroVisibilidade } from "@/lib/auth/usuario";
 import { registrar } from "@/lib/auditoria";
 import { leituraValida } from "@/lib/politica/dominio";
 
@@ -23,7 +23,8 @@ export async function darCiencia(politicaId: string, abertoEm: string): Promise<
   const usuario = await getUsuarioAtual();
   if (!usuario) return { ok: false, erro: "Sessão inválida." };
 
-  const politica = await prisma.politica.findUnique({ where: { id: politicaId } });
+  // Só quem pode VER o documento (classificação/público-alvo) pode dar ciência.
+  const politica = await prisma.politica.findFirst({ where: { id: politicaId, AND: [filtroVisibilidade(usuario)] } });
   if (!politica) return { ok: false, erro: "Política não encontrada." };
   if (politica.estado !== "publicada") {
     return { ok: false, erro: "Só é possível dar ciência de normas publicadas." };

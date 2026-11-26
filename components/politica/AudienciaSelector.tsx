@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { definirAudiencia } from "@/app/(shell)/catalogo/[id]/audiencia-actions";
 import { Button } from "@/components/ui/Button";
+import { explicacaoClassificacao, rotuloClassificacao } from "@/lib/constants";
 
 type Opcao = { id: string; rotulo: string };
 
@@ -13,8 +14,10 @@ export default function AudienciaSelector({
   usuarios,
   setoresSelecionados,
   usuariosSelecionados,
+  classificacao = "publico_interno",
 }: {
   politicaId: string;
+  classificacao?: string;
   setores: Opcao[];
   usuarios: Opcao[];
   setoresSelecionados: string[];
@@ -44,9 +47,11 @@ export default function AudienciaSelector({
   return (
     <div className="space-y-3">
       <p className="text-xs text-black/50">
-        {vazio
-          ? "Sem seleção: a notificação de publicação vai para todos os colaboradores ativos."
-          : "A notificação de publicação vai só para quem estiver marcado abaixo (setor + individual, somados)."}
+        {classificacao === "publico_interno"
+          ? vazio
+            ? "Sem seleção: o documento e a notificação de publicação vão para todos os colaboradores ativos."
+            : "O documento e a notificação vão só para quem estiver marcado abaixo (setor + individual, somados)."
+          : `Documento ${rotuloClassificacao(classificacao).toLowerCase()}: ${explicacaoClassificacao(classificacao)} Quem não está nessa regra não vê o documento nem recebe aviso.`}
       </p>
 
       <div>
