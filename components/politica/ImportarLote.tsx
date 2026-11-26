@@ -21,6 +21,7 @@ type Linha = {
   bloqueio: string | null;
   situacao: "pendente" | "importando" | "ok" | "erro";
   mensagem?: string;
+  resumo?: { secoes: number; tabelas: number; avisos: string[] };
   id?: string;
 };
 
@@ -114,7 +115,7 @@ export default function ImportarLote({
       fd.set("arquivo", alvo.arquivo);
       try {
         const r = await importarDocumento(fd);
-        if (r.ok && r.id) mudar(alvo.chave, { situacao: "ok", id: r.id, mensagem: undefined });
+        if (r.ok && r.id) mudar(alvo.chave, { situacao: "ok", id: r.id, mensagem: undefined, resumo: r.resumo });
         else mudar(alvo.chave, { situacao: "erro", mensagem: r.erro ?? "Erro desconhecido." });
       } catch {
         mudar(alvo.chave, { situacao: "erro", mensagem: "Falha de conexão. Tente de novo." });
@@ -264,6 +265,19 @@ export default function ImportarLote({
                     </button>
                   )}
                 </div>
+                {l.situacao === "ok" && l.resumo && (
+                  <div className="text-xs text-black/70 sm:col-span-6">
+                    <p className="font-semibold">
+                      {l.resumo.secoes} seç{l.resumo.secoes === 1 ? "ão" : "ões"} criada{l.resumo.secoes === 1 ? "" : "s"}
+                      {l.resumo.tabelas > 0 ? `, sendo ${l.resumo.tabelas} tabela${l.resumo.tabelas === 1 ? "" : "s"}` : ""}. Revise o rascunho antes de enviar para aprovação.
+                    </p>
+                    {l.resumo.avisos.map((a) => (
+                      <p key={a} className="text-amber-800">
+                        Atenção: {a}
+                      </p>
+                    ))}
+                  </div>
+                )}
                 {(l.bloqueio || l.mensagem) && (
                   <p role="alert" className="text-xs font-medium text-red-700 sm:col-span-6">
                     {l.bloqueio ?? l.mensagem}

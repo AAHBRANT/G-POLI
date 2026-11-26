@@ -6,8 +6,11 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     area: { upsert: vi.fn() },
     politica: { create: vi.fn() },
+    versao: { create: vi.fn() },
   },
 }));
+
+vi.mock("@/lib/storage", () => ({ salvarArquivo: vi.fn().mockResolvedValue({ tamanho: 7, hash: "h1" }) }));
 
 vi.mock("@/lib/auth/usuario", () => ({
   getUsuarioAtual: vi.fn(),
@@ -17,23 +20,23 @@ vi.mock("@/lib/auth/usuario", () => ({
 vi.mock("@/lib/auditoria", () => ({ registrar: vi.fn() }));
 vi.mock("@/lib/politica/codigo", () => ({ gerarCodigoNormativo: vi.fn().mockResolvedValue("AHBT-POL-TI-001") }));
 
-// Só `extrairSecoes` é mockado (é a única parte com I/O real — parsers de
+// Só `extrairComResumo` é mockado (é a única parte com I/O real — parsers de
 // docx/pdf); `extensaoSuportada` continua a implementação real, pura.
 vi.mock("@/lib/politica/importarDocumento", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/lib/politica/importarDocumento")>();
-  return { ...original, extrairSecoes: vi.fn() };
+  return { ...original, extrairComResumo: vi.fn() };
 });
 
 import { prisma } from "@/lib/prisma";
 import { getUsuarioAtual, podeCriarPolitica } from "@/lib/auth/usuario";
 import { criarPolitica, importarDocumento } from "@/app/(shell)/catalogo/actions";
-import { extrairSecoes } from "@/lib/politica/importarDocumento";
+import { extrairComResumo } from "@/lib/politica/importarDocumento";
 
 const usuarioAtual = getUsuarioAtual as ReturnType<typeof vi.fn>;
 const podeCriar = podeCriarPolitica as ReturnType<typeof vi.fn>;
 const upsert = prisma.area.upsert as ReturnType<typeof vi.fn>;
 const create = prisma.politica.create as ReturnType<typeof vi.fn>;
-const extrair = extrairSecoes as ReturnType<typeof vi.fn>;
+const extrair = extrairComResumo as ReturnType<typeof vi.fn>;
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -138,17 +141,20 @@ describe("importarDocumento", () => {
   });
 
   it("sucesso: cria a política com uma Secao por item extraído, tipo texto, código sequencial", async () => {
-    extrair.mockResolvedValue([
-      { titulo: "Objetivo", corpo: "Texto do objetivo." },
-      { titulo: "Abrangência", corpo: "Texto da abrangência." },
-    ]);
+    extrair.mockResolvedValue({
+      secoes: [
+        { titulo: "Objetivo", corpo: "Texto do objetivo." },
+        { titulo: "Abrangência", corpo: "Texto da abrangência." },
+      ],
+      resumo: { secoes: 2, tabelas: 0, avisos: [] },
+    });
     create.mockResolvedValue({ id: "pol-nova" });
 
     const r = await importarDocumento(
       formDataComArquivo({ titulo: "Norma Importada", area: "TI", classificacao: "publico_interno" }, arquivoFalso("a.docx")),
     );
 
-    expect(r).toEqual({ ok: true, id: "pol-nova" });
+    expect(r).toMatchObject({ ok: true, id: "pol-nova" });
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -172,7 +178,7 @@ describe("importarDocumento", () => {
     expect(extrair).not.toHaveBeenCalled();
   });
 
-  it("texto colado (sem arquivo): usa extrairDeTextoSimples direto, não chama extrairSecoes", async () => {
+  it("texto colado (sem arquivo): usa extrairDeTextoSimples direto, não chama extrairComResumo", async () => {
     create.mockResolvedValue({ id: "pol-texto" });
     const f = formData({ titulo: "Norma Colada", area: "TI", classificacao: "publico_interno" });
     f.set("texto", "Objetivo\n\nTexto do objetivo colado.\n\nAbrangência\n\nTexto da abrangência colada.");
@@ -207,7 +213,7 @@ describe("importarDocumento", () => {
   });
 
   it("arquivo E texto colado juntos: arquivo tem prioridade", async () => {
-    extrair.mockResolvedValue([{ titulo: "Do Arquivo", corpo: "Veio do arquivo." }]);
+    extrair.mockResolvedValue({ secoes: [{ titulo: "Do Arquivo", corpo: "Veio do arquivo." }], resumo: { secoes: 1, tabelas: 0, avisos: [] } });
     create.mockResolvedValue({ id: "pol-prioridade" });
     const f = formDataComArquivo({ titulo: "X", area: "TI", classificacao: "publico_interno" }, arquivoFalso("a.docx"));
     f.set("texto", "Texto colado que deveria ser ignorado.");
@@ -222,6 +228,37 @@ describe("importarDocumento", () => {
           secoes: { create: [{ ordem: 1, codigo: "1", titulo: "Do Arquivo", tipo: "texto", corpo: "Veio do arquivo." }] },
         }),
       }),
+    );
+  });
+
+  it("tabela: grava colunas e linhas e anexa o arquivo original como versão", async () => {
+    extrair.mockResolvedValue({
+      secoes: [
+        { titulo: "Objetivo", corpo: "Texto.", tipo: "texto" },
+        { titulo: "Tabela 1 – Siglas", corpo: "", tipo: "tabela", colunas: ["Sigla", "Significado"], linhas: [["SGI", "Sistema"]] },
+      ],
+      resumo: { secoes: 2, tabelas: 1, avisos: [] },
+    });
+    create.mockResolvedValue({ id: "pol-tab" });
+    const r = await importarDocumento(
+      formDataComArquivo({ titulo: "Proc", area: "TI", classificacao: "publico_interno" }, arquivoFalso("a.docx")),
+    );
+    expect(r).toMatchObject({ ok: true, id: "pol-tab", resumo: { tabelas: 1 } });
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          secoes: {
+            create: [
+              { ordem: 1, codigo: "1", titulo: "Objetivo", tipo: "texto", corpo: "Texto." },
+              { ordem: 2, codigo: "2", titulo: "Tabela 1 – Siglas", tipo: "tabela", corpo: "", colunas: ["Sigla", "Significado"], linhas: [["SGI", "Sistema"]] },
+            ],
+          },
+        }),
+      }),
+    );
+    const versao = prisma.versao.create as ReturnType<typeof vi.fn>;
+    expect(versao).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ politicaId: "pol-tab", documento: { create: expect.objectContaining({ nome: "a.docx", hash: "h1" }) } }) }),
     );
   });
 });
