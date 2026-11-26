@@ -18,6 +18,8 @@ export async function reconciliarPendenciasNovoUsuario(
         id: true,
         tipo: true,
         publicadaEm: true,
+        classificacao: true,
+        areaId: true,
         audienciaSetores: { select: { id: true } },
         audienciaUsuarios: { select: { id: true } },
       },
@@ -28,6 +30,8 @@ export async function reconciliarPendenciasNovoUsuario(
         id: p.id,
         tipo: p.tipo,
         publicadaEm: p.publicadaEm as Date,
+        classificacao: p.classificacao,
+        areaId: p.areaId,
         setorIds: p.audienciaSetores.map((s) => s.id),
         usuarioIds: p.audienciaUsuarios.map((u) => u.id),
       }));

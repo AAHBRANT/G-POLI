@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { criarPolitica } from "@/app/(shell)/catalogo/actions";
-import { CLASSIFICACOES, tipoDocumento, artigoDocumento, type TipoDocumentoValor } from "@/lib/constants";
+import { CLASSIFICACOES, explicacaoClassificacao, tipoDocumento, artigoDocumento, type TipoDocumentoValor } from "@/lib/constants";
 import { Button } from "@/components/ui/Button";
 
 // Formulário genérico de criação — serve à Política (/catalogo) e aos outros 7
@@ -18,6 +18,7 @@ export default function NovaPoliticaForm({
   const [aberto, setAberto] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
+  const [classificacao, setClassificacao] = useState("publico_interno");
   const info = tipoDocumento(tipo);
   const { novo } = artigoDocumento(info);
 
@@ -86,7 +87,8 @@ export default function NovaPoliticaForm({
           <span className="mb-1 block text-xs text-black/60">Classificação</span>
           <select
             name="classificacao"
-            defaultValue="publico_interno"
+            value={classificacao}
+            onChange={(e) => setClassificacao(e.target.value)}
             className="w-full rounded-md border border-black/15 px-3 py-2 text-sm outline-none focus:border-marsala"
           >
             {CLASSIFICACOES.map((c) => (
@@ -95,6 +97,7 @@ export default function NovaPoliticaForm({
               </option>
             ))}
           </select>
+          <span className="mt-1 block text-[11px] text-black/50">{explicacaoClassificacao(classificacao)}</span>
         </label>
       </div>
 

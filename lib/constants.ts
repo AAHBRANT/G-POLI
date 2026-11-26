@@ -103,10 +103,29 @@ export function artigoDocumento(info: { genero: "m" | "f" }) {
 }
 
 export const CLASSIFICACOES = [
-  { valor: "publico_interno", rotulo: "Público interno", cor: "bg-emerald-100 text-emerald-800" },
-  { valor: "restrito", rotulo: "Restrito", cor: "bg-amber-100 text-amber-800" },
-  { valor: "confidencial", rotulo: "Confidencial", cor: "bg-red-100 text-red-800" },
+  {
+    valor: "publico_interno",
+    rotulo: "Público interno",
+    cor: "bg-emerald-100 text-emerald-800",
+    explicacao: "Todos os colaboradores veem (ou só o público-alvo, se você definir um).",
+  },
+  {
+    valor: "restrito",
+    rotulo: "Restrito",
+    cor: "bg-amber-100 text-amber-800",
+    explicacao: "Só o setor dono do documento, os setores e as pessoas do público-alvo. Sem público-alvo, só o setor dono.",
+  },
+  {
+    valor: "confidencial",
+    rotulo: "Confidencial",
+    cor: "bg-red-100 text-red-800",
+    explicacao: "Só as pessoas listadas nominalmente no público-alvo, a gestão e o Gestor do setor dono. Setor listado não basta.",
+  },
 ] as const;
+
+export function explicacaoClassificacao(valor: string): string {
+  return CLASSIFICACOES.find((c) => c.valor === valor)?.explicacao ?? "";
+}
 
 export const ESTADOS_POLITICA: Record<string, { rotulo: string; cor: string }> = {
   rascunho: { rotulo: "Rascunho", cor: "bg-black/10 text-black/70" },

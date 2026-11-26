@@ -281,6 +281,28 @@ export function audienciaVazia(setorIds: string[], usuarioIds: string[]): boolea
   return setorIds.length === 0 && usuarioIds.length === 0;
 }
 
+// Quem entra no público-alvo (aviso + pendência de ciência) conforme a
+// classificação — espelha as regras de visibilidade (lib/auth/rbac.ts):
+//  - público interno: audiência vazia = todos; senão setores + nominais;
+//  - restrito: NUNCA "todos" — setores listados, setor dono e nominais;
+//  - confidencial: só os nominais (setor listado não basta).
+// O resultado é sempre filtrado por podeVerDocumento antes de avisar alguém.
+export type RegraAudiencia = {
+  todos: boolean;
+  setoresDoPublicoAlvo: boolean;
+  setorDono: boolean;
+  nominais: boolean;
+};
+export function regraAudiencia(classificacao: string, setorIds: string[], usuarioIds: string[]): RegraAudiencia {
+  if (classificacao === "confidencial") {
+    return { todos: false, setoresDoPublicoAlvo: false, setorDono: false, nominais: true };
+  }
+  if (classificacao === "restrito") {
+    return { todos: false, setoresDoPublicoAlvo: true, setorDono: true, nominais: true };
+  }
+  return { todos: audienciaVazia(setorIds, usuarioIds), setoresDoPublicoAlvo: true, setorDono: false, nominais: true };
+}
+
 // União dos usuários dos setores selecionados com os usuários individuais,
 // deduplicada por id (a mesma pessoa pode entrar pelos dois caminhos).
 export function unirAudiencia(porSetor: UsuarioAlvo[], individuais: UsuarioAlvo[]): UsuarioAlvo[] {

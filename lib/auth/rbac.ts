@@ -171,40 +171,110 @@ export function podeRevogar(u: UsuarioAtual | null): boolean {
   return podePublicar(u);
 }
 
-// Publicada + dentro do público-alvo da política: audiência vazia (setor E
-// usuário nenhum selecionado) = visível a todos, mesma semântica de
-// audienciaVazia() em lib/politica/dominio.ts. Documento com consorcioId
-// preenchido ignora o público-alvo por setor/usuário — o consórcio já
-// define sozinho quem vê (ver spec docs/superpowers/specs/2026-08-02-consorcios-design.md).
-function filtroPublicadaPorAudiencia(u: UsuarioAtual | null): Record<string, unknown> {
-  const semPublicoAlvo = { audienciaSetores: { none: {} }, audienciaUsuarios: { none: {} } };
-  const OR: Record<string, unknown>[] = [semPublicoAlvo];
-  if (u?.setores.length) OR.push({ audienciaSetores: { some: { id: { in: u.setores } } } });
-  if (u?.id) OR.push({ audienciaUsuarios: { some: { id: u.id } } });
-  return {
-    OR: [
-      { estado: "publicada", consorcioId: null, OR },
-      { estado: "publicada", consorcioId: { in: u?.consorcios ?? [] } },
-    ],
-  };
+// ---------------------------------------------------------------------------
+// Visibilidade de documentos — classificação RESTRINGE de verdade
+// ---------------------------------------------------------------------------
+// Decisão do usuário (26/11/2026): "Restrito" e "Confidencial" deixam de ser só
+// rótulo. Regras (valem para listas, busca, detalhe, edição, download, painel,
+// ciência e para QUEM recebe aviso/pendência na publicação):
+//
+//  - Gestão (super admin, admin, SGI, Diretoria): vê tudo.
+//  - Gestor de Setor (perfil "area"): vê tudo do(s) próprio(s) setor(es), em
+//    qualquer estado e classificação (é quem gere o departamento).
+//  - Demais casos exigem documento PUBLICADO e consórcio compatível
+//    (sem consórcio, ou usuário vinculado a ele) e depois a classificação:
+//      · público interno: como sempre — sem consórcio, vale o público-alvo
+//        (vazio = todos); com consórcio, os vinculados ao consórcio.
+//        (Gestor de Setor continua vendo todos os públicos internos sem consórcio.)
+//      · restrito: só quem é do setor dono do documento, de um setor listado no
+//        público-alvo, ou está nominalmente no público-alvo. Público-alvo VAZIO
+//        NÃO significa "todos": significa só o setor dono.
+//      · confidencial: só quem está NOMINALMENTE no público-alvo (setor listado
+//        não basta). Além da gestão e do Gestor do setor dono.
+//  - Sem usuário (null): nada.
+
+export type Classificacao = "publico_interno" | "restrito" | "confidencial";
+
+export type DocumentoVisivel = {
+  estado: string;
+  classificacao: Classificacao;
+  areaId: string;
+  consorcioId: string | null;
+  audienciaSetorIds: string[];
+  audienciaUsuarioIds: string[];
+};
+
+const ehGestao = (u: UsuarioAtual) => ehAdminOuSuper(u) || u.perfil === "sgi" || u.perfil === "diretoria";
+
+/** Fonte da verdade (em memória) de "este usuário pode ver este documento?". */
+export function podeVerDocumento(u: UsuarioAtual | null, d: DocumentoVisivel): boolean {
+  if (!u) return false;
+  if (ehGestao(u)) return true;
+  const gestorDeSetor = u.perfil === "area" && u.setores.length > 0;
+  if (gestorDeSetor && u.setores.includes(d.areaId)) return true;
+  if (d.estado !== "publicada") return false;
+
+  const consorcioOk = d.consorcioId === null || u.consorcios.includes(d.consorcioId);
+  const noSetorAudiencia = d.audienciaSetorIds.some((id) => u.setores.includes(id));
+  const nominal = !!u.id && d.audienciaUsuarioIds.includes(u.id);
+
+  switch (d.classificacao) {
+    case "confidencial":
+      return consorcioOk && nominal;
+    case "restrito":
+      return consorcioOk && (u.setores.includes(d.areaId) || noSetorAudiencia || nominal);
+    default: // publico_interno
+      if (d.consorcioId !== null) return consorcioOk;
+      if (gestorDeSetor) return true;
+      return (d.audienciaSetorIds.length === 0 && d.audienciaUsuarioIds.length === 0) || noSetorAudiencia || nominal;
+  }
 }
 
-// Visibilidade (busca/catálogo). super/admin/sgi/diretoria: tudo. area COM
-// setor: publicadas sem consórcio (irrestrito) + publicadas do(s) consórcio(s)
-// vinculado(s) + rascunhos/publicadas do próprio setor (gestão do próprio
-// departamento, sempre visível independente de consórcio). Resto
-// (colaborador; area sem setor): só publicadas DENTRO do próprio público-alvo
-// (sem consórcio) ou do consórcio vinculado.
+/** Mesma regra de podeVerDocumento, como filtro do Prisma (listas, busca, detalhe, download…). */
 export function filtroVisibilidade(u: UsuarioAtual | null): Record<string, unknown> {
-  if (u && (ehAdminOuSuper(u) || u.perfil === "sgi" || u.perfil === "diretoria")) return {};
-  if (u && u.perfil === "area" && u.setores.length) {
-    return {
-      OR: [
-        { estado: "publicada", consorcioId: null },
-        { estado: "publicada", consorcioId: { in: u.consorcios } },
-        { areaId: { in: u.setores } },
-      ],
-    };
+  if (!u) return { id: "__sem_acesso__" };
+  if (ehGestao(u)) return {};
+
+  const gestorDeSetor = u.perfil === "area" && u.setores.length > 0;
+  const publicada = { estado: "publicada" };
+  const consorcioOk = { OR: [{ consorcioId: null }, { consorcioId: { in: u.consorcios } }] };
+  const ramos: Record<string, unknown>[] = [];
+
+  // Gestor de Setor: tudo do próprio setor.
+  if (gestorDeSetor) ramos.push({ areaId: { in: u.setores } });
+
+  // Público interno.
+  if (u.consorcios.length) {
+    ramos.push({ ...publicada, classificacao: "publico_interno", consorcioId: { in: u.consorcios } });
   }
-  return filtroPublicadaPorAudiencia(u);
+  const audiencia: Record<string, unknown>[] = [{ audienciaSetores: { none: {} }, audienciaUsuarios: { none: {} } }];
+  if (u.setores.length) audiencia.push({ audienciaSetores: { some: { id: { in: u.setores } } } });
+  if (u.id) audiencia.push({ audienciaUsuarios: { some: { id: u.id } } });
+  ramos.push(
+    gestorDeSetor
+      ? { ...publicada, classificacao: "publico_interno", consorcioId: null }
+      : { ...publicada, classificacao: "publico_interno", consorcioId: null, OR: audiencia },
+  );
+
+  // Restrito: setor dono, setor do público-alvo ou nominal (vazio NÃO é "todos").
+  const explicitos: Record<string, unknown>[] = [];
+  if (u.setores.length) {
+    explicitos.push({ areaId: { in: u.setores } });
+    explicitos.push({ audienciaSetores: { some: { id: { in: u.setores } } } });
+  }
+  if (u.id) explicitos.push({ audienciaUsuarios: { some: { id: u.id } } });
+  if (explicitos.length) {
+    ramos.push({ ...publicada, classificacao: "restrito", AND: [consorcioOk, { OR: explicitos }] });
+  }
+
+  // Confidencial: só nominal.
+  if (u.id) {
+    ramos.push({
+      ...publicada,
+      classificacao: "confidencial",
+      AND: [consorcioOk, { audienciaUsuarios: { some: { id: u.id } } }],
+    });
+  }
+
+  return { OR: ramos };
 }
