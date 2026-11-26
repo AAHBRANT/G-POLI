@@ -76,6 +76,11 @@ export default async function PoliticaDetalhe(props: {
     : undefined;
   // Mesma alçada para o relatório de ciência e o de notificação (ambos falam da
   // audiência da política, não do conteúdo).
+  // Com PDF oficial vigente, a ciência é dada DENTRO da janela do PDF (Visualizar);
+  // sem ele (norma publicada antes do PDF existir), o botão do cartão continua valendo.
+  const ciencaNoPdf = politica.versoes.some(
+    (v) => v.estado === "ativa" && !!v.documento?.oficial && /\.pdf$/i.test(v.documento.nome),
+  );
   const verRelatorioCiencia = !!usuario && ["sgi", "admin", "diretoria"].includes(usuario.perfil);
 
   const [todosSetores, todosUsuarios] = podeEditar
@@ -206,7 +211,9 @@ export default async function PoliticaDetalhe(props: {
               <p className="text-xs text-black/45">
                 {minhaCiencia
                   ? `Você deu ciência em ${minhaCiencia.criadoEm.toLocaleDateString("pt-BR")}.`
-                  : "Confirme que leu e está ciente desta norma."}
+                  : ciencaNoPdf
+                    ? "Abra o documento, leia até o final e confirme que está ciente."
+                    : "Confirme que leu e está ciente desta norma."}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -215,6 +222,7 @@ export default async function PoliticaDetalhe(props: {
                   ✓ Ciente
                 </span>
               )}
+              {!ciencaNoPdf && (
               <CienciaLeitura
                 politicaId={politica.id}
                 secoes={(politica.conteudoPublicado as SecaoRenderizada[] | null) ?? []}
@@ -225,6 +233,7 @@ export default async function PoliticaDetalhe(props: {
                 publicadaEm={politica.publicadaEm}
                 revisao={politica.revisao}
               />
+              )}
             </div>
           </div>
 
