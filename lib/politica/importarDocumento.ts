@@ -3,7 +3,19 @@
 // de extração devolve o mesmo formato — quem monta a Politica não precisa
 // saber de onde o texto veio.
 
-export type SecaoImportada = { titulo: string; corpo: string };
+import { detectarCapitulosEmLinhas, extrairEstrutura, tituloLegivel } from "@/lib/politica/importarEstrutura";
+
+export type SecaoImportada = {
+  titulo: string;
+  corpo: string;
+  /** "tabela" quando a seção é uma tabela real (colunas + linhas); por padrão, texto. */
+  tipo?: "texto" | "tabela";
+  colunas?: string[];
+  linhas?: string[][];
+};
+
+/** O que a importação encontrou, para mostrar à pessoa antes de ela revisar o rascunho. */
+export type ResumoImportacao = { secoes: number; tabelas: number; avisos: string[] };
 
 const TITULO_INEDITADO = "Conteúdo Importado";
 const TITULO_MD_RE = /^(#{1,4})\s+(.+)$/;
@@ -76,10 +88,14 @@ export function extrairDeMarkdown(texto: string): SecaoImportada[] {
 
 export function extrairDeTextoSimples(texto: string): SecaoImportada[] {
   const linhas = texto.split(/\r?\n/);
-  const paragrafos = linhas.map((linha, i) => ({
-    texto: linha,
-    nivel: pareceTitulo(linha, linhas[i - 1], linhas[i + 1]) ? 1 : null,
-  }));
+  // Capítulos numerados ("1 OBJETIVO", "2 CAMPO DE APLICAÇÃO"): com ao menos 3 em
+  // sequência, eles mandam; senão vale a heurística de linha isolada e curta.
+  const capitulos = detectarCapitulosEmLinhas(linhas.map((l) => l.trim()));
+  const paragrafos = linhas.map((linha, i) => {
+    const cap = capitulos.get(i);
+    if (cap) return { texto: tituloLegivel(cap.titulo), nivel: 1 };
+    return { texto: linha, nivel: capitulos.size > 0 ? null : pareceTitulo(linha, linhas[i - 1], linhas[i + 1]) ? 1 : null };
+  });
   return agruparEmSecoes(paragrafos);
 }
 
@@ -110,14 +126,26 @@ export function extensaoSuportada(nomeArquivo: string): ExtensaoSuportada | null
 // pela extensão. Lança se o formato não for suportado ou não houver
 // conteúdo extraível — quem chama decide a mensagem de erro pro usuário.
 export async function extrairSecoes(buffer: Buffer, nomeArquivo: string): Promise<SecaoImportada[]> {
+  return (await extrairComResumo(buffer, nomeArquivo)).secoes;
+}
+
+// Igual a extrairSecoes, mas também devolve o resumo (seções, tabelas e avisos).
+export async function extrairComResumo(
+  buffer: Buffer,
+  nomeArquivo: string,
+): Promise<{ secoes: SecaoImportada[]; resumo: ResumoImportacao }> {
   const ext = extensaoSuportada(nomeArquivo);
   if (!ext) throw new Error(`Formato não suportado: ${nomeArquivo}`);
 
   let secoes: SecaoImportada[];
+  const avisos: string[] = [];
   if (ext === "docx") {
     const mammoth = await import("mammoth");
     const resultado = await mammoth.convertToHtml({ buffer });
-    secoes = extrairDeHtml(resultado.value);
+    // Estruturado: capítulos numerados, tabelas reais, cabeçalho do original ignorado.
+    const estrutura = extrairEstrutura(resultado.value);
+    secoes = estrutura.secoes.length > 0 ? estrutura.secoes : extrairDeHtml(resultado.value);
+    if (estrutura.secoes.length > 0) avisos.push(...estrutura.avisos);
   } else if (ext === "pdf") {
     const { PDFParse } = await import("pdf-parse");
     const parser = new PDFParse({ data: buffer });
@@ -134,5 +162,5 @@ export async function extrairSecoes(buffer: Buffer, nomeArquivo: string): Promis
   }
 
   if (secoes.length === 0) throw new Error("Não foi possível extrair conteúdo do arquivo.");
-  return secoes;
+  return { secoes, resumo: { secoes: secoes.length, tabelas: secoes.filter((s) => s.tipo === "tabela").length, avisos } };
 }

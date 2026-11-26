@@ -7,13 +7,15 @@ import { getUsuarioAtual, podeCriarPolitica } from "@/lib/auth/usuario";
 import { registrar } from "@/lib/auditoria";
 import { gerarCodigoNormativo } from "@/lib/politica/codigo";
 import { tipoDocumentoValido, tipoDocumento, artigoDocumento, type TipoDocumentoValor } from "@/lib/constants";
-import { extrairSecoes, extrairDeTextoSimples, extensaoSuportada } from "@/lib/politica/importarDocumento";
+import { extrairComResumo, extrairDeTextoSimples, extensaoSuportada, type ResumoImportacao } from "@/lib/politica/importarDocumento";
+import { salvarArquivo } from "@/lib/storage";
+import { proximoNumeroVersao } from "@/lib/politica/dominio";
 
 const CLASSIFICACOES_VALIDAS = ["publico_interno", "restrito", "confidencial"] as const;
 const TAMANHO_MAXIMO_IMPORTACAO = 10 * 1024 * 1024; // 10 MB
 
 export type ResultadoAcao = { ok: boolean; erro?: string };
-export type ResultadoImportacao = ResultadoAcao & { id?: string };
+export type ResultadoImportacao = ResultadoAcao & { id?: string; resumo?: ResumoImportacao };
 
 export async function criarPolitica(formData: FormData): Promise<ResultadoAcao> {
   const usuario = await getUsuarioAtual();
@@ -124,6 +126,8 @@ export async function importarDocumento(formData: FormData): Promise<ResultadoIm
 
   let secoesImportadas;
   let origem: string;
+  let resumo: ResumoImportacao | undefined;
+  let original: { nome: string; tipo: string; bytes: Buffer } | undefined;
   try {
     if (temArquivo) {
       const arq = arquivo as File;
@@ -134,7 +138,10 @@ export async function importarDocumento(formData: FormData): Promise<ResultadoIm
         return { ok: false, erro: "Arquivo maior que 10 MB." };
       }
       const bytes = Buffer.from(await arq.arrayBuffer());
-      secoesImportadas = await extrairSecoes(bytes, arq.name);
+      const extraido = await extrairComResumo(bytes, arq.name);
+      secoesImportadas = extraido.secoes;
+      resumo = extraido.resumo;
+      original = { nome: arq.name, tipo: arq.type || arq.name.split(".").pop() || "arquivo", bytes };
       origem = `arquivo ${arq.name}`;
     } else {
       secoesImportadas = extrairDeTextoSimples(textoColado);
@@ -166,17 +173,37 @@ export async function importarDocumento(formData: FormData): Promise<ResultadoIm
             ordem: i + 1,
             codigo: String(i + 1),
             titulo: s.titulo,
-            tipo: "texto",
+            tipo: s.tipo ?? "texto",
             corpo: s.corpo,
+            ...(s.tipo === "tabela" ? { colunas: s.colunas ?? [], linhas: s.linhas ?? [] } : {}),
           })),
         },
       },
     });
+    // O arquivo original fica anexado ao documento (como versão do tipo "importado"),
+    // para consulta e conferência. Falha aqui não desfaz a importação do texto.
+    if (original) {
+      try {
+        const salvo = await salvarArquivo(nova.id, original.nome, original.bytes);
+        await prisma.versao.create({
+          data: {
+            politicaId: nova.id,
+            numero: proximoNumeroVersao(0),
+            estado: "ativa",
+            documento: {
+              create: { nome: original.nome, tipo: original.tipo, tamanho: salvo.tamanho, hash: salvo.hash, estado: "importado", oficial: false },
+            },
+          },
+        });
+      } catch {
+        resumo?.avisos.push("O texto foi importado, mas o arquivo original não pôde ser anexado (talvez já exista outro idêntico).");
+      }
+    }
     await registrar("politica.criar", "Politica", nova.id, `${titulo} (${area}) — importado de ${origem}`);
     revalidatePath("/catalogo");
     revalidatePath(`/tipos/${tipo}`);
     revalidatePath("/");
-    return { ok: true, id: nova.id };
+    return { ok: true, id: nova.id, resumo };
   } catch (e: unknown) {
     const msg =
       e && typeof e === "object" && "code" in e && (e as { code: string }).code === "P2002"
