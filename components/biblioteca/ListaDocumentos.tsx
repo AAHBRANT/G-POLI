@@ -68,7 +68,7 @@ export default function ListaDocumentos({ itens, vazio }: { itens: LinhaBibliote
               />
             )}
             <Link
-              href={`/catalogo/${d.id}`}
+              href={`/catalogo/${d.id}?ver=1`}
               className="group relative flex flex-col gap-3 rounded-xl px-4 py-4 outline-none focus-visible:ring-2 focus-visible:ring-black/50 sm:flex-row sm:items-center sm:gap-5"
             >
               <span className="w-fit shrink-0 rounded-md bg-bege/70 px-2.5 py-1 font-mono text-[11px] font-semibold tracking-tight text-black/80 sm:w-32 sm:text-center">

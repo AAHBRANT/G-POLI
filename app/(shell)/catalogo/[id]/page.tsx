@@ -33,8 +33,13 @@ function formatoTamanho(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export default async function PoliticaDetalhe(props: { params: Promise<{ id: string }> }) {
+export default async function PoliticaDetalhe(props: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ ver?: string }>;
+}) {
   const params = await props.params;
+  // ?ver=1 (vindo da lista): abre direto o PDF oficial vigente, sem passar pela tela de gestão.
+  const abrirPdf = (await props.searchParams).ver === "1";
   const usuario = await getUsuarioAtual();
   // findFirst (não findUnique) para poder combinar o id com o filtro de
   // visibilidade — sem isso, colaborador abria qualquer política direto pela
@@ -442,6 +447,12 @@ export default async function PoliticaDetalhe(props: { params: Promise<{ id: str
                                 titulo={politica.titulo}
                                 nomeArquivo={v.documento!.nome}
                                 className={BUTTON_CLASSES}
+                                abrirAoCarregar={abrirPdf && !!v.documento!.oficial && v.estado === "ativa"}
+                                ciencia={
+                                  politica.estado === "publicada" && v.documento!.oficial && v.estado === "ativa"
+                                    ? { politicaId: politica.id, jaCiente: !!minhaCiencia }
+                                    : undefined
+                                }
                               />
                             )}
                             <a href={`/api/documentos/${v.documento!.id}`} className={BUTTON_CLASSES}>
