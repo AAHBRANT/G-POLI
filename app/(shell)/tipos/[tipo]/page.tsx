@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { BUTTON_CLASSES } from "@/components/ui/Button";
 import NovaPoliticaForm from "@/components/politica/NovaPoliticaForm";
 import ImportarDocumentoForm from "@/components/politica/ImportarDocumentoForm";
 import BibliotecaView from "@/components/biblioteca/BibliotecaView";
@@ -44,6 +46,9 @@ export default async function TipoDocumentoPage(props: {
           <>
             <NovaPoliticaForm tipo={info.valor} consorcios={consorciosAtivos} />
             <ImportarDocumentoForm tipo={info.valor} />
+            <Link href={`/importar?tipo=${info.valor}`} className={BUTTON_CLASSES}>
+              Importar vários
+            </Link>
           </>
         ) : undefined
       }
