@@ -17,6 +17,7 @@ import {
   podeGerirVinculos,
 } from "@/lib/auth/usuario";
 import { BUTTON_CLASSES } from "@/components/ui/Button";
+import VisualizadorPdf from "@/components/politica/VisualizadorPdf";
 import VerVersaoAntiga from "@/components/politica/VerVersaoAntiga";
 import type { SecaoRenderizada } from "@/components/politica/DocumentoRenderizado";
 import { acaoVersao } from "@/lib/politica/dominio";
@@ -434,9 +435,19 @@ export default async function PoliticaDetalhe(props: { params: Promise<{ id: str
                       }
                       if (acao === "baixar") {
                         return (
-                          <a href={`/api/documentos/${v.documento!.id}`} className={BUTTON_CLASSES}>
-                            Baixar
-                          </a>
+                          <span className="flex flex-wrap gap-2">
+                            {/\.pdf$/i.test(v.documento!.nome) && (
+                              <VisualizadorPdf
+                                documentoId={v.documento!.id}
+                                titulo={politica.titulo}
+                                nomeArquivo={v.documento!.nome}
+                                className={BUTTON_CLASSES}
+                              />
+                            )}
+                            <a href={`/api/documentos/${v.documento!.id}`} className={BUTTON_CLASSES}>
+                              Baixar
+                            </a>
+                          </span>
                         );
                       }
                       return null;
