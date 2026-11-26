@@ -33,6 +33,10 @@ COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
 
+# pdfkit (PDF oficial): as fontes padrão (js/standard-fonts) são lidas do disco em tempo de
+# execução e o rastreamento do Next não as copia para o standalone.
+COPY --from=builder /app/node_modules/pdfkit ./node_modules/pdfkit
+
 COPY docker-entrypoint.sh ./
 # Normaliza CRLF->LF incondicionalmente: o checkout do agente de CI (Windows,
 # self-hosted) não respeitou o eol=lf do .gitattributes, gerando um shebang

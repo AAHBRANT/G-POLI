@@ -6,6 +6,8 @@
 import { detectarCapitulosEmLinhas, extrairEstrutura, tituloLegivel } from "@/lib/politica/importarEstrutura";
 
 export type SecaoImportada = {
+  /** Numeração do original (ex.: "7", "7.1"); sem ela, vale a ordem (1, 2, 3…). */
+  codigo?: string;
   titulo: string;
   corpo: string;
   /** "tabela" quando a seção é uma tabela real (colunas + linhas); por padrão, texto. */

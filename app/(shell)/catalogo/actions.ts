@@ -171,7 +171,7 @@ export async function importarDocumento(formData: FormData): Promise<ResultadoIm
         secoes: {
           create: secoesImportadas.map((s, i) => ({
             ordem: i + 1,
-            codigo: String(i + 1),
+            codigo: s.codigo ?? String(i + 1),
             titulo: s.titulo,
             tipo: s.tipo ?? "texto",
             corpo: s.corpo,
