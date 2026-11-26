@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getUsuarioAtual, podeCriarPolitica, filtroVisibilidade } from "@/lib/auth/usuario";
+import { getUsuarioAtual, podeCriarPolitica, filtroVisibilidade, veAlertasDeQualidade } from "@/lib/auth/usuario";
+import { clausulaAlerta } from "@/lib/politica/biblioteca";
 import CriarDocumentoMenu from "@/components/politica/CriarDocumentoMenu";
 import { nivelUrgenciaPendencia, classesUrgenciaPendencia } from "@/lib/politica/lembretesPendentes";
 
@@ -66,6 +67,15 @@ export default async function Home() {
   // perfil, sem checar isso — mesma família do bug de visibilidade corrigido
   // nas listagens, só que aqui.
   const veTudo = Object.keys(filtroVisibilidade(usuario)).length === 0;
+
+  // Alertas de qualidade (etapa 2): só para a gestão (SGI, Diretoria, admin).
+  const verAlertas = veAlertasDeQualidade(usuario);
+  const [alertaVencidas, alertaOrfaos] = verAlertas
+    ? await Promise.all([
+        prisma.politica.count({ where: { AND: [clausulaAlerta("vencida", new Date())] } }),
+        prisma.politica.count({ where: { AND: [clausulaAlerta("orfao", new Date())] } }),
+      ])
+    : [0, 0];
 
   const trintaDiasAtras = new Date();
   trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
@@ -195,6 +205,24 @@ export default async function Home() {
           <span className="text-lg">⚠️</span>
           <span>
             <strong>{semCiencia}</strong> norma{semCiencia > 1 ? "s" : ""} publicada{semCiencia > 1 ? "s" : ""} sem nenhuma ciência registrada.
+          </span>
+        </Link>
+      )}
+
+      {alertaVencidas > 0 && (
+        <Link href="/busca?alerta=vencida" className="liquid relative flex items-center gap-3 rounded-2xl bg-red-200/40 px-4 py-3 text-sm text-red-950 transition hover:bg-red-200/55">
+          <span className="text-lg">⏰</span>
+          <span>
+            <strong>{alertaVencidas}</strong> documento{alertaVencidas > 1 ? "s" : ""} com revisão vencida.
+          </span>
+        </Link>
+      )}
+
+      {alertaOrfaos > 0 && (
+        <Link href="/busca?alerta=orfao" className="liquid relative flex items-center gap-3 rounded-2xl bg-amber-200/45 px-4 py-3 text-sm text-amber-950 transition hover:bg-amber-200/60">
+          <span className="text-lg">🔗</span>
+          <span>
+            <strong>{alertaOrfaos}</strong> documento{alertaOrfaos > 1 ? "s" : ""} sem documento superior (norma, procedimento, instrução ou formulário).
           </span>
         </Link>
       )}

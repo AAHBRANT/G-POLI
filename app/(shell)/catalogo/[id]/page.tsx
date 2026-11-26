@@ -5,7 +5,7 @@ import NovaVersaoForm from "@/components/politica/NovaVersaoForm";
 import AcoesEstado from "@/components/politica/AcoesEstado";
 import CienciaLeitura from "@/components/politica/CienciaLeitura";
 import AudienciaSelector from "@/components/politica/AudienciaSelector";
-import { corClassificacao, rotuloClassificacao, ESTADOS_POLITICA, tipoDocumento } from "@/lib/constants";
+import { corClassificacao, rotuloClassificacao, ESTADOS_POLITICA, tipoDocumento, type TipoDocumentoValor } from "@/lib/constants";
 import {
   getUsuarioAtual,
   podeEditarConteudo,
@@ -14,11 +14,15 @@ import {
   podeAprovarGestor,
   podeRetirarDaAprovacao,
   filtroVisibilidade,
+  podeGerirVinculos,
 } from "@/lib/auth/usuario";
 import { BUTTON_CLASSES } from "@/components/ui/Button";
 import VerVersaoAntiga from "@/components/politica/VerVersaoAntiga";
 import type { SecaoRenderizada } from "@/components/politica/DocumentoRenderizado";
 import { acaoVersao } from "@/lib/politica/dominio";
+import PainelVinculos, { type DocumentoRelacionado } from "@/components/politica/PainelVinculos";
+import { SUPERIORES_PERMITIDOS, aceitaSuperior, exigeSuperior } from "@/lib/politica/hierarquia";
+import { situacaoRevisao, textoRevisao } from "@/lib/politica/revisao";
 
 export const dynamic = "force-dynamic";
 
@@ -80,6 +84,44 @@ export default async function PoliticaDetalhe(props: { params: Promise<{ id: str
   // Esta página é compartilhada por todos os 8 tipos (v3) — "voltar" precisa ir
   // à seção certa, não sempre a /catalogo.
   const hrefSecao = politica.tipo === "politica" ? "/catalogo" : `/tipos/${politica.tipo}`;
+
+  // Etapa 2: hierarquia documental e prazo de revisão. Os dois lados do vínculo
+  // só listam o que o usuário pode VER (filtroVisibilidade).
+  const agora = new Date();
+  const tipoDoc = politica.tipo as TipoDocumentoValor;
+  const podeGerir = podeGerirVinculos(usuario, politica);
+  const camposRel = { id: true, codigo: true, titulo: true, tipo: true, estado: true } as const;
+  const paraRelacionado = (d: { id: string; codigo: string | null; titulo: string; tipo: string; estado: string }): DocumentoRelacionado => ({
+    id: d.id,
+    codigo: d.codigo,
+    titulo: d.titulo,
+    tipoRotulo: tipoDocumento(d.tipo).rotulo,
+    estado: d.estado,
+    estadoRotulo: (ESTADOS_POLITICA[d.estado] ?? { rotulo: d.estado }).rotulo,
+  });
+  const [paiVisivel, filhosVisiveis, candidatosSuperior] = await Promise.all([
+    politica.paiId
+      ? prisma.politica.findFirst({ where: { id: politica.paiId, AND: [filtroVisibilidade(usuario)] }, select: camposRel })
+      : null,
+    prisma.politica.findMany({
+      where: { paiId: politica.id, AND: [filtroVisibilidade(usuario)] },
+      select: camposRel,
+      orderBy: [{ tipo: "asc" }, { codigo: "asc" }],
+    }),
+    podeGerir && aceitaSuperior(tipoDoc)
+      ? prisma.politica.findMany({
+          where: {
+            tipo: { in: SUPERIORES_PERMITIDOS[tipoDoc] },
+            id: { not: politica.id },
+            estado: { not: "revogada" },
+            AND: [filtroVisibilidade(usuario)],
+          },
+          select: camposRel,
+          orderBy: [{ tipo: "asc" }, { codigo: "asc" }],
+        })
+      : [],
+  ]);
+  const revisaoVale = politica.estado === "publicada";
 
   return (
     <div className="space-y-6">
@@ -240,6 +282,26 @@ export default async function PoliticaDetalhe(props: { params: Promise<{ id: str
           )}
         </section>
       )}
+
+      <PainelVinculos
+        politicaId={politica.id}
+        aceitaSuperior={aceitaSuperior(tipoDoc)}
+        exigeSuperior={exigeSuperior(tipoDoc)}
+        superior={paiVisivel ? paraRelacionado(paiVisivel) : null}
+        superiorOculto={!!politica.paiId && !paiVisivel}
+        superiorId={politica.paiId}
+        vinculados={filhosVisiveis.map(paraRelacionado)}
+        textoRevisao={revisaoVale ? textoRevisao(politica.proximaRevisaoEm, agora) : null}
+        situacaoRevisao={revisaoVale ? situacaoRevisao(politica.proximaRevisaoEm, agora) : null}
+        proximaFormatada={revisaoVale && politica.proximaRevisaoEm ? politica.proximaRevisaoEm.toLocaleDateString("pt-BR") : null}
+        periodicidade={politica.periodicidadeRevisaoMeses}
+        podeGerir={podeGerir}
+        opcoesSuperior={candidatosSuperior.map((c) => ({
+          id: c.id,
+          rotulo: `${c.codigo ?? "sem código"} · ${c.titulo} (${tipoDocumento(c.tipo).rotulo})`,
+        }))}
+        tiposAceitos={SUPERIORES_PERMITIDOS[tipoDoc].map((t) => tipoDocumento(t).rotulo)}
+      />
 
       {podeEditar && politica.estado === "rascunho" && !politica.consorcioId && (
         <section className="rounded-2xl liquid relative p-4">

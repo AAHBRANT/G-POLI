@@ -17,6 +17,8 @@ export type LinhaBiblioteca = {
   estado: string;
   estadoRotulo: string;
   estadoCor: string;
+  /** Alertas de qualidade (só para quem vê: revisão vencida/vencendo, sem superior). */
+  alertas: { texto: string; grave: boolean }[];
   classificacaoRotulo: string;
   classificacaoCor: string;
   pendente: boolean;
@@ -89,6 +91,11 @@ export default function ListaDocumentos({ itens, vazio }: { itens: LinhaBibliote
                     Leitura pendente
                   </span>
                 )}
+                {d.alertas.map((a) => (
+                  <span key={a.texto} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${a.grave ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-900"}`}>
+                    {a.texto}
+                  </span>
+                ))}
                 {d.estado !== "publicada" && (
                   <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${d.estadoCor}`}>{d.estadoRotulo}</span>
                 )}

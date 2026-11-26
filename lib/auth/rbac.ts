@@ -73,6 +73,23 @@ export function podeEditarConteudo(
   return false;
 }
 
+// Documento superior e prazo de revisão são METADADOS (não mudam o texto oficial),
+// então SGI/admin/super podem ajustá-los em qualquer estado; o Gestor de Setor
+// dono só enquanto o documento é rascunho (mesma alçada de editar o conteúdo).
+export function podeGerirVinculos(
+  u: UsuarioAtual | null,
+  politica: { areaId: string; estado: string },
+): boolean {
+  if (!u) return false;
+  if (u.perfil === "sgi" || ehAdminOuSuper(u)) return true;
+  return podeEditarConteudo(u, politica);
+}
+
+// Vê os alertas de qualidade (revisão vencida, documento sem superior): gestão do SGC.
+export function veAlertasDeQualidade(u: UsuarioAtual | null): boolean {
+  return !!u && (u.perfil === "sgi" || u.perfil === "diretoria" || ehAdminOuSuper(u));
+}
+
 // Editar UMA seção. SGI/admin/super: qualquer. Área: setor do usuário + seção liberada.
 export function podeEditarSecao(
   u: UsuarioAtual | null,
