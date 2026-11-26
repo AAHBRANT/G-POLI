@@ -218,94 +218,13 @@ describe("administração e visibilidade", () => {
     expect(podeGerirConsorcios(u("superadmin"))).toBe(true);
   });
 
-  it("filtroVisibilidade: gestor vê tudo; area com setor vê publicada+setores (irrestrito por audiência)", () => {
+  it("filtroVisibilidade: gestão vê tudo (filtro vazio); sem usuário não vê nada", () => {
     expect(filtroVisibilidade(u("admin"))).toEqual({});
-    expect(filtroVisibilidade(u("area", ["s1", "s2"]))).toEqual({
-      OR: [
-        { estado: "publicada", consorcioId: null },
-        { estado: "publicada", consorcioId: { in: [] } },
-        { areaId: { in: ["s1", "s2"] } },
-      ],
-    });
+    expect(filtroVisibilidade(u("superadmin"))).toEqual({});
+    expect(filtroVisibilidade(u("sgi"))).toEqual({});
+    expect(filtroVisibilidade(u("diretoria"))).toEqual({});
+    expect(filtroVisibilidade(null)).toEqual({ id: "__sem_acesso__" });
   });
-
-  it("filtroVisibilidade: area com setor mas fora do consórcio do documento não vê (exceto se for do próprio setor)", () => {
-    expect(filtroVisibilidade(u("area", ["s1"]))).toEqual({
-      OR: [
-        { estado: "publicada", consorcioId: null },
-        { estado: "publicada", consorcioId: { in: [] } },
-        { areaId: { in: ["s1"] } },
-      ],
-    });
-  });
-
-  it("filtroVisibilidade: area vinculada ao consórcio também vê publicada daquele consórcio", () => {
-    expect(filtroVisibilidade(u("area", ["s1"], ["c1"]))).toEqual({
-      OR: [
-        { estado: "publicada", consorcioId: null },
-        { estado: "publicada", consorcioId: { in: ["c1"] } },
-        { areaId: { in: ["s1"] } },
-      ],
-    });
-  });
-
-  it("colaborador: só publicada DENTRO do público-alvo (setor OU individual OU audiência vazia)", () => {
-    const semPublicoAlvo = { audienciaSetores: { none: {} }, audienciaUsuarios: { none: {} } };
-    // Sem setor: só a checagem "sem público-alvo" (todos) + "eu individualmente".
-    expect(filtroVisibilidade(u("colaborador"))).toEqual({
-      OR: [
-        { estado: "publicada", consorcioId: null, OR: [semPublicoAlvo, { audienciaUsuarios: { some: { id: "1" } } }] },
-        { estado: "publicada", consorcioId: { in: [] } },
-      ],
-    });
-    // Com setor: soma a checagem por setor também.
-    expect(filtroVisibilidade(u("colaborador", ["s1"]))).toEqual({
-      OR: [
-        {
-          estado: "publicada",
-          consorcioId: null,
-          OR: [
-            semPublicoAlvo,
-            { audienciaSetores: { some: { id: { in: ["s1"] } } } },
-            { audienciaUsuarios: { some: { id: "1" } } },
-          ],
-        },
-        { estado: "publicada", consorcioId: { in: [] } },
-      ],
-    });
-  });
-
-  it("colaborador sem consórcio: só publicada sem consórcio, dentro do público-alvo de sempre", () => {
-    const semPublicoAlvo = { audienciaSetores: { none: {} }, audienciaUsuarios: { none: {} } };
-    expect(filtroVisibilidade(u("colaborador"))).toEqual({
-      OR: [
-        {
-          estado: "publicada",
-          consorcioId: null,
-          OR: [semPublicoAlvo, { audienciaUsuarios: { some: { id: "1" } } }],
-        },
-        { estado: "publicada", consorcioId: { in: [] } },
-      ],
-    });
-  });
-
-  it("colaborador vinculado ao consórcio vê publicada daquele consórcio, sem checar público-alvo", () => {
-    expect(filtroVisibilidade(u("colaborador", [], ["c1", "c2"]))).toEqual({
-      OR: [
-        {
-          estado: "publicada",
-          consorcioId: null,
-          OR: [
-            { audienciaSetores: { none: {} }, audienciaUsuarios: { none: {} } },
-            { audienciaUsuarios: { some: { id: "1" } } },
-          ],
-        },
-        { estado: "publicada", consorcioId: { in: ["c1", "c2"] } },
-      ],
-    });
-  });
-
-  it("area sem setor cai na mesma regra de audiência do colaborador", () => {
-    expect(filtroVisibilidade(u("area", []))).toEqual(filtroVisibilidade(u("colaborador", [])));
-  });
+  // A semântica completa (classificação, público-alvo, consórcio, setor dono)
+  // é verificada em tests/visibilidade.test.ts.
 });

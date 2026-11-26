@@ -62,6 +62,7 @@ export default function FecharPopupTeams({ authId, metodo, hostRedirectUrl }: Pr
 
   return (
     <>
+      {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- navegação completa (recarrega a sessão) é intencional após o login */}
       <a href="/" className="mt-3 block text-sm font-medium text-marsala underline">
         Continuar para o G-Políticas →
       </a>

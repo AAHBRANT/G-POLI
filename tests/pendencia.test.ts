@@ -21,9 +21,9 @@ describe("dadosPendencia", () => {
 });
 
 describe("politicasParaNovoUsuario", () => {
-  const politicaAberta = { id: "p-aberta", tipo: "politica", publicadaEm: new Date("2026-08-01"), setorIds: [], usuarioIds: [] };
-  const politicaSetorTI = { id: "p-ti", tipo: "norma", publicadaEm: new Date("2026-08-02"), setorIds: ["setor-ti"], usuarioIds: [] };
-  const politicaSetorRH = { id: "p-rh", tipo: "manual", publicadaEm: new Date("2026-08-03"), setorIds: ["setor-rh"], usuarioIds: [] };
+  const politicaAberta = { id: "p-aberta", tipo: "politica", publicadaEm: new Date("2026-08-01"), classificacao: "publico_interno" as const, areaId: "area-x", setorIds: [], usuarioIds: [] };
+  const politicaSetorTI = { id: "p-ti", tipo: "norma", publicadaEm: new Date("2026-08-02"), classificacao: "publico_interno" as const, areaId: "area-x", setorIds: ["setor-ti"], usuarioIds: [] };
+  const politicaSetorRH = { id: "p-rh", tipo: "manual", publicadaEm: new Date("2026-08-03"), classificacao: "publico_interno" as const, areaId: "area-x", setorIds: ["setor-rh"], usuarioIds: [] };
 
   it("inclui política de audiência aberta (setorIds vazio) mesmo se o usuário não tem setor", () => {
     const r = politicasParaNovoUsuario([politicaAberta], []);
@@ -55,8 +55,22 @@ describe("politicasParaNovoUsuario", () => {
   });
 
   it("política restrita só a usuários específicos (audienciaSetores vazio) NÃO conta como aberta a todos", () => {
-    const politicaSoUsuarios = { id: "p-users", tipo: "politica", publicadaEm: new Date("2026-08-01"), setorIds: [], usuarioIds: ["outro-usuario"] };
+    const politicaSoUsuarios = { id: "p-users", tipo: "politica", publicadaEm: new Date("2026-08-01"), classificacao: "publico_interno" as const, areaId: "area-x", setorIds: [], usuarioIds: ["outro-usuario"] };
     const r = politicasParaNovoUsuario([politicaSoUsuarios], []);
     expect(r).toEqual([]);
+  });
+
+  it("restrito: só entra quem é do setor dono ou de um setor do público-alvo; vazio NÃO é todos", () => {
+    const restrito = { id: "p-res", tipo: "politica", publicadaEm: new Date("2026-08-01"), classificacao: "restrito" as const, areaId: "setor-dono", setorIds: [], usuarioIds: [] };
+    expect(politicasParaNovoUsuario([restrito], [])).toEqual([]);
+    expect(politicasParaNovoUsuario([restrito], ["outro"])).toEqual([]);
+    expect(politicasParaNovoUsuario([restrito], ["setor-dono"])).toEqual([restrito]);
+    const comAudiencia = { ...restrito, id: "p-res2", setorIds: ["setor-ti"] };
+    expect(politicasParaNovoUsuario([comAudiencia], ["setor-ti"])).toEqual([comAudiencia]);
+  });
+
+  it("confidencial: um usuário novo nunca entra (só nominais)", () => {
+    const conf = { id: "p-conf", tipo: "politica", publicadaEm: new Date("2026-08-01"), classificacao: "confidencial" as const, areaId: "setor-dono", setorIds: ["setor-ti"], usuarioIds: [] };
+    expect(politicasParaNovoUsuario([conf], ["setor-dono", "setor-ti"])).toEqual([]);
   });
 });

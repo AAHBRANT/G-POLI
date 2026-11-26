@@ -202,13 +202,16 @@ describe("publicarPolitica — geração do documento oficial", () => {
       audienciaUsuarios: [],
     });
 
-    const consorcioFindUnique = prisma.consorcio.findUnique as ReturnType<typeof vi.fn>;
-    consorcioFindUnique.mockResolvedValue({
-      membros: [{ id: "u-consorcio", oid: "o-consorcio", nome: "Do Consórcio", email: "consorcio@x.com", ativo: true }],
-    });
+    // Candidatos = usuários vinculados ao consórcio (a consulta filtra por consorcios.some).
+    usuarioFindMany.mockResolvedValue([
+      { id: "u-consorcio", oid: "o-consorcio", nome: "Do Consórcio", email: "consorcio@x.com", perfil: "colaborador", ativo: true, setores: [], consorcios: [{ id: "c1" }] },
+    ]);
 
     await publicarPolitica("p1");
 
+    expect(usuarioFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ consorcios: { some: { id: "c1" } } }) }),
+    );
     expect(prisma.notificacao.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ usuarioEmail: "consorcio@x.com" }) }),
     );
@@ -451,5 +454,60 @@ describe("revogarPolitica — cancela Pendencia pendente", () => {
       where: { politicaId: "p1", estado: "pendente" },
       data: { estado: "cancelada" },
     });
+  });
+});
+
+describe("publicarPolitica — público-alvo respeita a classificação", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    usuarioAtual.mockResolvedValue({ id: "u1", nome: "Fulano de Tal", email: "fulano@aahbrant.com" });
+    publicarPermitido.mockReturnValue(true);
+    notificar.mockResolvedValue({ ok: true });
+    salvar.mockResolvedValue({ hash: "abc123", tamanho: 100, caminhoRelativo: "x" });
+    versaoCount.mockResolvedValue(0);
+    gerar.mockResolvedValue(Buffer.from("conteudo-fake"));
+    transacao.mockImplementation(async (arg: unknown) => {
+      if (Array.isArray(arg)) return Promise.all(arg);
+      return (arg as (tx: unknown) => Promise<void>)({
+        versao: { create: versaoCreate, updateMany: versaoUpdateMany, count: versaoCount },
+        politica: { update: politicaUpdate },
+      });
+    });
+  });
+
+  it("restrito com público-alvo vazio NÃO avisa todos: consulta só o setor dono", async () => {
+    findUnique.mockResolvedValue({
+      ...politicaBase(),
+      classificacao: "restrito",
+      areaId: "setor-dono",
+      consorcioId: null,
+      audienciaSetores: [],
+      audienciaUsuarios: [],
+    });
+    usuarioFindMany.mockResolvedValue([]);
+
+    await publicarPolitica("p1");
+
+    const consultas = usuarioFindMany.mock.calls.map((c) => JSON.stringify(c[0]));
+    expect(consultas.some((q) => q.includes('"ativo":true}') && !q.includes("OR"))).toBe(false); // nunca "todos os ativos"
+    expect(consultas.some((q) => q.includes("setor-dono"))).toBe(true);
+  });
+
+  it("confidencial: só usuários nominais, mesmo que haja setores no público-alvo", async () => {
+    findUnique.mockResolvedValue({
+      ...politicaBase(),
+      classificacao: "confidencial",
+      areaId: "setor-dono",
+      consorcioId: null,
+      audienciaSetores: [{ id: "s1" }],
+      audienciaUsuarios: [{ id: "u-nominal" }],
+    });
+    usuarioFindMany.mockResolvedValue([]);
+
+    await publicarPolitica("p1");
+
+    const filtros = usuarioFindMany.mock.calls.map((c) => JSON.stringify((c[0] as { where: unknown }).where));
+    expect(filtros.some((q) => q.includes("u-nominal"))).toBe(true);
+    expect(filtros.some((q) => q.includes('"setores"'))).toBe(false); // setor nunca basta para confidencial
   });
 });
