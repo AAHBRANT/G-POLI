@@ -155,10 +155,10 @@ export default async function Home() {
 
   const cards = [
     { titulo: "Total de normas", valor: total, cor: "text-marsala", bg: "bg-bege/55", href: "/catalogo", icone: "M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z", tendencia: criadasUlt30 > 0 ? `+${criadasUlt30} este mês` : null },
-    { titulo: "Publicadas", valor: publicadas, cor: "text-emerald-700", bg: "bg-emerald-200/40", href: "/busca?estado=publicada", icone: "M5 13l4 4L19 7", tendencia: publicadasUlt30 > 0 ? `+${publicadasUlt30} este mês` : null },
-    { titulo: "Em rascunho", valor: rascunho, cor: "text-amber-700", bg: "bg-amber-200/40", href: "/busca?estado=rascunho", icone: "M11 4h9M11 4l-7 7-2 5 5-2 7-7", tendencia: null },
+    { titulo: "Publicadas", valor: publicadas, cor: "text-emerald-700", bg: "bg-emerald-200/40", href: "/catalogo?estado=publicada", icone: "M5 13l4 4L19 7", tendencia: publicadasUlt30 > 0 ? `+${publicadasUlt30} este mês` : null },
+    { titulo: "Em rascunho", valor: rascunho, cor: "text-amber-700", bg: "bg-amber-200/40", href: "/catalogo?estado=rascunho", icone: "M11 4h9M11 4l-7 7-2 5 5-2 7-7", tendencia: null },
     { titulo: "Em aprovação", valor: emAprovacao, cor: "text-amber-800", bg: "bg-amber-200/40", href: "/publicacao", icone: "M12 8v4l3 3", tendencia: null },
-    { titulo: "Revogadas", valor: revogadas, cor: "text-red-700", bg: "bg-red-200/35", href: "/busca?estado=revogada", icone: "M18 6L6 18M6 6l12 12", tendencia: null },
+    { titulo: "Revogadas", valor: revogadas, cor: "text-red-700", bg: "bg-red-200/35", href: "/catalogo?estado=revogada", icone: "M18 6L6 18M6 6l12 12", tendencia: null },
   ];
 
   // Bar horizontal simples (sem lib de gráfico) — setores sem norma nenhuma
@@ -194,7 +194,7 @@ export default async function Home() {
       </section>
 
       {semCiencia > 0 && (
-        <Link href="/busca?estado=publicada" className="liquid relative flex items-center gap-3 rounded-2xl bg-amber-200/45 px-4 py-3 text-sm text-amber-950 transition hover:bg-amber-200/60">
+        <Link href="/catalogo?estado=publicada" className="liquid relative flex items-center gap-3 rounded-2xl bg-amber-200/45 px-4 py-3 text-sm text-amber-950 transition hover:bg-amber-200/60">
           <span className="h-2 w-2 shrink-0 rounded-full bg-marsala" />
           <span>
             <strong>{semCiencia}</strong> norma{semCiencia > 1 ? "s" : ""} publicada{semCiencia > 1 ? "s" : ""} sem nenhuma ciência registrada.
@@ -203,7 +203,7 @@ export default async function Home() {
       )}
 
       {alertaVencidas > 0 && (
-        <Link href="/busca?alerta=vencida" className="liquid relative flex items-center gap-3 rounded-2xl bg-red-200/40 px-4 py-3 text-sm text-red-950 transition hover:bg-red-200/55">
+        <Link href="/catalogo?alerta=vencida" className="liquid relative flex items-center gap-3 rounded-2xl bg-red-200/40 px-4 py-3 text-sm text-red-950 transition hover:bg-red-200/55">
           <span className="h-2 w-2 shrink-0 rounded-full bg-marsala" />
           <span>
             <strong>{alertaVencidas}</strong> documento{alertaVencidas > 1 ? "s" : ""} com revisão vencida.
@@ -212,7 +212,7 @@ export default async function Home() {
       )}
 
       {alertaOrfaos > 0 && (
-        <Link href="/busca?alerta=orfao" className="liquid relative flex items-center gap-3 rounded-2xl bg-amber-200/45 px-4 py-3 text-sm text-amber-950 transition hover:bg-amber-200/60">
+        <Link href="/catalogo?alerta=orfao" className="liquid relative flex items-center gap-3 rounded-2xl bg-amber-200/45 px-4 py-3 text-sm text-amber-950 transition hover:bg-amber-200/60">
           <span className="h-2 w-2 shrink-0 rounded-full bg-marsala" />
           <span>
             <strong>{alertaOrfaos}</strong> documento{alertaOrfaos > 1 ? "s" : ""} sem documento superior (norma, procedimento, instrução ou formulário).
