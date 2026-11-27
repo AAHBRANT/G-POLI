@@ -24,7 +24,6 @@ const documentos = TIPOS_DOCUMENTO.map((t) => ({
 
 const ferramentas = [
   { nome: "Publicação", href: "/publicacao", icone: "M5 13l4 4L19 7" },
-  { nome: "Busca", href: "/busca", icone: "M21 21l-4.3-4.3M11 18a7 7 0 100-14 7 7 0 000 14z" },
 ];
 
 const admin = [

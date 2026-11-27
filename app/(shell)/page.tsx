@@ -132,10 +132,6 @@ export default async function Home() {
             </ul>
           )}
         </section>
-
-        <Link href="/busca" className="inline-block rounded-lg border border-black/15 px-4 py-2 text-sm text-black/70 transition hover:bg-black/5">
-          Buscar norma
-        </Link>
       </div>
     );
   }
@@ -181,9 +177,6 @@ export default async function Home() {
         </div>
         <div className="flex gap-2">
           {podeCriar && <CriarDocumentoMenu />}
-          <Link href="/busca" className="liquid relative rounded-xl px-4 py-2 text-sm font-medium text-black/75 transition hover:text-black">
-            Buscar norma
-          </Link>
         </div>
       </div>
 
