@@ -69,7 +69,7 @@ export default function FundoEfeitos() {
       mouse.y += (alvo.y - mouse.y) * 0.05;
       ctx.clearRect(0, 0, w, h);
       fios();
-      t += 0.008;
+      t += 0.004;
       if (!parado && !document.hidden) raf = requestAnimationFrame(quadro);
     };
     const mover = (e: PointerEvent) => { alvo.x = e.clientX / w; alvo.y = e.clientY / h; };
