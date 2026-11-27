@@ -245,7 +245,7 @@ export default async function BibliotecaView({
                 {filtrando && (
                   <Link
                     href={hrefBiblioteca(base, { q: "", tipo: "", areaId: "", estado: "", alerta: "" })}
-                    className="text-xs font-semibold text-black underline-offset-2 hover:underline"
+                    className="text-xs font-semibold text-bege underline-offset-2 hover:underline"
                   >
                     Limpar filtros
                   </Link>
