@@ -169,3 +169,5 @@ html[data-visual] main h1:not(.liquid *) + p { color: rgba(255,255,255,.72) !imp
 /* títulos de seção que ficam soltos sobre o fundo escuro (fora de cards) */
 html[data-visual] main h2:not(.liquid *, .bg-white *),
 html[data-visual] main h3:not(.liquid *, .bg-white *) { color: rgba(255,255,255,.85) !important; }
+/* cartão dentro de cartão: o interno vira só conteúdo, sem borda nem sombra própria */
+html[data-visual] .liquid .liquid { box-shadow: none !important; border-radius: 0; }
