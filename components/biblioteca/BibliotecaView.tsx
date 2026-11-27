@@ -231,8 +231,8 @@ export default async function BibliotecaView({
               {setores.length > 1 && <SeletorSetor base={base} params={p} setores={setores} />}
             </div>
 
-            <section className="space-y-3" aria-live="polite">
-              <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+            <section className="liquid relative overflow-hidden rounded-2xl" aria-live="polite">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/5 px-4 py-3">
                 <h2 className="text-sm font-semibold text-black/70">
                   {!filtrando
                     ? "Mais recentes"
@@ -245,7 +245,7 @@ export default async function BibliotecaView({
                 {filtrando && (
                   <Link
                     href={hrefBiblioteca(base, { q: "", tipo: "", areaId: "", estado: "", alerta: "" })}
-                    className="text-xs font-semibold text-bege underline-offset-2 hover:underline"
+                    className="text-xs font-semibold text-black underline-offset-2 hover:underline"
                   >
                     Limpar filtros
                   </Link>
@@ -264,7 +264,7 @@ export default async function BibliotecaView({
                 }
               />
               {linhas.length === LIMITE && (
-                <p className="px-1 text-xs text-black/45">Mostrando os {LIMITE} primeiros. Refine a busca para ver outros.</p>
+                <p className="border-t border-black/5 px-4 py-2.5 text-xs text-black/45">Mostrando os {LIMITE} primeiros. Refine a busca para ver outros.</p>
               )}
             </section>
           </>
