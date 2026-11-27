@@ -15,7 +15,7 @@ export default function SeletorSetor({
 }) {
   const { navegar } = useBiblioteca();
   return (
-    <label className="liquid relative flex h-11 shrink-0 items-center gap-2 rounded-2xl px-3.5 text-[13px] font-semibold text-black/70">
+    <label className="liquid relative flex h-11 border border-black/10 shrink-0 items-center gap-2 rounded-2xl px-3.5 text-[13px] font-semibold text-black/70">
       <span className="text-black/45">Setor</span>
       <select
         value={params.areaId}

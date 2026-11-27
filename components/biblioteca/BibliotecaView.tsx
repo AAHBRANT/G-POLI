@@ -199,9 +199,9 @@ export default async function BibliotecaView({
             </div>
           ))
         ) : (
-          <>
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
-              <div className="min-w-0 flex-1 space-y-3">
+          <div className="liquid relative overflow-hidden rounded-2xl">
+            <div className="flex flex-col gap-2 border-b border-black/5 p-3 lg:flex-row lg:items-start">
+              <div className="min-w-0 flex-1 divide-y divide-black/5 [&>nav]:py-1.5 [&>nav:first-child]:pt-0 [&>nav:last-child]:pb-0">
                 {!tipoFixo && (
                   <FiltroPilulas base={base} params={p} chave="tipo" opcoes={opcoesTipo} aria="Filtrar por tipo de documento" />
                 )}
@@ -230,7 +230,7 @@ export default async function BibliotecaView({
               {setores.length > 1 && <SeletorSetor base={base} params={p} setores={setores} />}
             </div>
 
-            <section className="liquid relative overflow-hidden rounded-2xl" aria-live="polite">
+            <section aria-live="polite">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/5 px-4 py-3">
                 <h2 className="text-sm font-semibold text-black/70">
                   {!filtrando
@@ -266,7 +266,7 @@ export default async function BibliotecaView({
                 <p className="border-t border-black/5 px-4 py-2.5 text-xs text-black/45">Mostrando os {LIMITE} primeiros. Refine a busca para ver outros.</p>
               )}
             </section>
-          </>
+          </div>
         )}
       </div>
     </PainelBiblioteca>
