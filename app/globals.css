@@ -133,3 +133,32 @@ body {
   .liquido-a, .liquido-b, .liquido-c { animation: none; }
   .painel-vidro .brilho-ponteiro { transition: none; }
 }
+
+/* ===== Visual "Comunicados" =============================================
+   Cards brancos lisos, borda fina, sem vidro nem cores de estado — mesmo
+   padrão do app de Comunicados. Vale para todas as telas (html[data-visual]). */
+html[data-visual] body { background-image: none; background-color: #f6f6f4; }
+html[data-visual] .liquid,
+html[data-visual] .vidro,
+html[data-visual] .vidro-bege,
+html[data-visual] .liquid-bege {
+  background: #fff !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+html[data-visual] .liquid::before,
+html[data-visual] .liquid::after { display: none !important; }
+html[data-visual] .liquid[class*="bg-emerald"],
+html[data-visual] .liquid[class*="bg-amber"],
+html[data-visual] .liquid[class*="bg-red"],
+html[data-visual] .liquid[class*="bg-bege"] { background: #fff !important; }
+html[data-visual] .liquid [class*="text-emerald-"],
+html[data-visual] .liquid [class*="text-amber-"],
+html[data-visual] .liquid [class*="text-red-"] { color: inherit !important; }
+html[data-visual] .liquid.text-amber-950,
+html[data-visual] .liquid.text-red-950 { color: rgba(0,0,0,.8) !important; }
+html[data-visual] .liquid { border-radius: 12px; box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04) !important; }
+html[data-visual] .liquido-a,
+html[data-visual] .liquido-b,
+html[data-visual] .liquido-c,
+html[data-visual] .fundo-pontos { display: none !important; }

@@ -101,7 +101,7 @@ export default async function Home() {
       <div className="space-y-6">
         <div>
           <h1 className="text-xl font-semibold text-marsala">
-            Olá{primeiroNome(usuario?.nome ?? "") ? `, ${primeiroNome(usuario!.nome)}` : ""} 👋
+            Olá{primeiroNome(usuario?.nome ?? "") ? `, ${primeiroNome(usuario!.nome)}` : ""}
           </h1>
           <p className="text-sm text-black/50">Normas publicadas para você.</p>
         </div>
@@ -175,7 +175,7 @@ export default async function Home() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-marsala">
-            Olá{primeiroNome(usuario?.nome ?? "") ? `, ${primeiroNome(usuario!.nome)}` : ""} 👋
+            Olá{primeiroNome(usuario?.nome ?? "") ? `, ${primeiroNome(usuario!.nome)}` : ""}
           </h1>
           <p className="text-sm text-black/50">Painel de gestão de normativos da AAHBRANT.</p>
         </div>
@@ -202,7 +202,7 @@ export default async function Home() {
 
       {semCiencia > 0 && (
         <Link href="/busca?estado=publicada" className="liquid relative flex items-center gap-3 rounded-2xl bg-amber-200/45 px-4 py-3 text-sm text-amber-950 transition hover:bg-amber-200/60">
-          <span className="text-lg">⚠️</span>
+          <span className="h-2 w-2 shrink-0 rounded-full bg-marsala" />
           <span>
             <strong>{semCiencia}</strong> norma{semCiencia > 1 ? "s" : ""} publicada{semCiencia > 1 ? "s" : ""} sem nenhuma ciência registrada.
           </span>
@@ -211,7 +211,7 @@ export default async function Home() {
 
       {alertaVencidas > 0 && (
         <Link href="/busca?alerta=vencida" className="liquid relative flex items-center gap-3 rounded-2xl bg-red-200/40 px-4 py-3 text-sm text-red-950 transition hover:bg-red-200/55">
-          <span className="text-lg">⏰</span>
+          <span className="h-2 w-2 shrink-0 rounded-full bg-marsala" />
           <span>
             <strong>{alertaVencidas}</strong> documento{alertaVencidas > 1 ? "s" : ""} com revisão vencida.
           </span>
@@ -220,7 +220,7 @@ export default async function Home() {
 
       {alertaOrfaos > 0 && (
         <Link href="/busca?alerta=orfao" className="liquid relative flex items-center gap-3 rounded-2xl bg-amber-200/45 px-4 py-3 text-sm text-amber-950 transition hover:bg-amber-200/60">
-          <span className="text-lg">🔗</span>
+          <span className="h-2 w-2 shrink-0 rounded-full bg-marsala" />
           <span>
             <strong>{alertaOrfaos}</strong> documento{alertaOrfaos > 1 ? "s" : ""} sem documento superior (norma, procedimento, instrução ou formulário).
           </span>
