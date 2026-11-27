@@ -189,9 +189,8 @@ export default async function BibliotecaView({
             <div className="mt-7">
               <BuscaBiblioteca base={base} params={p} />
             </div>
+            {acoes && <div className="mt-4 flex flex-wrap items-start justify-end gap-2 [&>form]:w-full">{acoes}</div>}
         </PainelVidro>
-
-        {acoes && <div className="flex flex-wrap items-start justify-end gap-2 [&>form]:w-full">{acoes}</div>}
 
         {total === 0 ? (
           (vazioTotal ?? (

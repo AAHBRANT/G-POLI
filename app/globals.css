@@ -171,3 +171,5 @@ html[data-visual] main h2:not(.liquid *, .bg-white *),
 html[data-visual] main h3:not(.liquid *, .bg-white *) { color: rgba(255,255,255,.85) !important; }
 /* cartão dentro de cartão: o interno vira só conteúdo, sem borda nem sombra própria */
 html[data-visual] .liquid .liquid { box-shadow: none !important; border-radius: 0; }
+/* sem as manchas animadas o painel não precisa cortar o conteúdo: menus suspensos podem sair do cartão */
+html[data-visual] .painel-vidro { overflow: visible !important; }
