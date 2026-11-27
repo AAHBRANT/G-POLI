@@ -32,7 +32,7 @@ export default async function Header() {
         </div>
       </div>
 
-      <form action="/busca" method="get" role="search" className="mx-4 hidden max-w-md flex-1 sm:block">
+      <form action="/catalogo" method="get" role="search" className="mx-4 hidden max-w-md flex-1 sm:block">
         <label htmlFor="busca-global" className="sr-only">
           Buscar políticas, normas e procedimentos
         </label>
