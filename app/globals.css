@@ -170,7 +170,9 @@ html[data-visual] main h1:not(.liquid *) + p { color: rgba(255,255,255,.72) !imp
 html[data-visual] main h2:not(.liquid *, .bg-white *),
 html[data-visual] main h3:not(.liquid *, .bg-white *) { color: rgba(255,255,255,.85) !important; }
 /* cartão dentro de cartão: o interno vira só conteúdo, sem borda nem sombra própria */
-html[data-visual] .liquid .liquid { box-shadow: none !important; border-radius: 0; }
+html[data-visual] .liquid .liquid:not(.liquid-bege) { box-shadow: none !important; border-radius: 0; }
+/* destaque da opção ativa nos filtros: bege suave */
+html[data-visual] .liquid .liquid-bege.absolute { background: rgba(235, 233, 173, 0.6) !important; border-radius: 12px !important; box-shadow: none !important; }
 /* sem as manchas animadas o painel não precisa cortar o conteúdo: menus suspensos podem sair do cartão */
 html[data-visual] .painel-vidro { overflow: visible !important; }
 
