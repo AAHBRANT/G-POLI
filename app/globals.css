@@ -173,3 +173,28 @@ html[data-visual] main h3:not(.liquid *, .bg-white *) { color: rgba(255,255,255,
 html[data-visual] .liquid .liquid { box-shadow: none !important; border-radius: 0; }
 /* sem as manchas animadas o painel não precisa cortar o conteúdo: menus suspensos podem sair do cartão */
 html[data-visual] .painel-vidro { overflow: visible !important; }
+
+/* ===== Marca do cabeçalho (mesmo padrão do G-SST / G-QUALI) ===============
+   Logo oficial sem recolorir, divisor vinho inclinado e brilho recortado pela
+   própria logo ao passar o mouse. */
+.gs-logo { position: relative; display: inline-block; line-height: 0; }
+.gs-logo img { display: block; height: var(--gs-logo-altura, 30px); width: auto; max-width: none; user-select: none; -webkit-user-drag: none; }
+.gs-logo-brilho {
+  position: absolute; inset: 0; pointer-events: none;
+  -webkit-mask-image: var(--gs-logo-url); mask-image: var(--gs-logo-url);
+  -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
+  background-image: linear-gradient(110deg, transparent 38%, rgba(235, 233, 173, 0.95) 50%, transparent 62%);
+  background-size: 260% 100%; background-position: 130% 0; opacity: 0;
+}
+.gs-marca-link { display: flex; align-items: center; gap: 12px; min-width: 0; text-decoration: none; color: inherit; border-radius: 6px; outline-offset: 4px; }
+.gs-marca-link:hover .gs-logo-brilho, .gs-marca-link:focus-visible .gs-logo-brilho { animation: gs-brilho 900ms ease-out; }
+.gs-marca-link .gs-logo { flex-shrink: 0; transition: transform 200ms ease; }
+.gs-marca-link:hover .gs-logo { transform: translateY(-1px); }
+.gs-marca-divisor { width: 1px; align-self: stretch; margin: 6px 0; background: linear-gradient(180deg, transparent, #670000 30%, #670000 70%, transparent); transform: skewX(-18deg); flex-shrink: 0; }
+.gs-marca-texto { display: flex; flex-direction: column; line-height: 1; }
+.gs-marca-nome { font-family: var(--font-anta), "Roboto", sans-serif; font-size: 20px; line-height: 20px; font-weight: 700; color: #111; }
+.gs-marca-subtitulo { font-size: 12px; line-height: 14px; color: rgba(0,0,0,.55); text-transform: uppercase; white-space: nowrap; }
+@keyframes gs-brilho { 0% { opacity: 1; background-position: 130% 0; } 100% { opacity: 1; background-position: -30% 0; } }
+@media (max-width: 480px) { .gs-marca-subtitulo { display: none; } }
+@media (max-width: 560px) { .gs-marca-link .gs-logo, .gs-marca-divisor { display: none; } }
+@media (prefers-reduced-motion: reduce) { .gs-marca-link:hover .gs-logo-brilho { animation: none; } .gs-marca-link:hover .gs-logo { transform: none; } }

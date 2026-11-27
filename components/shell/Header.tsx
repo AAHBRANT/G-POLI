@@ -2,6 +2,7 @@ import { authEnabled } from "@/lib/auth/config";
 import { getUsuarioAtual } from "@/lib/auth/usuario";
 import { CARGOS, rotuloCargo } from "@/lib/auth/perfis";
 import Breadcrumb from "@/components/shell/Breadcrumb";
+import MarcaTopo from "@/components/shell/MarcaTopo";
 import MenuPerfil from "@/components/shell/MenuPerfil";
 import SinoNotificacoes from "@/components/shell/SinoNotificacoes";
 
@@ -19,13 +20,16 @@ export default async function Header() {
 
   return (
     <header className="flex items-center justify-between vidro sticky top-0 z-30 border-b border-white/60 px-6 py-3">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-5">
+        <MarcaTopo />
+        <div className="hidden items-center gap-3 lg:flex">
         <Breadcrumb />
         {!authEnabled && (
           <span className="rounded-full bg-bege/60 px-2 py-0.5 text-[10px] font-medium text-black/60">
             auth desativada (dev)
           </span>
         )}
+        </div>
       </div>
 
       <form action="/busca" method="get" role="search" className="mx-4 hidden max-w-md flex-1 sm:block">
