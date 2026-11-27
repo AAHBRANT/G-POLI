@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { MotionConfig, motion } from "motion/react";
-import Brand from "@/components/shell/Brand";
 import { TIPOS_DOCUMENTO } from "@/lib/constants";
 import { usePendencias } from "@/lib/hooks/usePendencias";
 
@@ -108,9 +107,6 @@ export default function Sidebar() {
     <MotionConfig reducedMotion="user">
       <aside className="vidro-bege relative flex w-64 flex-col justify-between text-black/80" onMouseLeave={() => setSobre(null)}>
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="border-b border-black/10 px-5 py-5">
-            <Brand size="md" />
-          </div>
           <nav className="mt-5 flex-1 space-y-1 overflow-y-auto px-3 pb-3">
             {item({ ...painel, badge: !carregando && total > 0 ? total : undefined })}
             {rotulo("Documentos")}
