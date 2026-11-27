@@ -198,3 +198,8 @@ html[data-visual] .painel-vidro { overflow: visible !important; }
 @media (max-width: 480px) { .gs-marca-subtitulo { display: none; } }
 @media (max-width: 560px) { .gs-marca-link .gs-logo, .gs-marca-divisor { display: none; } }
 @media (prefers-reduced-motion: reduce) { .gs-marca-link:hover .gs-logo-brilho { animation: none; } .gs-marca-link:hover .gs-logo { transform: none; } }
+
+/* textos soltos (fora de cartões) sobre o fundo escuro: parágrafos e rótulos ficam claros */
+html[data-visual] main p:not(.liquid *, [class*="bg-"], [class*="bg-"] *),
+html[data-visual] main label:not(.liquid *, [class*="bg-"], [class*="bg-"] *) { color: rgba(255,255,255,.78) !important; }
+html[data-visual] main p:not(.liquid *, [class*="bg-"], [class*="bg-"] *) a { color: #ebe9ad !important; }
