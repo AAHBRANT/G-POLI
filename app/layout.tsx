@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import TeamsFrame from "@/components/TeamsFrame";
+import FundoEfeitos from "@/components/FundoEfeitos";
 
 export const metadata: Metadata = {
   title: "G-Políticas — AAHBRANT",
@@ -15,6 +16,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" data-visual="a">
       <body>
+        <FundoEfeitos />
         <TeamsFrame />
         {children}
       </body>

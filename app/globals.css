@@ -137,7 +137,8 @@ body {
 /* ===== Visual "Comunicados" =============================================
    Cards brancos lisos, borda fina, sem vidro nem cores de estado — mesmo
    padrão do app de Comunicados. Vale para todas as telas (html[data-visual]). */
-html[data-visual] body { background-image: none; background-color: #f6f6f4; }
+html[data-visual], html[data-visual] body { background-color: #1a0202; background-image: radial-gradient(120% 90% at 20% 0%, #8a0f0b 0%, #4a0000 38%, #1a0202 72%, #0b0b0b 100%); background-attachment: fixed; }
+html[data-visual] body { background: transparent; }
 html[data-visual] .liquid,
 html[data-visual] .vidro,
 html[data-visual] .vidro-bege,
@@ -162,3 +163,6 @@ html[data-visual] .liquido-a,
 html[data-visual] .liquido-b,
 html[data-visual] .liquido-c,
 html[data-visual] .fundo-pontos { display: none !important; }
+/* títulos que ficam direto sobre o fundo escuro */
+html[data-visual] main h1:not(.liquid *) { color: #fff !important; }
+html[data-visual] main h1:not(.liquid *) + p { color: rgba(255,255,255,.72) !important; }
